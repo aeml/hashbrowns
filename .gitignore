@@ -1,0 +1,101 @@
+# Build directories
+build/
+build-*/
+out/
+
+# Compiled binaries
+*.exe
+*.out
+*.app
+hashbrowns
+
+# Static libraries
+*.a
+*.lib
+
+# Shared libraries
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Object files
+*.o
+*.obj
+
+# Debug information
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+Makefile
+
+# IDE and editor files
+.vscode/
+.vs/
+*.vcxproj*
+*.sln
+*.user
+*.swp
+*.swo
+*~
+.idea/
+*.pro.user
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Package management
+conan.lock
+vcpkg_installed/
+
+# Documentation generated files
+docs/html/
+docs/latex/
+docs/man/
+docs/rtf/
+docs/xml/
+
+# Test and benchmark results
+*.csv
+benchmark_results.*
+test_results.*
+coverage_report/
+
+# Temporary files
+*.tmp
+*.temp
+core
+core.*
+
+# Valgrind output
+*.valgrind
+vgcore.*
+
+# Profiling output
+*.prof
+*.gprof
+callgrind.out.*
+cachegrind.out.*
+massif.out.*
+
+# Address sanitizer output
+*.asan
+*.msan
+*.tsan
+*.ubsan
