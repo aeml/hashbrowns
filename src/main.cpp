@@ -3,12 +3,17 @@
 #include <memory>
 #include <thread>
 #include <chrono>
+#include <vector>
+#include <numeric>
 
 #include "core/data_structure.h"
 #include "core/memory_manager.h"
 #include "core/timer.h"
+#include "structures/dynamic_array.h"
 
 using namespace hashbrowns;
+
+void demonstrate_dynamic_array();
 
 void print_banner() {
     std::cout << R"(
@@ -71,11 +76,68 @@ void demonstrate_core_features() {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     
-    std::cout << "\n3. Memory Leak Check:\n";
+    std::cout << "\n3. DynamicArray Demonstration:\n";
+    demonstrate_dynamic_array();
+    
+    std::cout << "\n4. Memory Leak Check:\n";
     bool clean = tracker.check_leaks();
     if (clean) {
         std::cout << "   ✓ No memory leaks detected!\n";
     }
+}
+
+void demonstrate_dynamic_array() {
+    std::cout << "   Creating DynamicArray with different growth strategies...\n";
+    
+    // Test different growth strategies
+    std::vector<std::pair<GrowthStrategy, std::string>> strategies = {
+        {GrowthStrategy::MULTIPLICATIVE_2_0, "2.0x Multiplicative"},
+        {GrowthStrategy::MULTIPLICATIVE_1_5, "1.5x Multiplicative"},
+        {GrowthStrategy::FIBONACCI, "Fibonacci"},
+        {GrowthStrategy::ADDITIVE, "Additive"}
+    };
+    
+    for (const auto& [strategy, name] : strategies) {
+        std::cout << "   \n   Testing " << name << " growth:\n";
+        
+        DynamicArray<int> arr(strategy);
+        Timer timer;
+        
+        timer.start();
+        for (int i = 0; i < 1000; ++i) {
+            arr.push_back(i);
+        }
+        auto insert_time = timer.stop();
+        
+        std::cout << "     - 1000 insertions: " << insert_time.count() / 1000.0 << " μs\n";
+        std::cout << "     - Final size: " << arr.size() << ", capacity: " << arr.capacity() << "\n";
+        std::cout << "     - Memory usage: " << arr.memory_usage() << " bytes\n";
+        
+        // Test STL compatibility
+        timer.start();
+        auto sum = std::accumulate(arr.begin(), arr.end(), 0);
+        auto sum_time = timer.stop();
+        
+        std::cout << "     - Sum using iterators: " << sum << " (took " 
+                  << sum_time.count() / 1000.0 << " μs)\n";
+    }
+    
+    // Test with key-value pairs (DataStructure interface)
+    std::cout << "\n   Testing DataStructure interface with key-value pairs:\n";
+    DynamicArray<std::pair<int, std::string>> kv_array;
+    
+    kv_array.insert(1, "first");
+    kv_array.insert(2, "second");
+    kv_array.insert(3, "third");
+    
+    std::string value;
+    if (kv_array.search(2, value)) {
+        std::cout << "     - Found key 2: " << value << "\n";
+    }
+    
+    std::cout << "     - Array size: " << kv_array.size() << "\n";
+    std::cout << "     - Complexity: insert=" << kv_array.insert_complexity()
+              << ", search=" << kv_array.search_complexity() << "\n";
 }
 
 void show_usage() {

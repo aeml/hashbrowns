@@ -44,23 +44,17 @@ target_include_directories(hashbrowns_core PUBLIC src)
 
 # Data structures library (will be populated with implementations)
 set(STRUCTURES_SOURCES
-    # Will add: src/structures/dynamic_array.cpp
-    # Will add: src/structures/linked_list.cpp  
-    # Will add: src/structures/hash_map.cpp
+    src/structures/dynamic_array.cpp
 )
 
 set(STRUCTURES_HEADERS
-    # Will add: src/structures/dynamic_array.h
-    # Will add: src/structures/linked_list.h
-    # Will add: src/structures/hash_map.h
+    src/structures/dynamic_array.h
 )
 
-# Only create structures library if we have sources
-if(STRUCTURES_SOURCES)
-    add_library(hashbrowns_structures STATIC ${STRUCTURES_SOURCES} ${STRUCTURES_HEADERS})
-    target_link_libraries(hashbrowns_structures PUBLIC hashbrowns_core)
-    target_include_directories(hashbrowns_structures PUBLIC src)
-endif()
+# Create structures library now that we have sources
+add_library(hashbrowns_structures STATIC ${STRUCTURES_SOURCES} ${STRUCTURES_HEADERS})
+target_link_libraries(hashbrowns_structures PUBLIC hashbrowns_core)
+target_include_directories(hashbrowns_structures PUBLIC src)
 
 # Benchmark library
 set(BENCHMARK_SOURCES
@@ -92,10 +86,7 @@ set(MAIN_SOURCES
 
 # Create main executable
 add_executable(hashbrowns ${MAIN_SOURCES})
-target_link_libraries(hashbrowns PRIVATE hashbrowns_core)
-if(TARGET hashbrowns_structures)
-    target_link_libraries(hashbrowns PRIVATE hashbrowns_structures)
-endif()
+target_link_libraries(hashbrowns PRIVATE hashbrowns_core hashbrowns_structures)
 if(TARGET hashbrowns_benchmark)
     target_link_libraries(hashbrowns PRIVATE hashbrowns_benchmark)
 endif()
@@ -203,17 +194,10 @@ if(TARGET hashbrowns)
             RUNTIME DESTINATION bin)
 endif()
 
-install(TARGETS hashbrowns_core
+install(TARGETS hashbrowns_core hashbrowns_structures
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin)
-
-if(TARGET hashbrowns_structures)
-    install(TARGETS hashbrowns_structures
-            ARCHIVE DESTINATION lib
-            LIBRARY DESTINATION lib
-            RUNTIME DESTINATION bin)
-endif()
 
 if(TARGET hashbrowns_benchmark)
     install(TARGETS hashbrowns_benchmark
