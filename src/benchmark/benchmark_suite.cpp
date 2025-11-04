@@ -43,11 +43,48 @@ static void write_results_csv(const std::string& path,
     }
 }
 
+static const char* to_string(hashbrowns::BenchmarkConfig::Pattern p) {
+    using P = hashbrowns::BenchmarkConfig::Pattern;
+    switch (p) {
+        case P::SEQUENTIAL: return "sequential";
+        case P::RANDOM: return "random";
+        case P::MIXED: return "mixed";
+    }
+    return "sequential";
+}
+
+static const char* to_string(hashbrowns::HashStrategy s) {
+    switch (s) {
+        case hashbrowns::HashStrategy::OPEN_ADDRESSING: return "open";
+        case hashbrowns::HashStrategy::SEPARATE_CHAINING: return "chain";
+    }
+    return "open";
+}
+
 static void write_results_json(const std::string& path,
-                               const std::vector<BenchmarkResult>& results) {
+                               const std::vector<BenchmarkResult>& results,
+                               const BenchmarkConfig& config) {
     std::ofstream out(path);
     if (!out) return;
-    out << "{\n  \"results\": [\n";
+    out << "{\n";
+    // metadata
+    out << "  \"meta\": {\n";
+    out << "    \"size\": " << config.size << ",\n";
+    out << "    \"runs\": " << config.runs << ",\n";
+    out << "    \"structures\": [";
+    for (std::size_t i = 0; i < config.structures.size(); ++i) {
+        out << "\"" << config.structures[i] << "\"";
+        if (i + 1 < config.structures.size()) out << ",";
+    }
+    out << "],\n";
+    out << "    \"pattern\": \"" << to_string(config.pattern) << "\",\n";
+    if (config.seed.has_value()) out << "    \"seed\": " << *config.seed << ",\n";
+    out << "    \"hash_strategy\": \"" << to_string(config.hash_strategy) << "\"";
+    if (config.hash_initial_capacity) out << ",\n    \"hash_capacity\": " << *config.hash_initial_capacity;
+    if (config.hash_max_load_factor) out << ",\n    \"hash_load\": " << *config.hash_max_load_factor;
+    out << "\n  },\n";
+    // results
+    out << "  \"results\": [\n";
     for (std::size_t i = 0; i < results.size(); ++i) {
         const auto& r = results[i];
         out << "    {"
@@ -152,7 +189,7 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
 
     if (config.csv_output) {
         if (config.output_format == BenchmarkConfig::OutputFormat::CSV) write_results_csv(*config.csv_output, out_results);
-        else write_results_json(*config.csv_output, out_results);
+        else write_results_json(*config.csv_output, out_results, config);
     }
     return out_results;
 }
@@ -233,10 +270,24 @@ void BenchmarkSuite::write_crossover_csv(const std::string& path, const std::vec
     }
 }
 
-void BenchmarkSuite::write_crossover_json(const std::string& path, const std::vector<CrossoverInfo>& info) {
+void BenchmarkSuite::write_crossover_json(const std::string& path, const std::vector<CrossoverInfo>& info, const BenchmarkConfig& config) {
     std::ofstream out(path);
     if (!out) return;
-    out << "{\n  \"crossovers\": [\n";
+    out << "{\n";
+    // metadata
+    out << "  \"meta\": {\n";
+    out << "    \"runs\": " << config.runs << ",\n";
+    out << "    \"structures\": [";
+    for (std::size_t i = 0; i < config.structures.size(); ++i) {
+        out << "\"" << config.structures[i] << "\"";
+        if (i + 1 < config.structures.size()) out << ",";
+    }
+    out << "],\n";
+    out << "    \"pattern\": \"" << to_string(config.pattern) << "\"";
+    if (config.seed.has_value()) out << ",\n    \"seed\": " << *config.seed;
+    out << "\n  },\n";
+    // crossovers
+    out << "  \"crossovers\": [\n";
     for (std::size_t i = 0; i < info.size(); ++i) {
         const auto& c = info[i];
         out << "    {"

@@ -52,7 +52,7 @@ public:
     struct CrossoverInfo { std::string operation; std::string a; std::string b; std::size_t size_at_crossover; };
     std::vector<CrossoverInfo> compute_crossovers(const Series& series);
     void write_crossover_csv(const std::string& path, const std::vector<CrossoverInfo>& info);
-    void write_crossover_json(const std::string& path, const std::vector<CrossoverInfo>& info);
+    void write_crossover_json(const std::string& path, const std::vector<CrossoverInfo>& info, const BenchmarkConfig& config);
 };
 
 } // namespace hashbrowns

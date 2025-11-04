@@ -369,12 +369,12 @@ int main(int argc, char* argv[]) {
                 }
                 if (opt_output) {
                     if (opt_out_fmt == BenchmarkConfig::OutputFormat::CSV) suite.write_crossover_csv(*opt_output, cx);
-                    else suite.write_crossover_json(*opt_output, cx);
+                    else suite.write_crossover_json(*opt_output, cx, cfg);
                     std::cout << "\nSaved crossover " << (opt_out_fmt==BenchmarkConfig::OutputFormat::CSV?"CSV":"JSON") << " to: " << *opt_output << "\n";
                 }
             } else if (opt_output) {
                 if (opt_out_fmt == BenchmarkConfig::OutputFormat::CSV) suite.write_crossover_csv(*opt_output, cx);
-                else suite.write_crossover_json(*opt_output, cx);
+                else suite.write_crossover_json(*opt_output, cx, cfg);
             }
             return cx.empty() ? 1 : 0;
         }
