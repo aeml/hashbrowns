@@ -86,6 +86,7 @@ LICENSE
 Requirements:
 - CMake 3.16+
 - A C++17 compiler (GCC, Clang, or MSVC)
+- Optional (for plotting): Python 3 + `pip install -r requirements.txt`
 
 Using the provided script (recommended):
 
@@ -100,6 +101,11 @@ mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j$(nproc)
 ctest --output-on-failure
+```
+
+Install (optional):
+```bash
+cmake --install build --prefix /usr/local
 ```
 
 ---
@@ -137,17 +143,131 @@ Examples:
 
 Convenience tools for common workflows:
 
-- `scripts/run_benchmarks.sh` — builds the project if needed, runs benchmarks and crossover analysis, and writes CSVs.
-    - Examples:
-        - `scripts/run_benchmarks.sh --runs 20 --size 50000`
-        - `STRUCTURES=array,hashmap scripts/run_benchmarks.sh --max-size 200000`
+- `scripts/run_benchmarks.sh` — builds the project if needed, runs benchmarks and a size-sweep crossover analysis, writes CSVs, and (by default) generates PNG plots if `matplotlib` is available.
+        - Examples:
+            - Quick, with plots (auto y-scale):
+                - `scripts/run_benchmarks.sh --runs 5 --size 20000 --yscale auto`
+            - Thorough single-size benchmark only:
+                - `scripts/run_benchmarks.sh --runs 20 --size 50000 --no-plots`
+            - Focus on structures and smaller sweep:
+                - `STRUCTURES=array,hashmap scripts/run_benchmarks.sh --max-size 8192 --series-runs 1`
     - Outputs:
         - `build/benchmark_results.csv`
         - `build/crossover_results.csv`
+        - `build/plots/benchmark_summary.png` (if plotting available)
+    - `build/plots/crossover_points.png` (if plotting available)
+    - `build/plots/benchmark_by_operation.png` (if plotting available)
+    - Options:
+        - `--no-plots` to skip PNG generation
+        - `--plots` to force plotting (fails if matplotlib absent)
+        - `--plots-dir PATH` to select output directory for PNGs
+        - `--yscale {auto,linear,mid,log}` to control plot scaling (default: auto)
+        - `--series-runs N` to limit repeats per size during the crossover sweep (default: 1)
+        - `--pattern {sequential,random,mixed}` controls key order (inserts/search/removes)
+        - `--seed N` RNG seed for reproducible random/mixed patterns
+        - `--max-seconds N` time budget (seconds) to cap the crossover sweep
 
 - `scripts/analyze_results.py` — prints a concise summary from the CSV outputs (no external Python deps).
     - Example:
         - `scripts/analyze_results.py --bench-csv build/benchmark_results.csv --cross-csv build/crossover_results.csv`
+
+- `scripts/plot_results.py` — generates PNG plots from the CSV outputs (requires matplotlib).
+    - Example:
+        - `scripts/plot_results.py --bench-csv build/benchmark_results.csv --cross-csv build/crossover_results.csv --out-dir build/plots`
+    - Outputs:
+        - `benchmark_summary.png` (auto log scale if dominated by outliers)
+        - `benchmark_by_operation.png` (separate subplots for insert/search/remove)
+        - Options:
+            - `--yscale {auto,linear,mid,log}` to control y-axis scaling. "mid" uses an asinh-based scale for a middle ground between linear and log (good when one op dominates but you still want visible differences).
+
+---
+
+## Run benchmarks (recommended)
+
+Use the helper script to compile, run, and generate CSVs/PNGs in one go.
+
+- Quick run with crossover sweep and plots:
+    ```bash
+    scripts/run_benchmarks.sh --runs 5 --size 20000 --max-size 32768 --yscale auto
+    ```
+
+- Faster sweep when arrays are included (avoid long array removals):
+    ```bash
+    scripts/run_benchmarks.sh --series-runs 1 --max-size 8192 --max-seconds 10
+    ```
+
+- Full single-size benchmark without plots:
+    ```bash
+    scripts/run_benchmarks.sh --runs 20 --size 50000 --no-plots
+    ```
+
+Notes:
+- The sweep defaults to `series-runs=1` for speed; increase to stabilize results.
+- Large `max-size` with arrays can be very slow for remove; prefer smaller `max-size` or fewer `series-runs`.
+- Plots include a footer with the parameters and hardware summary for traceability.
+
+- Reproducible random workload:
+    ```bash
+    scripts/run_benchmarks.sh --pattern random --seed 12345 --runs 5 --size 20000
+    ```
+
+---
+
+## Building on different platforms
+
+Requirements:
+- CMake 3.16+
+- A C++17 compiler
+
+Linux (Debian/Ubuntu):
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential cmake
+scripts/build.sh -t Release --test
+```
+
+macOS:
+```bash
+xcode-select --install   # install command line tools
+brew install cmake       # if Homebrew is available
+scripts/build.sh -t Release --test
+```
+
+Windows (MSVC):
+```powershell
+# Install Visual Studio Build Tools (C++ workload) and CMake
+# From x64 Native Tools Developer Command Prompt:
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -G "NMake Makefiles"
+cmake --build build --config Release
+ctest --test-dir build --output-on-failure
+```
+
+Windows (MSYS2/MinGW):
+```bash
+pacman -S --needed mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake make
+cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+```
+
+Performance reproducibility tips:
+- Use a stable power profile; disable turbo/boost if you need highly repeatable numbers.
+- Close background tasks; run on AC power for laptops.
+- Pin CPU frequency/governor on Linux (e.g., `performance`) if appropriate.
+- Run multiple times and compare medians if variance is high.
+
+---
+
+## Docker (optional)
+
+Build and run in a container for reproducible environments:
+
+```bash
+docker build -t hashbrowns:latest .
+docker run --rm -it -v "$PWD/build:/app/build" hashbrowns:latest
+```
+
+This produces CSVs and PNGs in `build/` mounted from the host.
 
 ---
 

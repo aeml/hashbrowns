@@ -71,6 +71,32 @@ jobs:
         run: |
           ./build/regression_check --current build/ci_bench.csv --baseline docs/baselines/benchmark_results.csv --threshold 10
 
+  asan-ubsan:
+    name: Linux • clang • ASAN/UBSAN
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+      - name: Configure (ASAN/UBSAN)
+        run: |
+          cmake -S . -B build-asan \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS_DEBUG="-g -O0 -Wall -Wextra -Wpedantic -fsanitize=address,undefined -fno-omit-frame-pointer"
+      - name: Build
+        run: cmake --build build-asan -- -j2
+      - name: Run unit tests under sanitizers
+        env:
+          ASAN_OPTIONS: detect_leaks=1:allocator_may_return_null=1
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: |
+          ctest --test-dir build-asan --output-on-failure
+
   # Optional small benchmark artifact job (Linux only)
   small-benchmarks:
     if: github.event_name != 'pull_request'

@@ -16,6 +16,10 @@ struct BenchmarkConfig {
     bool verbose = false;
     std::optional<std::string> csv_output;
     std::vector<std::string> structures; // e.g., {"array","slist","dlist","hashmap"}
+    // Data pattern configuration
+    enum class Pattern { SEQUENTIAL, RANDOM, MIXED };
+    Pattern pattern = Pattern::SEQUENTIAL;
+    std::optional<unsigned long long> seed; // RNG seed for RANDOM/MIXED; random_device if not provided
 };
 
 struct BenchmarkResult {

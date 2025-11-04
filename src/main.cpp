@@ -10,12 +10,15 @@
 #include "core/memory_manager.h"
 #include "core/timer.h"
 #include "structures/dynamic_array.h"
+#include "structures/linked_list.h"
+#include "structures/hash_map.h"
 #include "benchmark/benchmark_suite.h"
 #include <optional>
 
 using namespace hashbrowns;
 
 void demonstrate_dynamic_array();
+static int run_op_tests(const std::vector<std::string>& names, std::size_t size);
 
 void print_banner() {
     std::cout << R"(
@@ -151,10 +154,13 @@ OPTIONS:
   --runs N              Number of benchmark runs (default: 10)
     --structures LIST     Comma-separated list: array,slist,dlist,hashmap
   --output FILE         Export results to CSV file
-  --pattern TYPE        Data pattern: sequential, random, mixed
   --memory-tracking     Enable detailed memory analysis
     --crossover-analysis  Find performance crossover points
     --max-size N          Max size to analyze for crossovers (default: 100000)
+        --series-runs N       Runs per size during crossover analysis (default: 1)
+    --pattern TYPE        Data pattern for keys: sequential, random, mixed (default: sequential)
+    --seed N              RNG seed used when pattern is random/mixed (default: random_device)
+    --max-seconds N       Time budget for crossover sweep; stop early when exceeded
   --verbose             Detailed output
   --help               Show this help message
 
@@ -162,9 +168,6 @@ EXAMPLES:
   hashbrowns --size 50000 --runs 20
   hashbrowns --structures array,hashmap --output results.csv
   hashbrowns --crossover-analysis --max-size 100000
-
-NOTE: Data structure implementations are coming in the next phase!
-      This build demonstrates the core architecture and benchmarking framework.
 )" << std::endl;
 }
 
@@ -187,11 +190,16 @@ int main(int argc, char* argv[]) {
     bool demo_mode = true;
     std::size_t opt_size = 10000;
     int opt_runs = 10;
+    int opt_series_runs = -1; // if <0, choose default based on opt_runs
     std::vector<std::string> opt_structures;
     std::optional<std::string> opt_output;
     bool opt_memory_tracking = false;
     bool opt_crossover = false;
     std::size_t opt_max_size = 100000;
+    std::optional<unsigned long long> opt_seed;
+    BenchmarkConfig::Pattern opt_pattern = BenchmarkConfig::Pattern::SEQUENTIAL;
+    std::optional<double> opt_max_seconds;
+    bool opt_op_tests = false;
     
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -203,6 +211,9 @@ int main(int argc, char* argv[]) {
             demo_mode = false;
         } else if (arg == "--runs" && i + 1 < argc) {
             opt_runs = std::stoi(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--series-runs" && i + 1 < argc) {
+            opt_series_runs = std::stoi(argv[++i]);
             demo_mode = false;
         } else if (arg == "--structures" && i + 1 < argc) {
             std::string list = argv[++i];
@@ -225,6 +236,21 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--max-size" && i + 1 < argc) {
             opt_max_size = static_cast<std::size_t>(std::stoull(argv[++i]));
             demo_mode = false;
+        } else if (arg == "--pattern" && i + 1 < argc) {
+            std::string p = argv[++i];
+            if (p == "sequential") opt_pattern = BenchmarkConfig::Pattern::SEQUENTIAL;
+            else if (p == "random") opt_pattern = BenchmarkConfig::Pattern::RANDOM;
+            else if (p == "mixed") opt_pattern = BenchmarkConfig::Pattern::MIXED;
+            demo_mode = false;
+        } else if (arg == "--seed" && i + 1 < argc) {
+            opt_seed = static_cast<unsigned long long>(std::stoull(argv[++i]));
+            demo_mode = false;
+        } else if (arg == "--max-seconds" && i + 1 < argc) {
+            opt_max_seconds = std::stod(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--op-tests") {
+            opt_op_tests = true;
+            demo_mode = false;
         } else if (arg == "--no-banner") {
             // already handled
             demo_mode = false;
@@ -245,15 +271,20 @@ int main(int argc, char* argv[]) {
         std::cout << "Running in demonstration mode...\n";
         demonstrate_core_features();
         std::cout << "\nRun with --help to see available options.\n";
-        std::cout << "Full benchmarking capabilities will be available once data structures are implemented!\n";
     } else {
+        if (opt_op_tests) {
+            auto names = opt_structures.empty() ? std::vector<std::string>{"array","slist","dlist","hashmap"} : opt_structures;
+            return run_op_tests(names, opt_size);
+        }
     // Run benchmarks
         BenchmarkConfig cfg;
         cfg.size = opt_size;
-        cfg.runs = opt_runs;
-        cfg.verbose = false;
+    cfg.runs = opt_runs;
+    cfg.verbose = false;
         cfg.csv_output = opt_output;
-        cfg.structures = opt_structures.empty() ? std::vector<std::string>{"array","slist","hashmap"} : opt_structures;
+    cfg.structures = opt_structures.empty() ? std::vector<std::string>{"array","slist","dlist","hashmap"} : opt_structures;
+    cfg.pattern = opt_pattern;
+    cfg.seed = opt_seed;
 
         if (opt_memory_tracking) {
             MemoryTracker::instance().set_detailed_tracking(true);
@@ -281,11 +312,32 @@ int main(int argc, char* argv[]) {
             // Crossover analysis mode
             std::vector<std::size_t> sizes;
             for (std::size_t s = 512; s <= opt_max_size; s *= 2) sizes.push_back(s);
-            // Run a series and compute coarse crossovers by operation (insert/search/remove)
-            auto series = suite.run_series(cfg, sizes);
+            // Reduce runs for the series to speed up sweeping large sizes
+            int series_runs = (opt_series_runs > 0) ? opt_series_runs : 1; // default to 1 for fast sweep
+            cfg.runs = series_runs;
+            // Time-bounded series run
+            auto start = std::chrono::steady_clock::now();
+            BenchmarkSuite::Series series;
+            for (auto s : sizes) {
+                cfg.size = s;
+                auto res = suite.run(cfg);
+                for (const auto& r : res) {
+                    series.push_back(BenchmarkSuite::SeriesPoint{ s, r.structure, r.insert_ms_mean, r.search_ms_mean, r.remove_ms_mean });
+                }
+                if (opt_max_seconds) {
+                    auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+                    if (elapsed >= *opt_max_seconds) {
+                        if (!quiet) {
+                            std::cout << "[INFO] Crossover sweep stopped early after " << elapsed << "s due to --max-seconds budget\n";
+                        }
+                        break;
+                    }
+                }
+            }
             auto cx = suite.compute_crossovers(series);
             if (!quiet) {
                 std::cout << "\n=== Crossover Analysis (approximate sizes) ===\n";
+                std::cout << "(runs per size: " << series_runs << ")\n";
                 for (const auto& c : cx) {
                     std::cout << c.operation << ": " << c.a << " vs " << c.b << " -> ~" << c.size_at_crossover << " elements\n";
                 }
@@ -300,5 +352,46 @@ int main(int argc, char* argv[]) {
         }
     }
     
+    return 0;
+}
+
+static int run_op_tests(const std::vector<std::string>& names, std::size_t size) {
+    using namespace std;
+    cout << "\n=== Operation Tests (size=" << size << ") ===\n";
+    for (const auto& name : names) {
+        cout << name << ":\n";
+        auto ds = hashbrowns::DataStructurePtr();
+        // local make to avoid depending on benchmark_suite internals
+        if (name == "array" || name == "dynamic-array") {
+            ds = std::make_unique< hashbrowns::DynamicArray<std::pair<int,std::string>> >();
+        } else if (name == "slist" || name == "list" || name == "singly-list") {
+            ds = std::make_unique< hashbrowns::SinglyLinkedList<std::pair<int,std::string>> >();
+        } else if (name == "dlist" || name == "doubly-list") {
+            ds = std::make_unique< hashbrowns::DoublyLinkedList<std::pair<int,std::string>> >();
+        } else if (name == "hashmap" || name == "hash-map") {
+            ds = std::make_unique< hashbrowns::HashMap >(hashbrowns::HashStrategy::OPEN_ADDRESSING);
+        }
+        if (!ds) { cout << "  (unknown structure)\n"; continue; }
+        vector<int> keys(size);
+        for (size_t i = 0; i < size; ++i) keys[i] = static_cast<int>(i);
+        hashbrowns::Timer t; std::string v;
+        // Insert
+        t.start();
+        for (auto k : keys) ds->insert(k, to_string(k));
+        auto ins_us = t.stop().count();
+        // Search (verify)
+        size_t found = 0;
+        t.start();
+        for (auto k : keys) { if (ds->search(k, v)) ++found; }
+        auto sea_us = t.stop().count();
+        // Remove
+        size_t removed = 0;
+        t.start();
+        for (auto k : keys) { if (ds->remove(k)) ++removed; }
+        auto rem_us = t.stop().count();
+        cout << "  insert: " << (ins_us/1000.0) << " ms, count=" << keys.size() << "\n";
+        cout << "  search: " << (sea_us/1000.0) << " ms, found=" << found << "/" << keys.size() << "\n";
+        cout << "  remove: " << (rem_us/1000.0) << " ms, removed=" << removed << "/" << keys.size() << "\n";
+    }
     return 0;
 }

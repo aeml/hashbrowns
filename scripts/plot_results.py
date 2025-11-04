@@ -3,6 +3,9 @@ import argparse
 import csv
 import os
 import sys
+import platform
+from typing import List, Sequence
+import numpy as np
 
 
 def require_matplotlib():
@@ -25,9 +28,73 @@ def read_csv(path):
         for r in reader:
             rows.append(r)
     return rows
+def get_hw_summary() -> str:
+    try:
+        os_name = platform.system()
+        kernel = platform.release()
+        arch = platform.machine() or "?"
+        cores = os.cpu_count() or 1
+        cpu = platform.processor() or ""
+        # Try /proc/cpuinfo on Linux for nicer model name
+        if os_name == 'Linux' and (not cpu or len(cpu) < 4):
+            try:
+                with open('/proc/cpuinfo') as f:
+                    for line in f:
+                        if line.lower().startswith('model name'):
+                            cpu = line.split(':', 1)[1].strip()
+                            break
+            except Exception:
+                pass
+        return f"{os_name} {kernel} ({arch}), CPU: {cpu}, cores: {cores}"
+    except Exception:
+        return "(hardware info unavailable)"
 
 
-def plot_bench(bench_rows, out_dir):
+def _annotate(fig, notes: Sequence[str], include_hw: bool):
+    text = " | ".join(n for n in notes if n)
+    if include_hw:
+        hw = get_hw_summary()
+        text = (text + (" | " if text else "")) + hw
+    if text:
+        fig.text(0.5, 0.01, text, ha='center', va='bottom', fontsize=8)
+
+
+
+def _auto_yscale(values: List[float], mode: str) -> str:
+    if mode in ("linear", "log"):
+        return mode
+    if mode in ("mid", "asinh", "sqrt"):
+        return mode
+    # auto: pick log if spread is large
+    nonzero = [v for v in values if v > 0]
+    if not nonzero:
+        return "linear"
+    vmin = min(nonzero)
+    vmax = max(values) if values else 0.0
+    ratio = (vmax / vmin) if vmin > 0 else float('inf')
+    # Choose a middle scale when range is wide but not extreme
+    if ratio >= 50 and ratio < 5000:
+        return "mid"  # asinh-based compression
+    return "log" if ratio >= 5000 else "linear"
+
+
+def _apply_scale(ax, values: List[float], yscale: str):
+    scale = _auto_yscale(values, yscale)
+    if scale == "log":
+        ax.set_yscale('log')
+        ax.set_ylim(bottom=max(1e-3, min([v for v in values if v > 0] or [1e-3])))
+    elif scale in ("mid", "asinh"):
+        # "Middle" scale using arcsinh for gentler compression than log
+        ax.set_yscale('function', functions=(np.arcsinh, np.sinh))
+        ax.set_ylim(bottom=0)
+    elif scale == "sqrt":
+        ax.set_yscale('function', functions=(np.sqrt, lambda x: np.square(x)))
+        ax.set_ylim(bottom=0)
+    else:
+        ax.set_yscale('linear')
+
+
+def plot_bench(bench_rows, out_dir, yscale: str = "auto", notes: Sequence[str] = (), include_hw: bool = True):
     import matplotlib.pyplot as plt
 
     if not bench_rows:
@@ -49,10 +116,14 @@ def plot_bench(bench_rows, out_dir):
 
     ax.set_xticks(list(x))
     ax.set_xticklabels(structures)
+    # y-scale (auto/mid/log) for readability
+    all_vals = insert + search + remove
+    _apply_scale(ax, all_vals, yscale)
     ax.set_ylabel('ms (mean)')
     ax.set_title('Benchmark summary')
     ax.legend()
-    fig.tight_layout()
+    fig.tight_layout(rect=[0, 0.04, 1, 0.97])
+    _annotate(fig, notes, include_hw)
 
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, 'benchmark_summary.png')
@@ -60,7 +131,40 @@ def plot_bench(bench_rows, out_dir):
     print(f"[INFO] Wrote {out_path}")
 
 
-def plot_crossovers(cross_rows, out_dir):
+def plot_bench_by_operation(bench_rows, out_dir, yscale: str = "auto", notes: Sequence[str] = (), include_hw: bool = True):
+    import matplotlib.pyplot as plt
+
+    if not bench_rows:
+        print("[WARN] No benchmark rows to plot (by operation)")
+        return
+
+    structures = [r['structure'] for r in bench_rows]
+    ops = {
+        'insert': [float(r['insert_ms_mean']) for r in bench_rows],
+        'search': [float(r['search_ms_mean']) for r in bench_rows],
+        'remove': [float(r['remove_ms_mean']) for r in bench_rows],
+    }
+
+    fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(8, 9), squeeze=True)
+    for ax, (op, vals) in zip(axes, ops.items()):
+        ax.bar(range(len(structures)), vals, width=0.6)
+        ax.set_xticks(list(range(len(structures))))
+        ax.set_xticklabels(structures)
+        _apply_scale(ax, vals, yscale)
+        ax.set_ylabel('ms (mean)')
+        ax.set_title(op)
+        ax.grid(True, axis='y', linestyle='--', alpha=0.3)
+    fig.suptitle('Benchmark by operation', y=0.98)
+    fig.tight_layout(rect=[0, 0.04, 1, 0.97])
+    _annotate(fig, notes, include_hw)
+
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, 'benchmark_by_operation.png')
+    fig.savefig(out_path, dpi=150)
+    print(f"[INFO] Wrote {out_path}")
+
+
+def plot_crossovers(cross_rows, out_dir, notes: Sequence[str] = (), include_hw: bool = True):
     import matplotlib.pyplot as plt
 
     if not cross_rows:
@@ -90,7 +194,8 @@ def plot_crossovers(cross_rows, out_dir):
         ax.set_xlabel('elements')
         ax.get_yaxis().set_visible(False)
         ax.grid(True, axis='x', linestyle='--', alpha=0.3)
-    fig.tight_layout()
+    fig.tight_layout(rect=[0, 0.04, 1, 0.97])
+    _annotate(fig, notes, include_hw)
 
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, 'crossover_points.png')
@@ -103,6 +208,9 @@ def main():
     ap.add_argument('--bench-csv', default=os.path.join('build', 'benchmark_results.csv'))
     ap.add_argument('--cross-csv', default=os.path.join('build', 'crossover_results.csv'))
     ap.add_argument('--out-dir', default=os.path.join('build', 'plots'))
+    ap.add_argument('--yscale', choices=['linear','mid','log','auto'], default='auto', help='Y-axis scale for benchmark plots (default: auto). Use "mid" for asinh-based middle ground.')
+    ap.add_argument('--note', action='append', default=[], help='Additional annotation text (repeatable)')
+    ap.add_argument('--no-hw', action='store_true', help='Do not annotate hardware info')
     args = ap.parse_args()
 
     if not require_matplotlib():
@@ -111,8 +219,9 @@ def main():
     bench = read_csv(args.bench_csv)
     cross = read_csv(args.cross_csv)
 
-    plot_bench(bench, args.out_dir)
-    plot_crossovers(cross, args.out_dir)
+    plot_bench(bench, args.out_dir, yscale=args.yscale, notes=args.note, include_hw=not args.no_hw)
+    plot_bench_by_operation(bench, args.out_dir, yscale=args.yscale, notes=args.note, include_hw=not args.no_hw)
+    plot_crossovers(cross, args.out_dir, notes=args.note, include_hw=not args.no_hw)
     return 0
 
 

@@ -10,6 +10,7 @@
 #include <map>
 #include <optional>
 #include <algorithm>
+#include <random>
 
 namespace hashbrowns {
 
@@ -44,6 +45,16 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
     std::vector<BenchmarkResult> out_results;
     if (config.structures.empty()) return out_results;
 
+    // RNG setup for RANDOM/MIXED patterns
+    std::mt19937_64 rng;
+    if (config.pattern != BenchmarkConfig::Pattern::SEQUENTIAL) {
+        if (config.seed.has_value()) rng.seed(*config.seed);
+        else {
+            std::random_device rd;
+            rng.seed(((uint64_t)rd() << 32) ^ rd());
+        }
+    }
+
     for (const auto& name : config.structures) {
         auto ds = make_structure(name);
         if (!ds) {
@@ -63,17 +74,29 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
             // Prepare data
             std::vector<int> keys(config.size);
             for (std::size_t i = 0; i < config.size; ++i) keys[i] = static_cast<int>(i);
+            std::vector<int> ins_keys = keys;
+            std::vector<int> sea_keys = keys;
+            std::vector<int> rem_keys = keys;
+            if (config.pattern == BenchmarkConfig::Pattern::RANDOM) {
+                std::shuffle(ins_keys.begin(), ins_keys.end(), rng);
+                sea_keys = ins_keys; // random lookup order
+                std::shuffle(rem_keys.begin(), rem_keys.end(), rng);
+            } else if (config.pattern == BenchmarkConfig::Pattern::MIXED) {
+                std::shuffle(ins_keys.begin(), ins_keys.end(), rng);  // random inserts
+                // keep sequential search to probe cache/iteration
+                std::shuffle(rem_keys.begin(), rem_keys.end(), rng);   // random removals
+            }
 
             // Insert
             Timer t; t.start();
-            for (auto k : keys) ds->insert(k, std::to_string(k));
+            for (auto k : ins_keys) ds->insert(k, std::to_string(k));
             auto ins_us = t.stop().count();
             insert_ms.push_back(ins_us / 1000.0);
 
             // Search
             t.start();
             std::string v;
-            for (auto k : keys) {
+            for (auto k : sea_keys) {
                 bool found = ds->search(k, v);
                 if (!found) { /* ensure no UB in opt build */ }
             }
@@ -82,7 +105,7 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
 
             // Remove
             t.start();
-            for (auto k : keys) { ds->remove(k); }
+            for (auto k : rem_keys) { ds->remove(k); }
             auto rem_us = t.stop().count();
             remove_ms.push_back(rem_us / 1000.0);
         }
@@ -92,8 +115,8 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
         auto rem = summarize(remove_ms);
 
         // One more fresh instance to estimate memory footprint after inserts
-        auto mem_ds = make_structure(name);
-        for (std::size_t i = 0; i < config.size; ++i) mem_ds->insert(static_cast<int>(i), std::to_string(i));
+    auto mem_ds = make_structure(name);
+    for (std::size_t i = 0; i < config.size; ++i) mem_ds->insert(static_cast<int>(i), std::to_string(i));
 
         BenchmarkResult br;
         br.structure = name;
