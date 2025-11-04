@@ -117,10 +117,18 @@ The executable supports the following options:
 - `--size N` — number of elements (default: 10000)
 - `--runs N` — repetitions per test (default: 10)
 - `--structures LIST` — comma-separated list of structures: `array,slist,dlist,hashmap`
-- `--output FILE` — write benchmark or crossover results to CSV
+- `--output FILE` — write benchmark or crossover results to CSV/JSON
+- `--out-format {csv,json}` — select output format (default: csv)
 - `--memory-tracking` — enable detailed memory tracking during runs
+- `--pattern {sequential,random,mixed}` — data pattern for inserts/search/removes; with `--seed N` for reproducibility
 - `--crossover-analysis` — estimate crossover points by running a size sweep
 - `--max-size N` — maximum size used for crossover analysis (default: 100000)
+- `--series-runs N` — runs per size during sweep (default: 1)
+- `--max-seconds N` — time budget to cap crossover sweep
+- HashMap tuning:
+    - `--hash-strategy {open,chain}` — open addressing or separate chaining
+    - `--hash-capacity N` — initial capacity (power-of-two rounded)
+    - `--hash-load F` — max load factor
 - `--help` — show help
 
 Examples:
@@ -132,9 +140,10 @@ Examples:
 # Select structures and write benchmark CSV
 ./build/hashbrowns --structures array,hashmap --size 20000 --runs 10 --output build/benchmark_results.csv
 
-# Crossover analysis over a size sweep, writing CSV
+# Crossover analysis over a size sweep, writing JSON
 ./build/hashbrowns --crossover-analysis --max-size 100000 \
-    --structures array,slist,hashmap --runs 5 --output build/crossover_results.csv
+    --structures array,slist,hashmap --runs 5 \
+    --out-format json --output build/crossover_results.json
 ```
 
 ---
@@ -143,7 +152,7 @@ Examples:
 
 Convenience tools for common workflows:
 
-- `scripts/run_benchmarks.sh` — builds the project if needed, runs benchmarks and a size-sweep crossover analysis, writes CSVs, and (by default) generates PNG plots if `matplotlib` is available.
+- `scripts/run_benchmarks.sh` — builds the project if needed, runs benchmarks and a size-sweep crossover analysis, writes CSV/JSON, and (by default) generates PNG plots if `matplotlib` is available.
         - Examples:
             - Quick, with plots (auto y-scale):
                 - `scripts/run_benchmarks.sh --runs 5 --size 20000 --yscale auto`
@@ -152,8 +161,8 @@ Convenience tools for common workflows:
             - Focus on structures and smaller sweep:
                 - `STRUCTURES=array,hashmap scripts/run_benchmarks.sh --max-size 8192 --series-runs 1`
     - Outputs:
-        - `build/benchmark_results.csv`
-        - `build/crossover_results.csv`
+        - `build/benchmark_results.csv|json`
+        - `build/crossover_results.csv|json`
         - `build/plots/benchmark_summary.png` (if plotting available)
     - `build/plots/crossover_points.png` (if plotting available)
     - `build/plots/benchmark_by_operation.png` (if plotting available)
@@ -162,10 +171,12 @@ Convenience tools for common workflows:
         - `--plots` to force plotting (fails if matplotlib absent)
         - `--plots-dir PATH` to select output directory for PNGs
         - `--yscale {auto,linear,mid,log}` to control plot scaling (default: auto)
-        - `--series-runs N` to limit repeats per size during the crossover sweep (default: 1)
-        - `--pattern {sequential,random,mixed}` controls key order (inserts/search/removes)
-        - `--seed N` RNG seed for reproducible random/mixed patterns
-        - `--max-seconds N` time budget (seconds) to cap the crossover sweep
+    - `--out-format {csv,json}` select export format (plots currently support CSV only)
+    - `--series-runs N` to limit repeats per size during the crossover sweep (default: 1)
+    - `--pattern {sequential,random,mixed}` controls key order (inserts/search/removes)
+    - `--seed N` RNG seed for reproducible random/mixed patterns
+    - `--max-seconds N` time budget (seconds) to cap the crossover sweep
+    - `--hash-strategy {open,chain}`, `--hash-capacity N`, `--hash-load F` to tune HashMap behavior
 
 - `scripts/analyze_results.py` — prints a concise summary from the CSV outputs (no external Python deps).
     - Example:

@@ -14,7 +14,7 @@
 
 namespace hashbrowns {
 
-static DataStructurePtr make_structure(const std::string& name) {
+static DataStructurePtr make_structure(const std::string& name, const BenchmarkConfig& cfg) {
     if (name == "array" || name == "dynamic-array") {
         return std::make_unique< DynamicArray<std::pair<int,std::string>> >();
     } else if (name == "slist" || name == "list" || name == "singly-list") {
@@ -22,15 +22,17 @@ static DataStructurePtr make_structure(const std::string& name) {
     } else if (name == "dlist" || name == "doubly-list") {
         return std::make_unique< DoublyLinkedList<std::pair<int,std::string>> >();
     } else if (name == "hashmap" || name == "hash-map") {
-        return std::make_unique<HashMap>(HashStrategy::OPEN_ADDRESSING);
+        std::size_t cap = cfg.hash_initial_capacity.value_or(16);
+        auto hm = std::make_unique<HashMap>(cfg.hash_strategy, cap);
+        if (cfg.hash_max_load_factor) hm->set_max_load_factor(*cfg.hash_max_load_factor);
+        return hm;
     }
     return nullptr;
 }
 
-static void maybe_write_csv(const std::optional<std::string>& csv_path,
+static void write_results_csv(const std::string& path,
                             const std::vector<BenchmarkResult>& results) {
-    if (!csv_path) return;
-    std::ofstream out(*csv_path);
+    std::ofstream out(path);
     if (!out) return;
     out << "structure,insert_ms_mean,insert_ms_stddev,search_ms_mean,search_ms_stddev,remove_ms_mean,remove_ms_stddev,memory_bytes\n";
     for (const auto& r : results) {
@@ -39,6 +41,27 @@ static void maybe_write_csv(const std::optional<std::string>& csv_path,
             << "," << r.remove_ms_mean << "," << r.remove_ms_stddev
             << "," << r.memory_bytes << "\n";
     }
+}
+
+static void write_results_json(const std::string& path,
+                               const std::vector<BenchmarkResult>& results) {
+    std::ofstream out(path);
+    if (!out) return;
+    out << "{\n  \"results\": [\n";
+    for (std::size_t i = 0; i < results.size(); ++i) {
+        const auto& r = results[i];
+        out << "    {"
+            << "\"structure\": \"" << r.structure << "\"," 
+            << "\"insert_ms_mean\": " << r.insert_ms_mean << ","
+            << "\"insert_ms_stddev\": " << r.insert_ms_stddev << ","
+            << "\"search_ms_mean\": " << r.search_ms_mean << ","
+            << "\"search_ms_stddev\": " << r.search_ms_stddev << ","
+            << "\"remove_ms_mean\": " << r.remove_ms_mean << ","
+            << "\"remove_ms_stddev\": " << r.remove_ms_stddev << ","
+            << "\"memory_bytes\": " << r.memory_bytes
+            << "}" << (i + 1 < results.size() ? "," : "") << "\n";
+    }
+    out << "  ]\n}\n";
 }
 
 std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) {
@@ -56,7 +79,7 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
     }
 
     for (const auto& name : config.structures) {
-        auto ds = make_structure(name);
+        auto ds = make_structure(name, config);
         if (!ds) {
             std::cerr << "Unknown structure: " << name << "\n";
             continue;
@@ -69,7 +92,7 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
 
         for (int r = 0; r < config.runs; ++r) {
             // Fresh instance per run
-            ds = make_structure(name);
+            ds = make_structure(name, config);
 
             // Prepare data
             std::vector<int> keys(config.size);
@@ -115,7 +138,7 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
         auto rem = summarize(remove_ms);
 
         // One more fresh instance to estimate memory footprint after inserts
-    auto mem_ds = make_structure(name);
+    auto mem_ds = make_structure(name, config);
     for (std::size_t i = 0; i < config.size; ++i) mem_ds->insert(static_cast<int>(i), std::to_string(i));
 
         BenchmarkResult br;
@@ -127,7 +150,10 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
         out_results.push_back(br);
     }
 
-    maybe_write_csv(config.csv_output, out_results);
+    if (config.csv_output) {
+        if (config.output_format == BenchmarkConfig::OutputFormat::CSV) write_results_csv(*config.csv_output, out_results);
+        else write_results_json(*config.csv_output, out_results);
+    }
     return out_results;
 }
 
@@ -205,6 +231,22 @@ void BenchmarkSuite::write_crossover_csv(const std::string& path, const std::vec
     for (const auto& c : info) {
         out << c.operation << "," << c.a << "," << c.b << "," << c.size_at_crossover << "\n";
     }
+}
+
+void BenchmarkSuite::write_crossover_json(const std::string& path, const std::vector<CrossoverInfo>& info) {
+    std::ofstream out(path);
+    if (!out) return;
+    out << "{\n  \"crossovers\": [\n";
+    for (std::size_t i = 0; i < info.size(); ++i) {
+        const auto& c = info[i];
+        out << "    {"
+            << "\"operation\": \"" << c.operation << "\","
+            << "\"a\": \"" << c.a << "\","
+            << "\"b\": \"" << c.b << "\","
+            << "\"size_at_crossover\": " << c.size_at_crossover
+            << "}" << (i + 1 < info.size() ? "," : "") << "\n";
+    }
+    out << "  ]\n}\n";
 }
 
 } // namespace hashbrowns

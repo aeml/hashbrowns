@@ -161,6 +161,10 @@ OPTIONS:
     --pattern TYPE        Data pattern for keys: sequential, random, mixed (default: sequential)
     --seed N              RNG seed used when pattern is random/mixed (default: random_device)
     --max-seconds N       Time budget for crossover sweep; stop early when exceeded
+        --out-format F        csv|json (default: csv)
+        --hash-strategy S     open|chain (default: open)
+        --hash-capacity N     initial capacity for hashmap (power-of-two rounded)
+        --hash-load F         max load factor (applies to both strategies)
   --verbose             Detailed output
   --help               Show this help message
 
@@ -199,6 +203,10 @@ int main(int argc, char* argv[]) {
     std::optional<unsigned long long> opt_seed;
     BenchmarkConfig::Pattern opt_pattern = BenchmarkConfig::Pattern::SEQUENTIAL;
     std::optional<double> opt_max_seconds;
+    BenchmarkConfig::OutputFormat opt_out_fmt = BenchmarkConfig::OutputFormat::CSV;
+    HashStrategy opt_hash_strategy = HashStrategy::OPEN_ADDRESSING;
+    std::optional<std::size_t> opt_hash_capacity;
+    std::optional<double> opt_hash_load;
     bool opt_op_tests = false;
     
     for (int i = 1; i < argc; ++i) {
@@ -248,6 +256,20 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--max-seconds" && i + 1 < argc) {
             opt_max_seconds = std::stod(argv[++i]);
             demo_mode = false;
+        } else if (arg == "--out-format" && i + 1 < argc) {
+            std::string f = argv[++i];
+            if (f == "json") opt_out_fmt = BenchmarkConfig::OutputFormat::JSON; else opt_out_fmt = BenchmarkConfig::OutputFormat::CSV;
+            demo_mode = false;
+        } else if (arg == "--hash-strategy" && i + 1 < argc) {
+            std::string s = argv[++i];
+            if (s == "open") opt_hash_strategy = HashStrategy::OPEN_ADDRESSING; else if (s == "chain") opt_hash_strategy = HashStrategy::SEPARATE_CHAINING;
+            demo_mode = false;
+        } else if (arg == "--hash-capacity" && i + 1 < argc) {
+            opt_hash_capacity = static_cast<std::size_t>(std::stoull(argv[++i]));
+            demo_mode = false;
+        } else if (arg == "--hash-load" && i + 1 < argc) {
+            opt_hash_load = std::stod(argv[++i]);
+            demo_mode = false;
         } else if (arg == "--op-tests") {
             opt_op_tests = true;
             demo_mode = false;
@@ -285,6 +307,10 @@ int main(int argc, char* argv[]) {
     cfg.structures = opt_structures.empty() ? std::vector<std::string>{"array","slist","dlist","hashmap"} : opt_structures;
     cfg.pattern = opt_pattern;
     cfg.seed = opt_seed;
+    cfg.output_format = opt_out_fmt;
+    cfg.hash_strategy = opt_hash_strategy;
+    cfg.hash_initial_capacity = opt_hash_capacity;
+    cfg.hash_max_load_factor = opt_hash_load;
 
         if (opt_memory_tracking) {
             MemoryTracker::instance().set_detailed_tracking(true);
@@ -304,7 +330,7 @@ int main(int argc, char* argv[]) {
                               << ", mem=" << r.memory_bytes << " bytes\n";
                 }
                 if (opt_output) {
-                    std::cout << "\nSaved CSV to: " << *opt_output << "\n";
+                    std::cout << "\nSaved " << (opt_out_fmt==BenchmarkConfig::OutputFormat::CSV?"CSV":"JSON") << " to: " << *opt_output << "\n";
                 }
             }
             return results.empty() ? 1 : 0;
@@ -342,11 +368,13 @@ int main(int argc, char* argv[]) {
                     std::cout << c.operation << ": " << c.a << " vs " << c.b << " -> ~" << c.size_at_crossover << " elements\n";
                 }
                 if (opt_output) {
-                    suite.write_crossover_csv(*opt_output, cx);
-                    std::cout << "\nSaved crossover CSV to: " << *opt_output << "\n";
+                    if (opt_out_fmt == BenchmarkConfig::OutputFormat::CSV) suite.write_crossover_csv(*opt_output, cx);
+                    else suite.write_crossover_json(*opt_output, cx);
+                    std::cout << "\nSaved crossover " << (opt_out_fmt==BenchmarkConfig::OutputFormat::CSV?"CSV":"JSON") << " to: " << *opt_output << "\n";
                 }
             } else if (opt_output) {
-                suite.write_crossover_csv(*opt_output, cx);
+                if (opt_out_fmt == BenchmarkConfig::OutputFormat::CSV) suite.write_crossover_csv(*opt_output, cx);
+                else suite.write_crossover_json(*opt_output, cx);
             }
             return cx.empty() ? 1 : 0;
         }

@@ -80,6 +80,19 @@ public:
         if (strategy_ == HashStrategy::OPEN_ADDRESSING) oa_init(16); else sc_init(16);
     }
 
+    void set_max_load_factor(double lf) {
+        if (lf <= 0.0) lf = 0.5;
+        if (strategy_ == HashStrategy::OPEN_ADDRESSING) {
+            oa_max_load_factor_ = lf;
+            load_threshold_ = static_cast<std::size_t>(capacity_ * oa_max_load_factor_);
+        } else {
+            sc_max_load_factor_ = lf;
+        }
+    }
+    double max_load_factor() const {
+        return (strategy_ == HashStrategy::OPEN_ADDRESSING) ? oa_max_load_factor_ : sc_max_load_factor_;
+    }
+
 private:
     // Hash helpers
     static std::size_t capacity_round_up(std::size_t n) {
@@ -109,7 +122,7 @@ private:
 
     void oa_init(std::size_t cap) {
         capacity_ = cap;
-        load_threshold_ = static_cast<std::size_t>(capacity_ * 0.7);
+        load_threshold_ = static_cast<std::size_t>(capacity_ * oa_max_load_factor_);
         oa_entries_ = std::allocator_traits<TrackedAllocator<OAEntry>>::allocate(oa_alloc_, capacity_);
         for (std::size_t i = 0; i < capacity_; ++i) {
             std::allocator_traits<TrackedAllocator<OAEntry>>::construct(oa_alloc_, &oa_entries_[i]);
@@ -247,7 +260,7 @@ private:
     }
 
     void sc_grow_if_needed() {
-        if (size_ <= capacity_ * 0.75) return;
+        if (size_ <= capacity_ * sc_max_load_factor_) return;
         std::size_t new_cap = capacity_ ? capacity_ * 2 : 16;
         // rehash
         auto old_buckets = buckets_;
@@ -335,12 +348,14 @@ private:
     OAEntry* oa_entries_ = nullptr;
     std::size_t load_threshold_ = 0;
     std::size_t tombstones_ = 0;
+    double oa_max_load_factor_ = 0.7;
 
     // Separate chaining state
     TrackedAllocator<SCNode*> sc_bucket_alloc_{};
     SCNode** buckets_ = nullptr;
     MemoryPool<SCNode> sc_pool_{};
     std::size_t sc_node_count_ = 0;
+    double sc_max_load_factor_ = 0.75;
 };
 
 } // namespace hashbrowns

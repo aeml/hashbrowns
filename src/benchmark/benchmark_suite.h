@@ -5,6 +5,7 @@
 #include <vector>
 #include <optional>
 #include <memory>
+#include "structures/hash_map.h"
 
 #include "core/data_structure.h"
 
@@ -15,11 +16,18 @@ struct BenchmarkConfig {
     int runs = 10;
     bool verbose = false;
     std::optional<std::string> csv_output;
+    enum class OutputFormat { CSV, JSON };
+    OutputFormat output_format = OutputFormat::CSV;
     std::vector<std::string> structures; // e.g., {"array","slist","dlist","hashmap"}
     // Data pattern configuration
     enum class Pattern { SEQUENTIAL, RANDOM, MIXED };
     Pattern pattern = Pattern::SEQUENTIAL;
     std::optional<unsigned long long> seed; // RNG seed for RANDOM/MIXED; random_device if not provided
+
+    // HashMap tuning
+    HashStrategy hash_strategy = HashStrategy::OPEN_ADDRESSING;
+    std::optional<std::size_t> hash_initial_capacity; // default 16
+    std::optional<double> hash_max_load_factor;       // applies to both strategies if provided
 };
 
 struct BenchmarkResult {
@@ -44,6 +52,7 @@ public:
     struct CrossoverInfo { std::string operation; std::string a; std::string b; std::size_t size_at_crossover; };
     std::vector<CrossoverInfo> compute_crossovers(const Series& series);
     void write_crossover_csv(const std::string& path, const std::vector<CrossoverInfo>& info);
+    void write_crossover_json(const std::string& path, const std::vector<CrossoverInfo>& info);
 };
 
 } // namespace hashbrowns

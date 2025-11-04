@@ -13,8 +13,12 @@ RUNS=${RUNS:-10}
 SIZE=${SIZE:-10000}
 MAX_SIZE=${MAX_SIZE:-32768}
 STRUCTURES=${STRUCTURES:-array,slist,dlist,hashmap}
-BENCH_CSV=${BENCH_CSV:-${BUILD_DIR}/benchmark_results.csv}
-CROSS_CSV=${CROSS_CSV:-${BUILD_DIR}/crossover_results.csv}
+OUT_FORMAT=${OUT_FORMAT:-csv} # csv|json
+BENCH_OUT=${BENCH_OUT:-}
+CROSS_OUT=${CROSS_OUT:-}
+HASH_STRATEGY=${HASH_STRATEGY:-open}
+HASH_CAPACITY=${HASH_CAPACITY:-}
+HASH_LOAD=${HASH_LOAD:-}
 BUILD_TYPE=${BUILD_TYPE:-Release}
 JOBS=${JOBS:-$(nproc 2>/dev/null || echo 4)}
 PLOTS_DIR=${PLOTS_DIR:-${BUILD_DIR}/plots}
@@ -34,8 +38,9 @@ Options (also available via env vars):
   --size N           Problem size for single-run mode (default: ${SIZE})
   --max-size N       Max size for crossover analysis (default: ${MAX_SIZE})
   --structures LIST  Comma list: array,slist,dlist,hashmap (default: ${STRUCTURES})
-  --bench-csv PATH   Benchmark CSV output (default: ${BENCH_CSV})
-  --cross-csv PATH   Crossover CSV output (default: ${CROSS_CSV})
+  --out-format F     csv|json (default: ${OUT_FORMAT})
+  --bench-out PATH   Benchmark output file (default: build/benchmark_results.<ext>)
+  --cross-out PATH   Crossover output file (default: build/crossover_results.<ext>)
   --build-type T     Debug|Release|RelWithDebInfo (default: ${BUILD_TYPE})
   --jobs N           Parallel build jobs (default: ${JOBS})
   --no-plots         Skip generating PNG plots (overrides AUTO_PLOTS)
@@ -46,6 +51,9 @@ Options (also available via env vars):
   --seed N           RNG seed for random/mixed patterns (default: random_device)
   --pattern TYPE     sequential|random|mixed (default: ${PATTERN})
   --max-seconds N    Time budget (in seconds) for crossover sweep
+  --hash-strategy S  open|chain (default: open)
+  --hash-capacity N  initial capacity for hashmap
+  --hash-load F      max load factor for hashmap
   -h, --help         Show this help
 
 Examples:
@@ -61,8 +69,9 @@ while [[ $# -gt 0 ]]; do
     --size) SIZE="$2"; shift 2;;
     --max-size) MAX_SIZE="$2"; shift 2;;
     --structures) STRUCTURES="$2"; shift 2;;
-    --bench-csv) BENCH_CSV="$2"; shift 2;;
-    --cross-csv) CROSS_CSV="$2"; shift 2;;
+  --out-format) OUT_FORMAT="$2"; shift 2;;
+  --bench-out) BENCH_OUT="$2"; shift 2;;
+  --cross-out) CROSS_OUT="$2"; shift 2;;
     --build-type) BUILD_TYPE="$2"; shift 2;;
   --jobs) JOBS="$2"; shift 2;;
   --no-plots) AUTO_PLOTS=0; shift 1;;
@@ -73,6 +82,9 @@ while [[ $# -gt 0 ]]; do
   --seed) SEED="$2"; shift 2;;
   --pattern) PATTERN="$2"; shift 2;;
   --max-seconds) MAX_SECONDS="$2"; shift 2;;
+  --hash-strategy) HASH_STRATEGY="$2"; shift 2;;
+  --hash-capacity) HASH_CAPACITY="$2"; shift 2;;
+  --hash-load) HASH_LOAD="$2"; shift 2;;
     -h|--help) usage; exit 0;;
     *) echo "Unknown option: $1"; usage; exit 2;;
   esac
@@ -91,6 +103,22 @@ fi
 
 mkdir -p "${BUILD_DIR}"
 
+# Default output paths if not provided
+if [[ -z "${BENCH_OUT}" ]]; then
+  if [[ "${OUT_FORMAT}" == "json" ]]; then
+    BENCH_OUT="${BUILD_DIR}/benchmark_results.json"
+  else
+    BENCH_OUT="${BUILD_DIR}/benchmark_results.csv"
+  fi
+fi
+if [[ -z "${CROSS_OUT}" ]]; then
+  if [[ "${OUT_FORMAT}" == "json" ]]; then
+    CROSS_OUT="${BUILD_DIR}/crossover_results.json"
+  else
+    CROSS_OUT="${BUILD_DIR}/crossover_results.csv"
+  fi
+fi
+
 # Run configuration summary and hardware info
 echo "[INFO] Run configuration:"
 echo "  size=${SIZE}, runs=${RUNS}, max-size=${MAX_SIZE}"
@@ -98,6 +126,8 @@ echo "  structures=${STRUCTURES}"
 echo "  build-type=${BUILD_TYPE}, jobs=${JOBS}"
 echo "  series-runs=${SERIES_RUNS} (for crossover sweep)"
 echo "  pattern=${PATTERN}${SEED:+, seed=${SEED}}${MAX_SECONDS:+, max-seconds=${MAX_SECONDS}}"
+echo "  out-format=${OUT_FORMAT}, bench-out=${BENCH_OUT}, cross-out=${CROSS_OUT}"
+echo "  hashmap: strategy=${HASH_STRATEGY}${HASH_CAPACITY:+, capacity=${HASH_CAPACITY}}${HASH_LOAD:+, load=${HASH_LOAD}}"
 
 HOST=$(hostname 2>/dev/null || echo unknown)
 UNAME=$(uname -srmo 2>/dev/null || echo unknown)
@@ -112,22 +142,32 @@ echo "[INFO] Hardware: host=${HOST}, ${UNAME}, cores=${CORES}${CPU_MODEL:+, CPU=
 
 # Run standard benchmark (single size) with CSV output
 echo "[INFO] Running benchmarks: size=${SIZE}, runs=${RUNS}, structures=${STRUCTURES}"
-BENCH_ARGS=(--no-banner --size "${SIZE}" --runs "${RUNS}" --structures "${STRUCTURES}" --output "${BENCH_CSV}" --pattern "${PATTERN}")
+BENCH_ARGS=(--no-banner --size "${SIZE}" --runs "${RUNS}" --structures "${STRUCTURES}" --output "${BENCH_OUT}" --pattern "${PATTERN}" --out-format "${OUT_FORMAT}")
 [[ -n "${SEED}" ]] && BENCH_ARGS+=(--seed "${SEED}")
+[[ -n "${HASH_STRATEGY}" ]] && BENCH_ARGS+=(--hash-strategy "${HASH_STRATEGY}")
+[[ -n "${HASH_CAPACITY}" ]] && BENCH_ARGS+=(--hash-capacity "${HASH_CAPACITY}")
+[[ -n "${HASH_LOAD}" ]] && BENCH_ARGS+=(--hash-load "${HASH_LOAD}")
 "${BIN}" "${BENCH_ARGS[@]}" || true
-echo "[INFO] Wrote: ${BENCH_CSV}"
+echo "[INFO] Wrote: ${BENCH_OUT}"
 
 # Run crossover analysis over a size sweep and write CSV
 echo "[INFO] Running crossover analysis up to max-size=${MAX_SIZE} (series-runs=${SERIES_RUNS})"
-SWEEP_ARGS=(--no-banner --quiet --crossover-analysis --max-size "${MAX_SIZE}" --structures "${STRUCTURES}" --runs "${RUNS}" --series-runs "${SERIES_RUNS}" --pattern "${PATTERN}" --output "${CROSS_CSV}")
+SWEEP_ARGS=(--no-banner --quiet --crossover-analysis --max-size "${MAX_SIZE}" --structures "${STRUCTURES}" --runs "${RUNS}" --series-runs "${SERIES_RUNS}" --pattern "${PATTERN}" --output "${CROSS_OUT}" --out-format "${OUT_FORMAT}")
 [[ -n "${SEED}" ]] && SWEEP_ARGS+=(--seed "${SEED}")
 [[ -n "${MAX_SECONDS}" ]] && SWEEP_ARGS+=(--max-seconds "${MAX_SECONDS}")
+[[ -n "${HASH_STRATEGY}" ]] && SWEEP_ARGS+=(--hash-strategy "${HASH_STRATEGY}")
+[[ -n "${HASH_CAPACITY}" ]] && SWEEP_ARGS+=(--hash-capacity "${HASH_CAPACITY}")
+[[ -n "${HASH_LOAD}" ]] && SWEEP_ARGS+=(--hash-load "${HASH_LOAD}")
 "${BIN}" "${SWEEP_ARGS[@]}" || true
 
-if [[ -s "${CROSS_CSV}" ]]; then
-  echo "[INFO] Wrote: ${CROSS_CSV}"
+if [[ -s "${CROSS_OUT}" ]]; then
+  echo "[INFO] Wrote: ${CROSS_OUT}"
   echo "[INFO] Preview of crossover CSV:"
-  head -n 5 "${CROSS_CSV}" | sed 's/^/  /'
+  if [[ "${OUT_FORMAT}" == "csv" ]]; then
+    head -n 5 "${CROSS_OUT}" | sed 's/^/  /'
+  else
+    head -n 20 "${CROSS_OUT}" | sed 's/^/  /'
+  fi
 else
   echo "[WARN] Crossover CSV not generated (no crossovers detected at this scale or an error occurred)." >&2
 fi
@@ -135,9 +175,11 @@ fi
 # Optionally generate plots
 if [[ ${AUTO_PLOTS} -gt 0 ]]; then
   echo "[INFO] Generating plots into ${PLOTS_DIR} (if matplotlib is available)"
-  if command -v python3 >/dev/null 2>&1; then
-  NOTE="size=${SIZE}, runs=${RUNS}, series-runs=${SERIES_RUNS}, structures=${STRUCTURES}, pattern=${PATTERN}${SEED:+, seed=${SEED}}"
-    if python3 "${ROOT_DIR}/scripts/plot_results.py" --bench-csv "${BENCH_CSV}" --cross-csv "${CROSS_CSV}" --out-dir "${PLOTS_DIR}" --yscale "${YSCALE}" --note "${NOTE}"; then
+  if [[ "${OUT_FORMAT}" != "csv" ]]; then
+    echo "[WARN] Plotting currently supports CSV only. Skipping plots because out-format=${OUT_FORMAT}." >&2
+  elif command -v python3 >/dev/null 2>&1; then
+    NOTE="size=${SIZE}, runs=${RUNS}, series-runs=${SERIES_RUNS}, structures=${STRUCTURES}, pattern=${PATTERN}${SEED:+, seed=${SEED}}"
+    if python3 "${ROOT_DIR}/scripts/plot_results.py" --bench-csv "${BENCH_OUT}" --cross-csv "${CROSS_OUT}" --out-dir "${PLOTS_DIR}" --yscale "${YSCALE}" --note "${NOTE}"; then
       echo "[SUCCESS] Plots generated in ${PLOTS_DIR}"
     else
       if [[ ${AUTO_PLOTS} -gt 1 ]]; then
