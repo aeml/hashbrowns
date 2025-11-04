@@ -46,11 +46,13 @@ target_include_directories(hashbrowns_core PUBLIC src)
 set(STRUCTURES_SOURCES
     src/structures/dynamic_array.cpp
     src/structures/linked_list.cpp
+    src/structures/hash_map.cpp
 )
 
 set(STRUCTURES_HEADERS
     src/structures/dynamic_array.h
     src/structures/linked_list.h
+    src/structures/hash_map.h
 )
 
 # Create structures library now that we have sources
