@@ -8,6 +8,10 @@ out/
 *.out
 *.app
 hashbrowns
+comprehensive_test
+comprehensive_test_asan
+debug_test
+simple_test
 
 # Static libraries
 *.a

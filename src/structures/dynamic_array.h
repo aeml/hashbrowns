@@ -5,6 +5,7 @@
 #include "core/memory_manager.h"
 #include <algorithm>
 #include <initializer_list>
+#include <iostream>
 #include <iterator>
 #include <stdexcept>
 #include <utility>
@@ -15,11 +16,27 @@ namespace hashbrowns {
  * @brief Growth strategy enumeration for dynamic array resizing
  */
 enum class GrowthStrategy {
-    MULTIPLICATIVE_1_5,  ///< Multiply by 1.5 (good memory usage)
-    MULTIPLICATIVE_2_0,  ///< Multiply by 2.0 (fast growth)
-    FIBONACCI,          ///< Fibonacci sequence growth
-    ADDITIVE            ///< Add fixed amount (for testing)
+    MULTIPLICATIVE_2_0,  // Growth factor of 2.0
+    MULTIPLICATIVE_1_5,  // Growth factor of 1.5
+    FIBONACCI,           // Fibonacci sequence growth
+    ADDITIVE             // Fixed increment growth
 };
+
+// Stream operator for GrowthStrategy enum
+inline std::ostream& operator<<(std::ostream& os, GrowthStrategy strategy) {
+    switch (strategy) {
+        case GrowthStrategy::MULTIPLICATIVE_2_0:
+            return os << "MULTIPLICATIVE_2_0";
+        case GrowthStrategy::MULTIPLICATIVE_1_5:
+            return os << "MULTIPLICATIVE_1_5";
+        case GrowthStrategy::FIBONACCI:
+            return os << "FIBONACCI";
+        case GrowthStrategy::ADDITIVE:
+            return os << "ADDITIVE";
+        default:
+            return os << "UNKNOWN";
+    }
+}
 
 /**
  * @brief High-performance dynamic array with configurable growth strategies
@@ -87,7 +104,7 @@ public:
     explicit DynamicArray(size_type initial_capacity, 
                          GrowthStrategy strategy = GrowthStrategy::MULTIPLICATIVE_2_0,
                          const Allocator& alloc = Allocator())
-        : size_(0), capacity_(0), growth_strategy_(strategy), allocator_(alloc) {
+        : data_(nullptr), size_(0), capacity_(0), growth_strategy_(strategy), allocator_(alloc) {
         reserve(initial_capacity);
     }
 
@@ -100,7 +117,7 @@ public:
     DynamicArray(std::initializer_list<T> init,
                 GrowthStrategy strategy = GrowthStrategy::MULTIPLICATIVE_2_0,
                 const Allocator& alloc = Allocator())
-        : size_(0), capacity_(0), growth_strategy_(strategy), allocator_(alloc) {
+        : data_(nullptr), size_(0), capacity_(0), growth_strategy_(strategy), allocator_(alloc) {
         reserve(init.size());
         for (const auto& item : init) {
             push_back(item);
@@ -111,7 +128,7 @@ public:
      * @brief Copy constructor
      */
     DynamicArray(const DynamicArray& other)
-        : size_(0), capacity_(0), growth_strategy_(other.growth_strategy_), 
+        : data_(nullptr), size_(0), capacity_(0), growth_strategy_(other.growth_strategy_), 
           allocator_(std::allocator_traits<Allocator>::select_on_container_copy_construction(other.allocator_)) {
         reserve(other.size_);
         for (size_type i = 0; i < other.size_; ++i) {
