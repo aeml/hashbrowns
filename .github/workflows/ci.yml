@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }} • ${{ matrix.compiler }} • ${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        build_type: [Debug, Release]
+        compiler: [default]
+        include:
+          - os: ubuntu-latest
+            build_type: Debug
+            compiler: gcc
+          - os: ubuntu-latest
+            build_type: Release
+            compiler: gcc
+          - os: ubuntu-latest
+            build_type: Debug
+            compiler: clang
+          - os: ubuntu-latest
+            build_type: Release
+            compiler: clang
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up compiler (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            sudo apt-get update
+            sudo apt-get install -y clang
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
+          else
+            sudo apt-get update
+            sudo apt-get install -y g++
+            echo "CC=gcc" >> $GITHUB_ENV
+            echo "CXX=g++" >> $GITHUB_ENV
+          fi
+
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} -- -j2
+
+      - name: Run tests
+        run: |
+          ctest --test-dir build --output-on-failure -C ${{ matrix.build_type }}
+
+      - name: Smoke run (Release only)
+        if: matrix.build_type == 'Release'
+        run: |
+          ./build/hashbrowns --size 1024 --runs 2 --structures array,slist,hashmap --output build/ci_bench.csv || true
+
+  # Optional small benchmark artifact job (Linux only)
+  small-benchmarks:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure + Build (Release)
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -- -j2
+      - name: Run tiny benchmarks
+        run: |
+          ./build/hashbrowns --size 2048 --runs 3 --structures array,slist,hashmap --output build/benchmark_results.csv || true
+          ./build/hashbrowns --crossover-analysis --max-size 8192 --runs 2 --structures array,slist,hashmap --output build/crossover_results.csv || true
+      - name: Upload CSV artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-csvs
+          path: |
+            build/benchmark_results.csv
+            build/crossover_results.csv

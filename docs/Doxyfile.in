@@ -1,0 +1,16 @@
+# Minimal Doxygen config template
+
+PROJECT_NAME           = "@PROJECT_NAME@"
+PROJECT_NUMBER         = "@PROJECT_VERSION@"
+OUTPUT_DIRECTORY       = "@CMAKE_BINARY_DIR@/docs"
+CREATE_SUBDIRS         = NO
+GENERATE_LATEX         = NO
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARNINGS               = YES
+INPUT                  = "@CMAKE_SOURCE_DIR@/src"
+RECURSIVE              = YES
+EXTRACT_ALL            = YES
+FILE_PATTERNS          = *.h *.hpp
+GENERATE_TREEVIEW      = YES
+FULL_PATH_NAMES        = NO

@@ -1,0 +1,9 @@
+Checks: >
+  bugprone-*,performance-*,readability-*,modernize-*,clang-analyzer-*,cppcoreguidelines-*
+  ,-cppcoreguidelines-owning-memory
+  ,-cppcoreguidelines-avoid-magic-numbers
+  ,-readability-magic-numbers
+WarningsAsErrors: ''
+HeaderFilterRegex: '^(src|tests)/'
+AnalyzeTemporaryDtors: false
+FormatStyle: none
