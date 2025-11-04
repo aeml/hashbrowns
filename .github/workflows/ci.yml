@@ -66,6 +66,10 @@ jobs:
         if: matrix.build_type == 'Release'
         run: |
           ./build/hashbrowns --size 1024 --runs 2 --structures array,slist,hashmap --output build/ci_bench.csv || true
+      - name: Optional regression check (Release only)
+        if: matrix.build_type == 'Release' && hashFiles('docs/baselines/benchmark_results.csv') != ''
+        run: |
+          ./build/regression_check --current build/ci_bench.csv --baseline docs/baselines/benchmark_results.csv --threshold 10
 
   # Optional small benchmark artifact job (Linux only)
   small-benchmarks:
@@ -81,6 +85,10 @@ jobs:
         run: |
           ./build/hashbrowns --size 2048 --runs 3 --structures array,slist,hashmap --output build/benchmark_results.csv || true
           ./build/hashbrowns --crossover-analysis --max-size 8192 --runs 2 --structures array,slist,hashmap --output build/crossover_results.csv || true
+      - name: Optional regression check (if baseline present)
+        if: hashFiles('docs/baselines/benchmark_results.csv') != ''
+        run: |
+          ./build/regression_check --current build/benchmark_results.csv --baseline docs/baselines/benchmark_results.csv --threshold 10
       - name: Upload CSV artifacts
         uses: actions/upload-artifact@v4
         with:

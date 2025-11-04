@@ -63,11 +63,13 @@ target_include_directories(hashbrowns_structures PUBLIC src)
 # Benchmark library
 set(BENCHMARK_SOURCES
     src/benchmark/benchmark_suite.cpp
+    src/benchmark/regression_tester.cpp
 )
 
 set(BENCHMARK_HEADERS
     src/benchmark/benchmark_suite.h
     src/benchmark/stats_analyzer.h
+    src/benchmark/regression_tester.h
 )
 
 # Only create benchmark library if we have sources
@@ -79,6 +81,11 @@ if(BENCHMARK_SOURCES)
     endif()
     target_include_directories(hashbrowns_benchmark PUBLIC src)
 endif()
+
+# Regression check CLI tool (optional helper)
+add_executable(regression_check tools/regression_check.cpp)
+target_link_libraries(regression_check PRIVATE hashbrowns_benchmark)
+target_include_directories(regression_check PRIVATE src)
 
 # Main executable
 set(MAIN_SOURCES
