@@ -169,8 +169,19 @@ NOTE: Data structure implementations are coming in the next phase!
 }
 
 int main(int argc, char* argv[]) {
-    print_banner();
-    
+    // Pre-scan for banner/verbosity flags before printing anything
+    bool no_banner = false;
+    bool quiet = false;
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--no-banner") no_banner = true;
+        if (arg == "--quiet") { quiet = true; no_banner = true; }
+    }
+
+    if (!no_banner) {
+        print_banner();
+    }
+
     // Parse basic command line arguments
     bool show_help = false;
     bool demo_mode = true;
@@ -214,6 +225,12 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--max-size" && i + 1 < argc) {
             opt_max_size = static_cast<std::size_t>(std::stoull(argv[++i]));
             demo_mode = false;
+        } else if (arg == "--no-banner") {
+            // already handled
+            demo_mode = false;
+        } else if (arg == "--quiet") {
+            // already handled; treat as non-demo to avoid extra prints
+            demo_mode = false;
         } else if (arg.find("--") == 0) {
             demo_mode = false;
         }
@@ -246,17 +263,18 @@ int main(int argc, char* argv[]) {
         BenchmarkSuite suite;
         if (!opt_crossover) {
             auto results = suite.run(cfg);
-
-            std::cout << "\n=== Benchmark Results (avg ms over " << opt_runs << " runs, size=" << opt_size << ") ===\n";
-            for (const auto& r : results) {
-                std::cout << "- " << r.structure
-                          << ": insert=" << r.insert_ms_mean
-                          << ", search=" << r.search_ms_mean
-                          << ", remove=" << r.remove_ms_mean
-                          << ", mem=" << r.memory_bytes << " bytes\n";
-            }
-            if (opt_output) {
-                std::cout << "\nSaved CSV to: " << *opt_output << "\n";
+            if (!quiet) {
+                std::cout << "\n=== Benchmark Results (avg ms over " << opt_runs << " runs, size=" << opt_size << ") ===\n";
+                for (const auto& r : results) {
+                    std::cout << "- " << r.structure
+                              << ": insert=" << r.insert_ms_mean
+                              << ", search=" << r.search_ms_mean
+                              << ", remove=" << r.remove_ms_mean
+                              << ", mem=" << r.memory_bytes << " bytes\n";
+                }
+                if (opt_output) {
+                    std::cout << "\nSaved CSV to: " << *opt_output << "\n";
+                }
             }
             return results.empty() ? 1 : 0;
         } else {
@@ -266,13 +284,17 @@ int main(int argc, char* argv[]) {
             // Run a series and compute coarse crossovers by operation (insert/search/remove)
             auto series = suite.run_series(cfg, sizes);
             auto cx = suite.compute_crossovers(series);
-            std::cout << "\n=== Crossover Analysis (approximate sizes) ===\n";
-            for (const auto& c : cx) {
-                std::cout << c.operation << ": " << c.a << " vs " << c.b << " -> ~" << c.size_at_crossover << " elements\n";
-            }
-            if (opt_output) {
+            if (!quiet) {
+                std::cout << "\n=== Crossover Analysis (approximate sizes) ===\n";
+                for (const auto& c : cx) {
+                    std::cout << c.operation << ": " << c.a << " vs " << c.b << " -> ~" << c.size_at_crossover << " elements\n";
+                }
+                if (opt_output) {
+                    suite.write_crossover_csv(*opt_output, cx);
+                    std::cout << "\nSaved crossover CSV to: " << *opt_output << "\n";
+                }
+            } else if (opt_output) {
                 suite.write_crossover_csv(*opt_output, cx);
-                std::cout << "\nSaved crossover CSV to: " << *opt_output << "\n";
             }
             return cx.empty() ? 1 : 0;
         }

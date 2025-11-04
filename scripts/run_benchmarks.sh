@@ -70,12 +70,12 @@ mkdir -p "${BUILD_DIR}"
 
 # Run standard benchmark (single size) with CSV output
 echo "[INFO] Running benchmarks: size=${SIZE}, runs=${RUNS}, structures=${STRUCTURES}"
-"${BIN}" --size "${SIZE}" --runs "${RUNS}" --structures "${STRUCTURES}" --output "${BENCH_CSV}" || true
+"${BIN}" --no-banner --size "${SIZE}" --runs "${RUNS}" --structures "${STRUCTURES}" --output "${BENCH_CSV}" || true
 echo "[INFO] Wrote: ${BENCH_CSV}"
 
 # Run crossover analysis over a size sweep and write CSV
 echo "[INFO] Running crossover analysis up to max-size=${MAX_SIZE}"
-"${BIN}" --crossover-analysis --max-size "${MAX_SIZE}" --structures "${STRUCTURES}" --runs "${RUNS}" --output "${CROSS_CSV}"
+"${BIN}" --no-banner --quiet --crossover-analysis --max-size "${MAX_SIZE}" --structures "${STRUCTURES}" --runs "${RUNS}" --output "${CROSS_CSV}"
 echo "[INFO] Wrote: ${CROSS_CSV}"
 
 # Quick tail
