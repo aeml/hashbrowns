@@ -188,7 +188,27 @@ make benchmark
 
 ---
 
-## 🔬 Technical Deep Dive
+## �️ Scripts
+
+Automate benchmarking and analysis without typing long commands:
+
+- scripts/run_benchmarks.sh — builds if needed, runs benchmarks and crossover analysis, and writes CSVs.
+    - Examples:
+        - scripts/run_benchmarks.sh --runs 20 --size 50000
+        - STRUCTURES=array,hashmap scripts/run_benchmarks.sh --max-size 200000
+    - Outputs:
+        - build/benchmark_results.csv
+        - build/crossover_results.csv
+
+- scripts/analyze_results.py — prints a concise summary from the CSV outputs.
+    - Example:
+        - scripts/analyze_results.py --bench-csv build/benchmark_results.csv --cross-csv build/crossover_results.csv
+
+These require no external Python dependencies (standard library only).
+
+---
+
+## �🔬 Technical Deep Dive
 
 ### **Memory Management**
 

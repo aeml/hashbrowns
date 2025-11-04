@@ -149,11 +149,12 @@ Usage: hashbrowns [OPTIONS]
 OPTIONS:
   --size N              Set benchmark data size (default: 10000)
   --runs N              Number of benchmark runs (default: 10)
-  --structures LIST     Comma-separated list: array,list,hashmap
+    --structures LIST     Comma-separated list: array,slist,dlist,hashmap
   --output FILE         Export results to CSV file
   --pattern TYPE        Data pattern: sequential, random, mixed
   --memory-tracking     Enable detailed memory analysis
-  --crossover-analysis  Find performance crossover points
+    --crossover-analysis  Find performance crossover points
+    --max-size N          Max size to analyze for crossovers (default: 100000)
   --verbose             Detailed output
   --help               Show this help message
 
@@ -178,6 +179,8 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> opt_structures;
     std::optional<std::string> opt_output;
     bool opt_memory_tracking = false;
+    bool opt_crossover = false;
+    std::size_t opt_max_size = 100000;
     
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -204,6 +207,12 @@ int main(int argc, char* argv[]) {
             demo_mode = false;
         } else if (arg == "--memory-tracking") {
             opt_memory_tracking = true;
+            demo_mode = false;
+        } else if (arg == "--crossover-analysis") {
+            opt_crossover = true;
+            demo_mode = false;
+        } else if (arg == "--max-size" && i + 1 < argc) {
+            opt_max_size = static_cast<std::size_t>(std::stoull(argv[++i]));
             demo_mode = false;
         } else if (arg.find("--") == 0) {
             demo_mode = false;
@@ -235,20 +244,38 @@ int main(int argc, char* argv[]) {
         }
 
         BenchmarkSuite suite;
-        auto results = suite.run(cfg);
+        if (!opt_crossover) {
+            auto results = suite.run(cfg);
 
-        std::cout << "\n=== Benchmark Results (avg ms over " << opt_runs << " runs, size=" << opt_size << ") ===\n";
-        for (const auto& r : results) {
-            std::cout << "- " << r.structure
-                      << ": insert=" << r.insert_ms_mean
-                      << ", search=" << r.search_ms_mean
-                      << ", remove=" << r.remove_ms_mean
-                      << ", mem=" << r.memory_bytes << " bytes\n";
+            std::cout << "\n=== Benchmark Results (avg ms over " << opt_runs << " runs, size=" << opt_size << ") ===\n";
+            for (const auto& r : results) {
+                std::cout << "- " << r.structure
+                          << ": insert=" << r.insert_ms_mean
+                          << ", search=" << r.search_ms_mean
+                          << ", remove=" << r.remove_ms_mean
+                          << ", mem=" << r.memory_bytes << " bytes\n";
+            }
+            if (opt_output) {
+                std::cout << "\nSaved CSV to: " << *opt_output << "\n";
+            }
+            return results.empty() ? 1 : 0;
+        } else {
+            // Crossover analysis mode
+            std::vector<std::size_t> sizes;
+            for (std::size_t s = 512; s <= opt_max_size; s *= 2) sizes.push_back(s);
+            // Run a series and compute coarse crossovers by operation (insert/search/remove)
+            auto series = suite.run_series(cfg, sizes);
+            auto cx = suite.compute_crossovers(series);
+            std::cout << "\n=== Crossover Analysis (approximate sizes) ===\n";
+            for (const auto& c : cx) {
+                std::cout << c.operation << ": " << c.a << " vs " << c.b << " -> ~" << c.size_at_crossover << " elements\n";
+            }
+            if (opt_output) {
+                suite.write_crossover_csv(*opt_output, cx);
+                std::cout << "\nSaved crossover CSV to: " << *opt_output << "\n";
+            }
+            return cx.empty() ? 1 : 0;
         }
-        if (opt_output) {
-            std::cout << "\nSaved CSV to: " << *opt_output << "\n";
-        }
-        return results.empty() ? 1 : 0;
     }
     
     return 0;

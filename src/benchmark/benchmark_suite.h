@@ -32,6 +32,14 @@ struct BenchmarkResult {
 class BenchmarkSuite {
 public:
     std::vector<BenchmarkResult> run(const BenchmarkConfig& config);
+
+    struct SeriesPoint { std::size_t size; std::string structure; double insert_ms; double search_ms; double remove_ms; };
+    using Series = std::vector<SeriesPoint>;
+    Series run_series(const BenchmarkConfig& baseConfig, const std::vector<std::size_t>& sizes);
+
+    struct CrossoverInfo { std::string operation; std::string a; std::string b; std::size_t size_at_crossover; };
+    std::vector<CrossoverInfo> compute_crossovers(const Series& series);
+    void write_crossover_csv(const std::string& path, const std::vector<CrossoverInfo>& info);
 };
 
 } // namespace hashbrowns

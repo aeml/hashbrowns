@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <mutex>
 #include <string>
+#include <vector>
+#include <type_traits>
 
 namespace hashbrowns {
 
@@ -284,34 +286,25 @@ unique_array<T> make_unique_array(size_t count) {
  * This pool reduces allocation overhead and fragmentation for data structures
  * that frequently allocate/deallocate objects of the same size (e.g., list nodes).
  */
-template<typename T, size_t PoolSize = 1024>
+template<typename T, size_t ChunkSize = 1024>
 class MemoryPool {
 public:
-    MemoryPool() : next_free_(0) {
-        // Pre-allocate the entire pool
-        pool_ = make_unique_array<T>(PoolSize);
-        
-        // Initialize free list
-        for (size_t i = 0; i < PoolSize - 1; ++i) {
-            *reinterpret_cast<size_t*>(&pool_[i]) = i + 1;
-        }
-        *reinterpret_cast<size_t*>(&pool_[PoolSize - 1]) = PoolSize; // Invalid index
+    MemoryPool() : free_list_(nullptr) {
+        add_chunk();
     }
 
     /**
-     * @brief Allocate one object from the pool
+     * @brief Allocate one object from the pool (grows in chunks on demand)
      */
     T* allocate() {
         std::lock_guard<std::mutex> lock(mutex_);
-        
-        if (next_free_ >= PoolSize) {
-            throw std::bad_alloc(); // Pool exhausted
+        if (!free_list_) {
+            add_chunk();
         }
-        
-        size_t index = next_free_;
-        next_free_ = *reinterpret_cast<size_t*>(&pool_[index]);
-        
-        return &pool_[index];
+        // Pop from free list
+        Slot* slot = free_list_;
+        free_list_ = free_list_->next;
+        return reinterpret_cast<T*>(slot);
     }
 
     /**
@@ -319,22 +312,32 @@ public:
      */
     void deallocate(T* ptr) {
         if (!ptr) return;
-        
         std::lock_guard<std::mutex> lock(mutex_);
-        
-        // Verify pointer is within pool bounds
-        size_t index = ptr - pool_.get();
-        if (index >= PoolSize) {
-            return; // Invalid pointer, ignore
-        }
-        
-        *reinterpret_cast<size_t*>(ptr) = next_free_;
-        next_free_ = index;
+        Slot* slot = reinterpret_cast<Slot*>(ptr);
+        slot->next = free_list_;
+        free_list_ = slot;
     }
 
 private:
-    unique_array<T> pool_;
-    size_t next_free_;
+    // Internal slot used for free list linking; shares storage with raw storage for T
+    struct Slot { Slot* next; };
+    using Storage = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+
+    void add_chunk() {
+        unique_array<Storage> chunk = make_unique_array<Storage>(ChunkSize);
+        // Link all new slots into the free list
+        // We push in forward order; order doesn't matter
+        for (size_t i = 0; i < ChunkSize; ++i) {
+            Storage* cell = &chunk[i];
+            Slot* slot = reinterpret_cast<Slot*>(cell);
+            slot->next = free_list_;
+            free_list_ = slot;
+        }
+        chunks_.push_back(std::move(chunk));
+    }
+
+    std::vector< unique_array<Storage> > chunks_;
+    Slot* free_list_;
     std::mutex mutex_;
 };
 

@@ -84,8 +84,9 @@ coverage_report/
 # Temporary files
 *.tmp
 *.temp
-core
-core.*
+# Core dumps at repo root only (avoid ignoring src/core/)
+/core
+/core.*
 
 # Valgrind output
 *.valgrind
