@@ -62,15 +62,12 @@ target_include_directories(hashbrowns_structures PUBLIC src)
 
 # Benchmark library
 set(BENCHMARK_SOURCES
-    # Will add: src/benchmark/benchmark_suite.cpp
-    # Will add: src/benchmark/test_runner.cpp
-    # Will add: src/benchmark/stats_analyzer.cpp
+    src/benchmark/benchmark_suite.cpp
 )
 
 set(BENCHMARK_HEADERS
-    # Will add: src/benchmark/benchmark_suite.h
-    # Will add: src/benchmark/test_runner.h
-    # Will add: src/benchmark/stats_analyzer.h
+    src/benchmark/benchmark_suite.h
+    src/benchmark/stats_analyzer.h
 )
 
 # Only create benchmark library if we have sources

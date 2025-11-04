@@ -10,6 +10,8 @@
 #include "core/memory_manager.h"
 #include "core/timer.h"
 #include "structures/dynamic_array.h"
+#include "benchmark/benchmark_suite.h"
+#include <optional>
 
 using namespace hashbrowns;
 
@@ -171,15 +173,37 @@ int main(int argc, char* argv[]) {
     // Parse basic command line arguments
     bool show_help = false;
     bool demo_mode = true;
+    std::size_t opt_size = 10000;
+    int opt_runs = 10;
+    std::vector<std::string> opt_structures;
+    std::optional<std::string> opt_output;
+    bool opt_memory_tracking = false;
     
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--help" || arg == "-h") {
             show_help = true;
             demo_mode = false;
-        } else if (arg == "--size" || arg == "--runs" || arg == "--structures") {
-            // Skip the next argument (parameter value)
-            if (i + 1 < argc) i++;
+        } else if (arg == "--size" && i + 1 < argc) {
+            opt_size = static_cast<std::size_t>(std::stoull(argv[++i]));
+            demo_mode = false;
+        } else if (arg == "--runs" && i + 1 < argc) {
+            opt_runs = std::stoi(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--structures" && i + 1 < argc) {
+            std::string list = argv[++i];
+            size_t start = 0, pos;
+            while ((pos = list.find(',', start)) != std::string::npos) {
+                opt_structures.push_back(list.substr(start, pos - start));
+                start = pos + 1;
+            }
+            if (start < list.size()) opt_structures.push_back(list.substr(start));
+            demo_mode = false;
+        } else if (arg == "--output" && i + 1 < argc) {
+            opt_output = std::string(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--memory-tracking") {
+            opt_memory_tracking = true;
             demo_mode = false;
         } else if (arg.find("--") == 0) {
             demo_mode = false;
@@ -197,9 +221,34 @@ int main(int argc, char* argv[]) {
         std::cout << "\nRun with --help to see available options.\n";
         std::cout << "Full benchmarking capabilities will be available once data structures are implemented!\n";
     } else {
-        std::cout << "Command-line parsing detected, but data structure implementations are not ready yet.\n";
-        std::cout << "Please run without arguments for a demonstration of the core architecture.\n";
-        return 1;
+    // Run benchmarks
+        BenchmarkConfig cfg;
+        cfg.size = opt_size;
+        cfg.runs = opt_runs;
+        cfg.verbose = false;
+        cfg.csv_output = opt_output;
+        cfg.structures = opt_structures.empty() ? std::vector<std::string>{"array","slist","hashmap"} : opt_structures;
+
+        if (opt_memory_tracking) {
+            MemoryTracker::instance().set_detailed_tracking(true);
+            MemoryTracker::instance().reset();
+        }
+
+        BenchmarkSuite suite;
+        auto results = suite.run(cfg);
+
+        std::cout << "\n=== Benchmark Results (avg ms over " << opt_runs << " runs, size=" << opt_size << ") ===\n";
+        for (const auto& r : results) {
+            std::cout << "- " << r.structure
+                      << ": insert=" << r.insert_ms_mean
+                      << ", search=" << r.search_ms_mean
+                      << ", remove=" << r.remove_ms_mean
+                      << ", mem=" << r.memory_bytes << " bytes\n";
+        }
+        if (opt_output) {
+            std::cout << "\nSaved CSV to: " << *opt_output << "\n";
+        }
+        return results.empty() ? 1 : 0;
     }
     
     return 0;
