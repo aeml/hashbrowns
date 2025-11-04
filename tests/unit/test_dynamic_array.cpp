@@ -163,7 +163,7 @@ void test_comprehensive() {
     std::cout << "✓ Comprehensive tests passed" << std::endl;
 }
 
-int main() {
+int run_dynamic_array_tests() {
     std::cout << "DynamicArray Test Suite\n";
     std::cout << "======================\n\n";
     
