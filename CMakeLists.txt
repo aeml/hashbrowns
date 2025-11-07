@@ -109,8 +109,16 @@ enable_testing()
 add_library(simple_test INTERFACE)
 target_include_directories(simple_test INTERFACE tests)
 
-# Unit tests
-file(GLOB TEST_SOURCES tests/unit/*.cpp)
+# Unit tests (explicit list for CI stability)
+set(TEST_SOURCES
+    tests/unit/main_tests.cpp
+    tests/unit/test_dynamic_array.cpp
+    tests/unit/test_hash_map.cpp
+    tests/unit/test_json_output.cpp
+    tests/unit/test_linked_list.cpp
+    tests/unit/test_series_json.cpp
+    tests/unit/test_stats.cpp
+)
 if(TEST_SOURCES)
     add_executable(unit_tests ${TEST_SOURCES})
     target_link_libraries(unit_tests PRIVATE hashbrowns_core hashbrowns_structures simple_test)
