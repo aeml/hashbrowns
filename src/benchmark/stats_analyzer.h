@@ -42,7 +42,12 @@ inline StatsSummary summarize(const std::vector<double>& samples, int bootstrap_
     // median & p95
     std::vector<double> tmp = samples;
     std::sort(tmp.begin(), tmp.end());
-    s.median = tmp[tmp.size()/2];
+    if (tmp.size() % 2 == 1) {
+        s.median = tmp[tmp.size()/2];
+    } else {
+        size_t r = tmp.size()/2;
+        s.median = 0.5 * (tmp[r-1] + tmp[r]);
+    }
     s.p95 = percentile(tmp, 0.95);
     if (bootstrap_iters > 0 && samples.size() > 1) {
         std::vector<double> means; means.reserve(bootstrap_iters);
