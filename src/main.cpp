@@ -326,6 +326,24 @@ int main(int argc, char* argv[]) {
         demonstrate_core_features();
         std::cout << "\nRun with --help to see available options.\n";
     } else {
+        // Validate requested structures early for user-friendly errors
+        if (!opt_structures.empty()) {
+            std::vector<std::string> valid = {"array","dynamic-array","slist","list","singly-list","dlist","doubly-list","hashmap","hash-map"};
+            auto is_valid = [&valid](const std::string& s){
+                for (const auto& v : valid) if (s == v) return true; return false;
+            };
+            std::vector<std::string> bad;
+            for (const auto& s : opt_structures) if (!is_valid(s)) bad.push_back(s);
+            if (!bad.empty()) {
+                std::cerr << "Error: unknown structure name(s): ";
+                for (size_t i=0;i<bad.size();++i) {
+                    std::cerr << bad[i] << (i+1<bad.size()?", ":"");
+                }
+                std::cerr << "\nValid options: array, dynamic-array, slist, list, singly-list, dlist, doubly-list, hashmap, hash-map\n";
+                return 2;
+            }
+        }
+
         if (opt_op_tests) {
             auto names = opt_structures.empty() ? std::vector<std::string>{"array","slist","dlist","hashmap"} : opt_structures;
             return run_op_tests(names, opt_size);
