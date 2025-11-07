@@ -50,6 +50,7 @@ public:
     void clear() override {
         if (strategy_ == HashStrategy::OPEN_ADDRESSING) oa_clear(); else sc_clear();
         size_ = 0;
+        metrics_reset();
     }
 
     size_t memory_usage() const override {
@@ -155,6 +156,8 @@ private:
         std::size_t new_cap = capacity_ ? capacity_ * 2 : 16;
         OAEntry* old = oa_entries_;
         std::size_t old_cap = capacity_;
+        bool prev_enabled = metrics_enabled_;
+        metrics_enabled_ = false; // do not count internal rehashing
         oa_init(new_cap);
         std::size_t old_size = size_;
         size_ = 0;
@@ -169,6 +172,7 @@ private:
         }
         std::allocator_traits<TrackedAllocator<OAEntry>>::deallocate(oa_alloc_, old, old_cap);
         size_ = old_size; // oa_insert already updated size_
+        metrics_enabled_ = prev_enabled;
     }
 
     void oa_insert(int key, const std::string& value) {
@@ -179,7 +183,9 @@ private:
         std::size_t mask = capacity_ - 1;
         std::size_t idx = mix(static_cast<std::uint64_t>(key)) & mask;
         std::size_t first_tomb = capacity_;
+        std::size_t probes = 0;
         while (true) {
+            ++probes;
             OAEntry& e = oa_entries_[idx];
             if (e.state == OAState::EMPTY) {
                 std::size_t target = (first_tomb < capacity_) ? first_tomb : idx;
@@ -189,11 +195,13 @@ private:
                 new (&slot.value) std::string(value);
                 slot.state = OAState::OCCUPIED;
                 ++size_;
+                if (metrics_enabled_) { probe_insert_sum_ += probes; ++insert_ops_; }
                 return;
             } else if (e.state == OAState::TOMBSTONE) {
                 if (first_tomb == capacity_) first_tomb = idx;
             } else if (e.key == key) {
                 e.value = value; // update
+                if (metrics_enabled_) { probe_insert_sum_ += probes; ++insert_ops_; }
                 return;
             }
             idx = (idx + 1) & mask; // linear probing
@@ -203,10 +211,12 @@ private:
     bool oa_search(int key, std::string& value) const {
         std::size_t mask = capacity_ - 1;
         std::size_t idx = mix(static_cast<std::uint64_t>(key)) & mask;
+        std::size_t probes = 0;
         while (true) {
+            ++probes;
             const OAEntry& e = oa_entries_[idx];
-            if (e.state == OAState::EMPTY) return false;
-            if (e.state == OAState::OCCUPIED && e.key == key) { value = e.value; return true; }
+            if (e.state == OAState::EMPTY) { if (metrics_enabled_) { probe_search_sum_ += probes; ++search_ops_; } return false; }
+            if (e.state == OAState::OCCUPIED && e.key == key) { value = e.value; if (metrics_enabled_) { probe_search_sum_ += probes; ++search_ops_; } return true; }
             idx = (idx + 1) & mask;
         }
     }
@@ -214,14 +224,17 @@ private:
     bool oa_remove(int key) {
         std::size_t mask = capacity_ - 1;
         std::size_t idx = mix(static_cast<std::uint64_t>(key)) & mask;
+        std::size_t probes = 0;
         while (true) {
+            ++probes;
             OAEntry& e = oa_entries_[idx];
-            if (e.state == OAState::EMPTY) return false;
+            if (e.state == OAState::EMPTY) { if (metrics_enabled_) { probe_remove_sum_ += probes; ++remove_ops_; } return false; }
             if (e.state == OAState::OCCUPIED && e.key == key) {
                 e.value.~basic_string();
                 e.state = OAState::TOMBSTONE;
                 --size_;
                 ++tombstones_;
+                if (metrics_enabled_) { probe_remove_sum_ += probes; ++remove_ops_; }
                 return true;
             }
             idx = (idx + 1) & mask;
@@ -265,6 +278,8 @@ private:
         // rehash
         auto old_buckets = buckets_;
         std::size_t old_cap = capacity_;
+        bool prev_enabled = metrics_enabled_;
+        metrics_enabled_ = false; // disable during rehash
         sc_init(new_cap);
         std::size_t old_size = size_;
         size_ = 0;
@@ -279,27 +294,35 @@ private:
         }
         std::allocator_traits<TrackedAllocator<SCNode*>>::deallocate(sc_bucket_alloc_, old_buckets, old_cap);
         size_ = old_size; // already updated by sc_insert
+        metrics_enabled_ = prev_enabled;
     }
 
     void sc_insert(int key, const std::string& value) {
         sc_grow_if_needed();
         std::size_t idx = mix(static_cast<std::uint64_t>(key)) & (capacity_ - 1);
         // check existing
+        std::size_t probes = 0;
         for (SCNode* n = buckets_[idx]; n; n = n->next) {
-            if (n->key == key) { n->value = value; return; }
+            ++probes;
+            if (n->key == key) { n->value = value; if (metrics_enabled_) { probe_insert_sum_ += probes; ++insert_ops_; } return; }
         }
         SCNode* node = create_node(key, value);
         node->next = buckets_[idx];
         buckets_[idx] = node;
         ++size_;
         ++sc_node_count_;
+        ++probes; // count placement as a probe
+        if (metrics_enabled_) { probe_insert_sum_ += probes; ++insert_ops_; }
     }
 
     bool sc_search(int key, std::string& value) const {
         std::size_t idx = mix(static_cast<std::uint64_t>(key)) & (capacity_ - 1);
+        std::size_t probes = 0;
         for (SCNode* n = buckets_[idx]; n; n = n->next) {
-            if (n->key == key) { value = n->value; return true; }
+            ++probes;
+            if (n->key == key) { value = n->value; if (metrics_enabled_) { probe_search_sum_ += probes; ++search_ops_; } return true; }
         }
+        if (metrics_enabled_) { probe_search_sum_ += probes; ++search_ops_; }
         return false;
     }
 
@@ -307,16 +330,20 @@ private:
         std::size_t idx = mix(static_cast<std::uint64_t>(key)) & (capacity_ - 1);
         SCNode* prev = nullptr;
         SCNode* cur = buckets_[idx];
+        std::size_t probes = 0;
         while (cur) {
+            ++probes;
             if (cur->key == key) {
                 if (prev) prev->next = cur->next; else buckets_[idx] = cur->next;
                 destroy_node(cur);
                 --size_;
                 --sc_node_count_;
+                if (metrics_enabled_) { probe_remove_sum_ += probes; ++remove_ops_; }
                 return true;
             }
             prev = cur; cur = cur->next;
         }
+        if (metrics_enabled_) { probe_remove_sum_ += probes; ++remove_ops_; }
         return false;
     }
 
@@ -337,6 +364,15 @@ private:
         if (strategy_ == HashStrategy::OPEN_ADDRESSING) oa_free(); else sc_free();
     }
 
+public: // metrics API
+    void metrics_reset() {
+        probe_insert_sum_ = probe_search_sum_ = probe_remove_sum_ = 0;
+        insert_ops_ = search_ops_ = remove_ops_ = 0;
+    }
+    double avg_insert_probes() const { return insert_ops_ ? static_cast<double>(probe_insert_sum_) / insert_ops_ : 0.0; }
+    double avg_search_probes() const { return search_ops_ ? static_cast<double>(probe_search_sum_) / search_ops_ : 0.0; }
+    double avg_remove_probes() const { return remove_ops_ ? static_cast<double>(probe_remove_sum_) / remove_ops_ : 0.0; }
+
 private:
     // State shared by both
     HashStrategy strategy_;
@@ -356,6 +392,15 @@ private:
     MemoryPool<SCNode> sc_pool_{};
     std::size_t sc_node_count_ = 0;
     double sc_max_load_factor_ = 0.75;
+
+    // Metrics
+    bool metrics_enabled_ = true;
+    mutable std::size_t probe_insert_sum_ = 0;
+    mutable std::size_t probe_search_sum_ = 0;
+    mutable std::size_t probe_remove_sum_ = 0;
+    mutable std::size_t insert_ops_ = 0;
+    mutable std::size_t search_ops_ = 0;
+    mutable std::size_t remove_ops_ = 0;
 };
 
 } // namespace hashbrowns

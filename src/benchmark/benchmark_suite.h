@@ -60,6 +60,13 @@ struct BenchmarkResult {
     double memory_search_bytes_stddev{0.0};
     double memory_remove_bytes_mean{0.0};
     double memory_remove_bytes_stddev{0.0};
+    // HashMap-specific metrics (probes per operation average across runs)
+    double insert_probes_mean{0.0};
+    double insert_probes_stddev{0.0};
+    double search_probes_mean{0.0};
+    double search_probes_stddev{0.0};
+    double remove_probes_mean{0.0};
+    double remove_probes_stddev{0.0};
 };
 
 class BenchmarkSuite {

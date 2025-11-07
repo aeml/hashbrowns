@@ -54,13 +54,15 @@ static void write_results_csv(const std::string& path,
     out << "structure,seed,insert_ms_mean,insert_ms_stddev,insert_ms_median,insert_ms_p95,insert_ci_low,insert_ci_high,";
     out << "search_ms_mean,search_ms_stddev,search_ms_median,search_ms_p95,search_ci_low,search_ci_high,";
     out << "remove_ms_mean,remove_ms_stddev,remove_ms_median,remove_ms_p95,remove_ci_low,remove_ci_high,";
-    out << "memory_bytes,memory_insert_mean,memory_insert_stddev,memory_search_mean,memory_search_stddev,memory_remove_mean,memory_remove_stddev\n";
+    out << "memory_bytes,memory_insert_mean,memory_insert_stddev,memory_search_mean,memory_search_stddev,memory_remove_mean,memory_remove_stddev,";
+    out << "insert_probes_mean,insert_probes_stddev,search_probes_mean,search_probes_stddev,remove_probes_mean,remove_probes_stddev\n";
     for (const auto& r : results) {
         out << r.structure << "," << actual_seed << ","
             << r.insert_ms_mean << "," << r.insert_ms_stddev << "," << r.insert_ms_median << "," << r.insert_ms_p95 << "," << r.insert_ci_low << "," << r.insert_ci_high << ","
             << r.search_ms_mean << "," << r.search_ms_stddev << "," << r.search_ms_median << "," << r.search_ms_p95 << "," << r.search_ci_low << "," << r.search_ci_high << ","
             << r.remove_ms_mean << "," << r.remove_ms_stddev << "," << r.remove_ms_median << "," << r.remove_ms_p95 << "," << r.remove_ci_low << "," << r.remove_ci_high << ","
-            << r.memory_bytes << "," << r.memory_insert_bytes_mean << "," << r.memory_insert_bytes_stddev << "," << r.memory_search_bytes_mean << "," << r.memory_search_bytes_stddev << "," << r.memory_remove_bytes_mean << "," << r.memory_remove_bytes_stddev << "\n";
+            << r.memory_bytes << "," << r.memory_insert_bytes_mean << "," << r.memory_insert_bytes_stddev << "," << r.memory_search_bytes_mean << "," << r.memory_search_bytes_stddev << "," << r.memory_remove_bytes_mean << "," << r.memory_remove_bytes_stddev << ","
+            << r.insert_probes_mean << "," << r.insert_probes_stddev << "," << r.search_probes_mean << "," << r.search_probes_stddev << "," << r.remove_probes_mean << "," << r.remove_probes_stddev << "\n";
     }
 }
 
@@ -147,8 +149,14 @@ static void write_results_json(const std::string& path,
             << "\"memory_insert_stddev\": " << r.memory_insert_bytes_stddev << ","
             << "\"memory_search_mean\": " << r.memory_search_bytes_mean << ","
             << "\"memory_search_stddev\": " << r.memory_search_bytes_stddev << ","
-            << "\"memory_remove_mean\": " << r.memory_remove_bytes_mean << ","
-            << "\"memory_remove_stddev\": " << r.memory_remove_bytes_stddev
+        << "\"memory_remove_mean\": " << r.memory_remove_bytes_mean << ","
+        << "\"memory_remove_stddev\": " << r.memory_remove_bytes_stddev << ","
+        << "\"insert_probes_mean\": " << r.insert_probes_mean << ","
+        << "\"insert_probes_stddev\": " << r.insert_probes_stddev << ","
+        << "\"search_probes_mean\": " << r.search_probes_mean << ","
+        << "\"search_probes_stddev\": " << r.search_probes_stddev << ","
+        << "\"remove_probes_mean\": " << r.remove_probes_mean << ","
+        << "\"remove_probes_stddev\": " << r.remove_probes_stddev
             << "}" << (i + 1 < results.size() ? "," : "") << "\n";
     }
     out << "  ]\n}\n";
@@ -174,7 +182,8 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
         }
 
         std::vector<double> insert_ms, search_ms, remove_ms;
-        std::vector<double> mem_ins, mem_sea, mem_rem;
+    std::vector<double> mem_ins, mem_sea, mem_rem;
+    std::vector<double> probes_ins, probes_sea, probes_rem; // only populated for hashmap
         insert_ms.reserve(config.runs);
         search_ms.reserve(config.runs);
         remove_ms.reserve(config.runs);
@@ -225,15 +234,25 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
             MemoryTracker::instance().reset();
             auto mem_before = MemoryTracker::instance().get_stats().current_usage;
             Timer t; t.start();
+            // reset hash probes if applicable
+            if (name == "hashmap" || name == "hash-map") {
+                if (auto hm = dynamic_cast<HashMap*>(ds.get())) hm->metrics_reset();
+            }
             for (auto k : ins_keys) ds->insert(k, std::to_string(k));
             auto ins_us = t.stop().count();
             insert_ms.push_back(ins_us / 1000.0);
             auto mem_after_insert = MemoryTracker::instance().get_stats().current_usage;
             mem_ins.push_back(static_cast<double>(mem_after_insert - mem_before));
+            if (name == "hashmap" || name == "hash-map") {
+                if (auto hm = dynamic_cast<HashMap*>(ds.get())) probes_ins.push_back(hm->avg_insert_probes());
+            }
 
             // Search
             t.start();
             std::string v;
+            if (name == "hashmap" || name == "hash-map") {
+                if (auto hm = dynamic_cast<HashMap*>(ds.get())) hm->metrics_reset();
+            }
             for (auto k : sea_keys) {
                 bool found = ds->search(k, v);
                 if (!found) { /* ensure no UB in opt build */ }
@@ -242,14 +261,23 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
             search_ms.push_back(sea_us / 1000.0);
             auto mem_after_search = MemoryTracker::instance().get_stats().current_usage;
             mem_sea.push_back(static_cast<double>(mem_after_search - mem_after_insert));
+            if (name == "hashmap" || name == "hash-map") {
+                if (auto hm = dynamic_cast<HashMap*>(ds.get())) probes_sea.push_back(hm->avg_search_probes());
+            }
 
             // Remove
             t.start();
+            if (name == "hashmap" || name == "hash-map") {
+                if (auto hm = dynamic_cast<HashMap*>(ds.get())) hm->metrics_reset();
+            }
             for (auto k : rem_keys) { ds->remove(k); }
             auto rem_us = t.stop().count();
             remove_ms.push_back(rem_us / 1000.0);
             auto mem_after_remove = MemoryTracker::instance().get_stats().current_usage;
             mem_rem.push_back(static_cast<double>(mem_after_remove - mem_after_search));
+            if (name == "hashmap" || name == "hash-map") {
+                if (auto hm = dynamic_cast<HashMap*>(ds.get())) probes_rem.push_back(hm->avg_remove_probes());
+            }
         }
 
         auto ins = summarize(insert_ms, config.bootstrap_iters);
@@ -272,6 +300,19 @@ std::vector<BenchmarkResult> BenchmarkSuite::run(const BenchmarkConfig& config) 
         br.memory_insert_bytes_mean = mins.mean; br.memory_insert_bytes_stddev = mins.stddev;
         br.memory_search_bytes_mean = msea.mean; br.memory_search_bytes_stddev = msea.stddev;
         br.memory_remove_bytes_mean = mrem.mean; br.memory_remove_bytes_stddev = mrem.stddev;
+        // HashMap-specific probe summaries
+        if (!probes_ins.empty()) {
+            auto s = summarize(probes_ins);
+            br.insert_probes_mean = s.mean; br.insert_probes_stddev = s.stddev;
+        }
+        if (!probes_sea.empty()) {
+            auto s = summarize(probes_sea);
+            br.search_probes_mean = s.mean; br.search_probes_stddev = s.stddev;
+        }
+        if (!probes_rem.empty()) {
+            auto s = summarize(probes_rem);
+            br.remove_probes_mean = s.mean; br.remove_probes_stddev = s.stddev;
+        }
         out_results.push_back(br);
     }
 
