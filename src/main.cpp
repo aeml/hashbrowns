@@ -155,6 +155,7 @@ OPTIONS:
     --runs N              Number of benchmark runs (default: 10) (per size when series enabled)
     --series-count N      If >1: run a linear multi-size series up to --size (treated as max). Example: --size 10000 --series-count 4 -> sizes 2500,5000,7500,10000
     --series-out FILE     Output file for multi-size series (default: results/csvs/series_results.csv|json)
+    --series-sizes LIST   Explicit comma-separated sizes (overrides --series-count linear spacing). Example: --series-sizes 512,2048,8192
         --warmup N            Discard first N runs (warm-up) from timing stats (default: 0)
         --bootstrap N         Bootstrap iterations for mean CI (0=disabled; recommend 200-1000) (default: 0)
     --sizes N             (Wizard alt) Treat size as max and run linearly spaced sizes (interactive in --wizard)
@@ -205,6 +206,7 @@ int main(int argc, char* argv[]) {
     int opt_runs = 10;
     int opt_series_count = 0;
     std::optional<std::string> opt_series_out;
+    std::vector<std::size_t> opt_series_sizes;
     int opt_warmup = 0;
     int opt_bootstrap = 0;
     int opt_series_runs = -1; // if <0, choose default based on opt_runs
@@ -247,6 +249,16 @@ int main(int argc, char* argv[]) {
             demo_mode = false;
         } else if (arg == "--series-out" && i + 1 < argc) {
             opt_series_out = std::string(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--series-sizes" && i + 1 < argc) {
+            std::string list = argv[++i];
+            size_t start = 0, pos;
+            while ((pos = list.find(',', start)) != std::string::npos) {
+                auto tok = list.substr(start, pos - start);
+                if (!tok.empty()) opt_series_sizes.push_back(static_cast<std::size_t>(std::stoull(tok)));
+                start = pos + 1;
+            }
+            if (start < list.size()) opt_series_sizes.push_back(static_cast<std::size_t>(std::stoull(list.substr(start))));
             demo_mode = false;
         } else if (arg == "--series-runs" && i + 1 < argc) {
             opt_series_runs = std::stoi(argv[++i]);
@@ -429,11 +441,15 @@ int main(int argc, char* argv[]) {
                 else suite.write_crossover_json(*opt_output, cx, cfg);
             }
             return cx.empty() ? 1 : 0;
-        } else if (opt_series_count > 1) {
+        } else if (opt_series_count > 1 || !opt_series_sizes.empty()) {
             // Multi-size linear series benchmark
             std::vector<std::size_t> sizes;
-            double step = static_cast<double>(opt_size) / opt_series_count;
-            for (int i = 1; i <= opt_series_count; ++i) sizes.push_back(static_cast<std::size_t>(std::llround(step * i)));
+            if (!opt_series_sizes.empty()) {
+                sizes = opt_series_sizes;
+            } else {
+                double step = static_cast<double>(opt_size) / opt_series_count;
+                for (int i = 1; i <= opt_series_count; ++i) sizes.push_back(static_cast<std::size_t>(std::llround(step * i)));
+            }
             BenchmarkSuite::Series series;
             for (auto s : sizes) {
                 cfg.size = s;
