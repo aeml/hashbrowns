@@ -14,6 +14,8 @@ namespace hashbrowns {
 struct BenchmarkConfig {
     std::size_t size = 10000;
     int runs = 10;
+    int warmup_runs = 0; // number of warm-up runs discarded
+    int bootstrap_iters = 0; // bootstrap iterations for CI (0=disabled)
     bool verbose = false;
     std::optional<std::string> csv_output;
     enum class OutputFormat { CSV, JSON };
@@ -23,6 +25,7 @@ struct BenchmarkConfig {
     enum class Pattern { SEQUENTIAL, RANDOM, MIXED };
     Pattern pattern = Pattern::SEQUENTIAL;
     std::optional<unsigned long long> seed; // RNG seed for RANDOM/MIXED; random_device if not provided
+    bool seed_was_generated = false; // set true if we generated a seed internally
 
     // HashMap tuning
     HashStrategy hash_strategy = HashStrategy::OPEN_ADDRESSING;
@@ -38,7 +41,25 @@ struct BenchmarkResult {
     double insert_ms_stddev{0.0};
     double search_ms_stddev{0.0};
     double remove_ms_stddev{0.0};
+    double insert_ms_median{0.0};
+    double search_ms_median{0.0};
+    double remove_ms_median{0.0};
+    double insert_ms_p95{0.0};
+    double search_ms_p95{0.0};
+    double remove_ms_p95{0.0};
+    double insert_ci_low{0.0};
+    double insert_ci_high{0.0};
+    double search_ci_low{0.0};
+    double search_ci_high{0.0};
+    double remove_ci_low{0.0};
+    double remove_ci_high{0.0};
     std::size_t memory_bytes{0};
+    double memory_insert_bytes_mean{0.0};
+    double memory_insert_bytes_stddev{0.0};
+    double memory_search_bytes_mean{0.0};
+    double memory_search_bytes_stddev{0.0};
+    double memory_remove_bytes_mean{0.0};
+    double memory_remove_bytes_stddev{0.0};
 };
 
 class BenchmarkSuite {
@@ -53,6 +74,10 @@ public:
     std::vector<CrossoverInfo> compute_crossovers(const Series& series);
     void write_crossover_csv(const std::string& path, const std::vector<CrossoverInfo>& info);
     void write_crossover_json(const std::string& path, const std::vector<CrossoverInfo>& info, const BenchmarkConfig& config);
+
+    // Linear series output helpers (size/structure -> per-op means)
+    void write_series_csv(const std::string& path, const Series& series);
+    void write_series_json(const std::string& path, const Series& series, const BenchmarkConfig& config);
 };
 
 } // namespace hashbrowns

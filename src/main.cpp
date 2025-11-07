@@ -155,6 +155,8 @@ OPTIONS:
     --runs N              Number of benchmark runs (default: 10) (per size when series enabled)
     --series-count N      If >1: run a linear multi-size series up to --size (treated as max). Example: --size 10000 --series-count 4 -> sizes 2500,5000,7500,10000
     --series-out FILE     Output file for multi-size series (default: results/csvs/series_results.csv|json)
+        --warmup N            Discard first N runs (warm-up) from timing stats (default: 0)
+        --bootstrap N         Bootstrap iterations for mean CI (0=disabled; recommend 200-1000) (default: 0)
     --sizes N             (Wizard alt) Treat size as max and run linearly spaced sizes (interactive in --wizard)
     --structures LIST     Comma-separated list: array,slist,dlist,hashmap
   --output FILE         Export results to CSV file
@@ -203,6 +205,8 @@ int main(int argc, char* argv[]) {
     int opt_runs = 10;
     int opt_series_count = 0;
     std::optional<std::string> opt_series_out;
+    int opt_warmup = 0;
+    int opt_bootstrap = 0;
     int opt_series_runs = -1; // if <0, choose default based on opt_runs
     std::vector<std::string> opt_structures;
     std::optional<std::string> opt_output;
@@ -231,6 +235,12 @@ int main(int argc, char* argv[]) {
             demo_mode = false;
         } else if (arg == "--runs" && i + 1 < argc) {
             opt_runs = std::stoi(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--warmup" && i + 1 < argc) {
+            opt_warmup = std::stoi(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--bootstrap" && i + 1 < argc) {
+            opt_bootstrap = std::stoi(argv[++i]);
             demo_mode = false;
         } else if (arg == "--series-count" && i + 1 < argc) {
             opt_series_count = std::stoi(argv[++i]);
@@ -324,6 +334,8 @@ int main(int argc, char* argv[]) {
         BenchmarkConfig cfg;
         cfg.size = opt_size;
     cfg.runs = opt_runs;
+    cfg.warmup_runs = opt_warmup;
+    cfg.bootstrap_iters = opt_bootstrap;
     cfg.verbose = false;
         cfg.csv_output = opt_output;
     cfg.structures = opt_structures.empty() ? std::vector<std::string>{"array","slist","dlist","hashmap"} : opt_structures;

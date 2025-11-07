@@ -10,6 +10,8 @@ static void test_results_json_has_meta_and_results() {
     BenchmarkConfig cfg;
     cfg.size = 64;
     cfg.runs = 1;
+    cfg.warmup_runs = 1;
+    cfg.bootstrap_iters = 10;
     cfg.structures = {"hashmap"};
     cfg.output_format = BenchmarkConfig::OutputFormat::JSON;
     cfg.csv_output = std::string("json_test_output.json");
@@ -25,10 +27,69 @@ static void test_results_json_has_meta_and_results() {
     std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     if (content.find("\"meta\"") == std::string::npos) throw std::runtime_error("JSON missing meta section");
     if (content.find("\"results\"") == std::string::npos) throw std::runtime_error("JSON missing results section");
+    // meta keys
     if (content.find("\"size\"") == std::string::npos) throw std::runtime_error("JSON meta missing size");
     if (content.find("\"runs\"") == std::string::npos) throw std::runtime_error("JSON meta missing runs");
+    if (content.find("\"warmup_runs\"") == std::string::npos) throw std::runtime_error("JSON meta missing warmup_runs");
+    if (content.find("\"bootstrap_iters\"") == std::string::npos) throw std::runtime_error("JSON meta missing bootstrap_iters");
     if (content.find("\"structures\"") == std::string::npos) throw std::runtime_error("JSON meta missing structures");
+    if (content.find("\"pattern\"") == std::string::npos) throw std::runtime_error("JSON meta missing pattern");
     if (content.find("\"hash_strategy\"") == std::string::npos) throw std::runtime_error("JSON meta missing hash_strategy");
+    if (content.find("\"timestamp\"") == std::string::npos) throw std::runtime_error("JSON meta missing timestamp");
+    if (content.find("\"cpu_governor\"") == std::string::npos) throw std::runtime_error("JSON meta missing cpu_governor");
+    if (content.find("\"git_commit\"") == std::string::npos) throw std::runtime_error("JSON meta missing git_commit");
+    if (content.find("\"compiler\"") == std::string::npos) throw std::runtime_error("JSON meta missing compiler");
+
+    // result stats keys
+    if (content.find("\"insert_ms_median\"") == std::string::npos) throw std::runtime_error("JSON results missing insert_ms_median");
+    if (content.find("\"insert_ms_p95\"") == std::string::npos) throw std::runtime_error("JSON results missing insert_ms_p95");
+    if (content.find("\"insert_ci_low\"") == std::string::npos) throw std::runtime_error("JSON results missing insert_ci_low");
+    if (content.find("\"insert_ci_high\"") == std::string::npos) throw std::runtime_error("JSON results missing insert_ci_high");
+    if (content.find("\"search_ms_median\"") == std::string::npos) throw std::runtime_error("JSON results missing search_ms_median");
+    if (content.find("\"search_ms_p95\"") == std::string::npos) throw std::runtime_error("JSON results missing search_ms_p95");
+    if (content.find("\"remove_ms_median\"") == std::string::npos) throw std::runtime_error("JSON results missing remove_ms_median");
+    if (content.find("\"remove_ms_p95\"") == std::string::npos) throw std::runtime_error("JSON results missing remove_ms_p95");
+
+    // memory delta keys
+    if (content.find("\"memory_insert_mean\"") == std::string::npos) throw std::runtime_error("JSON results missing memory_insert_mean");
+    if (content.find("\"memory_insert_stddev\"") == std::string::npos) throw std::runtime_error("JSON results missing memory_insert_stddev");
+    if (content.find("\"memory_search_mean\"") == std::string::npos) throw std::runtime_error("JSON results missing memory_search_mean");
+    if (content.find("\"memory_search_stddev\"") == std::string::npos) throw std::runtime_error("JSON results missing memory_search_stddev");
+    if (content.find("\"memory_remove_mean\"") == std::string::npos) throw std::runtime_error("JSON results missing memory_remove_mean");
+    if (content.find("\"memory_remove_stddev\"") == std::string::npos) throw std::runtime_error("JSON results missing memory_remove_stddev");
+}
+
+static void test_series_json_has_meta_and_series() {
+    BenchmarkConfig cfg;
+    cfg.size = 64;
+    cfg.runs = 2;
+    cfg.structures = {"array","hashmap"};
+    cfg.pattern = BenchmarkConfig::Pattern::SEQUENTIAL;
+    BenchmarkSuite suite;
+
+    // Build a simple series of two sizes
+    std::vector<std::size_t> sizes = {32, 64};
+    auto series = suite.run_series(cfg, sizes);
+    if (series.empty()) throw std::runtime_error("Series run produced no data");
+
+    const std::string out_path = "series_schema_test_output.json";
+    suite.write_series_json(out_path, series, cfg);
+
+    std::ifstream in(out_path);
+    if (!in.good()) throw std::runtime_error("series_schema_test_output.json not written");
+    std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+
+    if (content.find("\"meta\"") == std::string::npos) throw std::runtime_error("Series JSON missing meta section");
+    if (content.find("\"series\"") == std::string::npos) throw std::runtime_error("Series JSON missing series section");
+    if (content.find("\"runs_per_size\"") == std::string::npos) throw std::runtime_error("Series JSON meta missing runs_per_size");
+    if (content.find("\"pattern\"") == std::string::npos) throw std::runtime_error("Series JSON meta missing pattern");
+    if (content.find("\"structures\"") == std::string::npos) throw std::runtime_error("Series JSON meta missing structures");
+
+    // Check at least one series entry keys
+    if (content.find("\"size\"") == std::string::npos) throw std::runtime_error("Series JSON missing size key in entries");
+    if (content.find("\"insert_ms\"") == std::string::npos) throw std::runtime_error("Series JSON missing insert_ms key in entries");
+    if (content.find("\"search_ms\"") == std::string::npos) throw std::runtime_error("Series JSON missing search_ms key in entries");
+    if (content.find("\"remove_ms\"") == std::string::npos) throw std::runtime_error("Series JSON missing remove_ms key in entries");
 }
 
 int run_json_output_tests() {
@@ -36,6 +97,7 @@ int run_json_output_tests() {
     std::cout << "=======================\n\n";
     try {
         test_results_json_has_meta_and_results();
+        test_series_json_has_meta_and_series();
         std::cout << "\n✅ JSON output tests passed!\n";
         return 0;
     } catch (const std::exception& e) {

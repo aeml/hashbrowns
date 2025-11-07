@@ -205,9 +205,10 @@ def plot_crossovers(cross_rows, out_dir, notes: Sequence[str] = (), include_hw: 
 
 def main():
     ap = argparse.ArgumentParser(description='Plot hashbrowns benchmark CSV outputs')
-    ap.add_argument('--bench-csv', default=os.path.join('build', 'benchmark_results.csv'))
-    ap.add_argument('--cross-csv', default=os.path.join('build', 'crossover_results.csv'))
-    ap.add_argument('--out-dir', default=os.path.join('build', 'plots'))
+    ap.add_argument('--bench-csv', default=os.path.join('results', 'csvs', 'benchmark_results.csv'))
+    ap.add_argument('--cross-csv', default=os.path.join('results', 'csvs', 'crossover_results.csv'))
+    ap.add_argument('--series-csv', default=None, help='Optional series CSV (size,structure,insert_ms,search_ms,remove_ms)')
+    ap.add_argument('--out-dir', default=os.path.join('results', 'plots'))
     ap.add_argument('--yscale', choices=['linear','mid','log','auto'], default='auto', help='Y-axis scale for benchmark plots (default: auto). Use "mid" for asinh-based middle ground.')
     ap.add_argument('--note', action='append', default=[], help='Additional annotation text (repeatable)')
     ap.add_argument('--no-hw', action='store_true', help='Do not annotate hardware info')
@@ -216,12 +217,57 @@ def main():
     if not require_matplotlib():
         return 1
 
-    bench = read_csv(args.bench_csv)
-    cross = read_csv(args.cross_csv)
+    bench = read_csv(args.bench_csv) if args.bench_csv else []
+    cross = read_csv(args.cross_csv) if args.cross_csv else []
 
-    plot_bench(bench, args.out_dir, yscale=args.yscale, notes=args.note, include_hw=not args.no_hw)
-    plot_bench_by_operation(bench, args.out_dir, yscale=args.yscale, notes=args.note, include_hw=not args.no_hw)
-    plot_crossovers(cross, args.out_dir, notes=args.note, include_hw=not args.no_hw)
+    if bench:
+        plot_bench(bench, args.out_dir, yscale=args.yscale, notes=args.note, include_hw=not args.no_hw)
+        plot_bench_by_operation(bench, args.out_dir, yscale=args.yscale, notes=args.note, include_hw=not args.no_hw)
+    if cross:
+        plot_crossovers(cross, args.out_dir, notes=args.note, include_hw=not args.no_hw)
+
+    if args.series_csv:
+        series = read_csv(args.series_csv)
+        if series:
+            try:
+                import matplotlib.pyplot as plt
+            except Exception:
+                print("[ERROR] matplotlib not available for series plots", file=sys.stderr)
+                return 1
+            # Build plots by operation across sizes per structure
+            ops = ['insert_ms', 'search_ms', 'remove_ms']
+            sizes = sorted({int(float(r['size'])) for r in series})
+            structures = sorted({r['structure'] for r in series})
+            data = {op: {st: [] for st in structures} for op in ops}
+            # Group values in size order
+            by_size = {s: [r for r in series if int(float(r['size'])) == s] for s in sizes}
+            for s in sizes:
+                rows = by_size[s]
+                for st in structures:
+                    row = next((r for r in rows if r['structure'] == st), None)
+                    for op in ops:
+                        val = float(row[op]) if row else float('nan')
+                        data[op][st].append(val)
+            # One figure per operation
+            for op in ops:
+                fig, ax = plt.subplots(figsize=(8,4))
+                all_vals = []
+                for st in structures:
+                    y = data[op][st]
+                    all_vals.extend([v for v in y if v == v])
+                    ax.plot(sizes, y, marker='o', label=st)
+                _apply_scale(ax, all_vals or [1.0], args.yscale)
+                ax.set_title(f"Series: {op.replace('_ms','')} vs size")
+                ax.set_xlabel("elements")
+                ax.set_ylabel("ms (mean)")
+                ax.grid(True, linestyle='--', alpha=0.3)
+                ax.legend()
+                fig.tight_layout(rect=[0, 0.04, 1, 0.97])
+                _annotate(fig, args.note, not args.no_hw)
+                os.makedirs(args.out_dir, exist_ok=True)
+                out_path = os.path.join(args.out_dir, f"series_{op.replace('_ms','')}.png")
+                fig.savefig(out_path, dpi=150)
+                print(f"[INFO] Wrote {out_path}")
     return 0
 
 

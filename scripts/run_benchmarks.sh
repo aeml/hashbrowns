@@ -2,10 +2,11 @@
 set -euo pipefail
 
 # Run hashbrowns benchmarks and crossover analysis with sensible defaults
-# Outputs CSVs to build/ by default.
+# Outputs now stored under results/csvs and plots under results/plots.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
 BUILD_DIR="${ROOT_DIR}/build"
+RESULTS_DIR="${ROOT_DIR}/results"
 BIN="${BUILD_DIR}/hashbrowns"
 
 # Defaults
@@ -21,7 +22,8 @@ HASH_CAPACITY=${HASH_CAPACITY:-}
 HASH_LOAD=${HASH_LOAD:-}
 BUILD_TYPE=${BUILD_TYPE:-Release}
 JOBS=${JOBS:-$(nproc 2>/dev/null || echo 4)}
-PLOTS_DIR=${PLOTS_DIR:-${BUILD_DIR}/plots}
+CSV_DIR=${CSV_DIR:-${RESULTS_DIR}/csvs}
+PLOTS_DIR=${PLOTS_DIR:-${RESULTS_DIR}/plots}
 AUTO_PLOTS=${AUTO_PLOTS:-1} # 1=try to plot if possible, 0=skip unless forced
 YSCALE=${YSCALE:-auto}
 SERIES_RUNS=${SERIES_RUNS:-1}
@@ -104,18 +106,20 @@ fi
 mkdir -p "${BUILD_DIR}"
 
 # Default output paths if not provided
+mkdir -p "${CSV_DIR}" "${PLOTS_DIR}" || true
+
 if [[ -z "${BENCH_OUT}" ]]; then
   if [[ "${OUT_FORMAT}" == "json" ]]; then
-    BENCH_OUT="${BUILD_DIR}/benchmark_results.json"
+    BENCH_OUT="${CSV_DIR}/benchmark_results.json"
   else
-    BENCH_OUT="${BUILD_DIR}/benchmark_results.csv"
+    BENCH_OUT="${CSV_DIR}/benchmark_results.csv"
   fi
 fi
 if [[ -z "${CROSS_OUT}" ]]; then
   if [[ "${OUT_FORMAT}" == "json" ]]; then
-    CROSS_OUT="${BUILD_DIR}/crossover_results.json"
+    CROSS_OUT="${CSV_DIR}/crossover_results.json"
   else
-    CROSS_OUT="${BUILD_DIR}/crossover_results.csv"
+    CROSS_OUT="${CSV_DIR}/crossover_results.csv"
   fi
 fi
 
