@@ -112,29 +112,50 @@ cmake --install build --prefix /usr/local
 
 ## Usage
 
-The executable supports the following options:
+### Core CLI Flags (single-size, series, crossover, reproducibility)
 
-- `--size N` — number of elements (default: 10000)
-- `--runs N` — repetitions per test (default: 10)
-- `--series-count N` — if >1, treat `--size` as the maximum and run a linear multi-size series with N evenly spaced sizes (e.g. `--size 10000 --series-count 4` -> 2500, 5000, 7500, 10000)
-- `--series-out FILE` — output file for multi-size series results (default: `results/csvs/series_results.csv|json` depending on `--out-format`)
-- `--structures LIST` — comma-separated list of structures: `array,slist,dlist,hashmap`
-- `--output FILE` — write benchmark or crossover results to CSV/JSON
-- `--out-format {csv,json}` — select output format (default: csv)
-- `--wizard` — interactive mode to choose structures and settings (easy "test-all" flow)
-- `--memory-tracking` — enable detailed memory tracking during runs
-- `--pattern {sequential,random,mixed}` — data pattern for inserts/search/removes; with `--seed N` for reproducibility
-- `--crossover-analysis` — estimate crossover points by running a size sweep
-- `--max-size N` — maximum size used for crossover analysis (default: 100000)
-- `--series-runs N` — runs per size during sweep (default: 1)
-- `--max-seconds N` — time budget to cap crossover sweep
-- HashMap tuning:
-    - `--hash-strategy {open,chain}` — open addressing or separate chaining
-    - `--hash-capacity N` — initial capacity (power-of-two rounded)
-    - `--hash-load F` — max load factor
-- `--help` — show help
+The `hashbrowns` executable supports a rich set of flags. All flags are optional; sensible defaults are chosen for quick runs.
 
-Examples:
+Benchmark scope & iteration control:
+- `--size N`  Size for single benchmark mode (default: 10000). When a series is requested this is treated as the MAX size unless explicit sizes provided.
+- `--runs N`  Repetitions per structure for single-size benchmark (default: 10). Used as "runs per size" for series unless overridden by `--series-runs`.
+- `--warmup N`  Discard first N runs (warm-up) from timing statistics (default: 0).
+- `--bootstrap N`  Perform N bootstrap iterations to build a 95% CI for mean (0 disables; typical: 200–1000).
+
+Multi-size / sweeping:
+- `--series-count N`  If >1: run a linear multi-size series up to `--size`, producing N evenly spaced sizes.
+- `--series-sizes LIST`  Explicit comma-separated sizes (overrides `--series-count` spacing).
+- `--series-out FILE`  Output path for series results (defaults under `results/csvs/series_results.*`).
+- `--series-runs N`  Runs per size for a series or crossover sweep (default: 1 for speed). Increase for stability.
+
+Workload pattern & reproducibility:
+- `--pattern {sequential,random,mixed}`  Key access pattern; affects insert/search/remove ordering.
+- `--seed N`  RNG seed for random/mixed patterns (default: generated via `std::random_device`). Emitted in JSON/CSV for reproducibility.
+- `--pin-cpu [IDX]`  Pin process to a specific CPU core (Linux-only). If IDX omitted, uses 0. Emits `pinned_cpu` in meta.
+- `--no-turbo`  Attempt to disable CPU turbo boost (Linux-only, best-effort). Emits `turbo_disabled` and current `cpu_governor`.
+
+Output & formatting:
+- `--output FILE`  Write single-size benchmark OR crossover results to file (CSV/JSON based on `--out-format`).
+- `--out-format {csv,json}`  Choose output serialization (default: csv).
+- `--memory-tracking`  Enable per-operation memory delta sampling (adds memory columns to CSV and memory stats to JSON).
+- `--wizard`  Interactive guided run (series or crossover) with prompts and default paths.
+- `--no-banner` / `--quiet`  Suppress banner or most stdout (used by scripts / CI).
+
+Crossover (size sweep inference):
+- `--crossover-analysis`  Perform a size sweep to estimate crossover points between structures per operation.
+- `--max-size N`  Maximum size for crossover sweep (default: 100000).
+- `--max-seconds N`  Time budget to cap crossover sweep early.
+
+HashMap tuning:
+- `--hash-strategy {open,chain}`  Select open addressing or separate chaining.
+- `--hash-capacity N`  Initial capacity (auto rounded to power-of-two for open addressing).
+- `--hash-load F`  Target max load factor before growth.
+
+Help & verbosity:
+- `--verbose`  Print extra per-run diagnostics.
+- `--help`  Show help text.
+
+### Examples
 
 ```bash
 # Compare default structures at a single size
@@ -148,19 +169,70 @@ Examples:
     --structures array,slist,hashmap --runs 5 \
     --out-format json --output results/csvs/crossover_results.json
 
-# Wizard (interactive multi-size benchmarking + optional plotting)
+### Wizard (interactive multi-size benchmarking + optional plotting)
 ./build/hashbrowns --wizard
     # Prompts will include: structures, max size, number of sizes (default 10), runs per size (default 10),
     # pattern, seed, output format, and an option to auto-generate series plots.
 
-# CLI multi-size series without wizard (CSV):
+### CLI multi-size series without wizard (CSV example):
 ./build/hashbrowns --size 20000 --series-count 5 --runs 5 --series-out results/csvs/series_results.csv --out-format csv
 
-# CLI multi-size series JSON (default path):
+### CLI multi-size series JSON (default path):
 ./build/hashbrowns --size 50000 --series-count 8 --runs 3 --out-format json
 ```
 
 ---
+
+## Output Schema & Environment Metadata
+
+Each JSON output (`benchmark_results.json`, `crossover_results.json`, `series_results.json`) includes a `meta` block capturing run parameters and a reproducibility snapshot:
+
+```
+"meta": {
+    "size": <int>,                // single-size only
+    "runs": <int>,
+    "warmup_runs": <int>,
+    "bootstrap_iters": <int>,
+    "structures": ["array", ...],
+    "pattern": "sequential|random|mixed",
+    "seed": <uint64>,             // always resolved (generated if not supplied)
+    "timestamp": "UTC ISO-8601",
+    "cpu_governor": "performance|powersave|unknown",
+    "git_commit": "<short sha|unknown>",
+    "compiler": "GCC X.Y.Z | Clang X.Y.Z | MSVC <number> | unknown",
+    "cpp_standard": "C++17|C++20|...",
+    "build_type": "Release|Debug|RelWithDebInfo",
+    "cpu_model": "<string>",
+    "cores": <int>,
+    "total_ram_bytes": <uint64>,
+    "kernel": "OS KernelVersion",
+    "hash_strategy": "open|chain",
+    "hash_capacity": <int?>,
+    "hash_load": <float?>,
+    "pinned_cpu": <int|-1>,
+    "turbo_disabled": 0|1
+}
+```
+
+CSV benchmark output columns (single-size):
+```
+structure,seed,
+insert_ms_mean,insert_ms_stddev,insert_ms_median,insert_ms_p95,insert_ci_low,insert_ci_high,
+search_ms_mean,search_ms_stddev,search_ms_median,search_ms_p95,search_ci_low,search_ci_high,
+remove_ms_mean,remove_ms_stddev,remove_ms_median,remove_ms_p95,remove_ci_low,remove_ci_high,
+memory_bytes,memory_insert_mean,memory_insert_stddev,memory_search_mean,memory_search_stddev,memory_remove_mean,memory_remove_stddev,
+insert_probes_mean,insert_probes_stddev,search_probes_mean,search_probes_stddev,remove_probes_mean,remove_probes_stddev
+```
+
+Notes:
+- Bootstrapped CIs appear when `--bootstrap N` is non-zero (otherwise CI columns remain 0 or placeholder values).
+- Median for even sample counts uses the average of the two middle sorted values.
+- `memory_*` metrics represent per-operation incremental allocation deltas averaged across runs (requires `--memory-tracking`).
+- `*_probes_*` metrics are HashMap-specific (open addressing probe counts). Non-hash structures have zeros.
+- Series CSV: `size,structure,insert_ms,search_ms,remove_ms` (one row per size × structure).
+- Crossover CSV: `operation,a,b,size_at_crossover`.
+
+Performance reproducibility tips are in the section below; the snapshot fields help post-hoc analysis & plot annotations.
 
 ## Scripts
 

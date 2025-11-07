@@ -245,7 +245,20 @@ static void write_results_json(const std::string& path,
     out << "\",\n";
     out << "    \"cpu_governor\": \"" << read_cpu_governor() << "\",\n";
     out << "    \"git_commit\": \"" << git_commit_sha() << "\",\n";
-    out << "    \"compiler\": \"" << __VERSION__ << "\",\n";
+    // Portable compiler version string
+    auto compiler_version = []() -> std::string {
+#if defined(__clang__)
+    return std::string("Clang ") + __clang_version__;
+#elif defined(_MSC_VER)
+    // _MSC_FULL_VER is an integer, build a string like "MSVC 19.x"
+    return std::string("MSVC ") + std::to_string(_MSC_FULL_VER);
+#elif defined(__GNUC__)
+    return std::string("GCC ") + __VERSION__;
+#else
+    return std::string("unknown");
+#endif
+    }();
+    out << "    \"compiler\": \"" << compiler_version << "\",\n";
     out << "    \"cpp_standard\": \"" << cpp_standard_str() << "\",\n";
     out << "    \"build_type\": \"" << build_type_str() << "\",\n";
     out << "    \"cpu_model\": \"" << cpu_model() << "\",\n";
