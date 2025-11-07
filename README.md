@@ -119,6 +119,7 @@ The executable supports the following options:
 - `--structures LIST` — comma-separated list of structures: `array,slist,dlist,hashmap`
 - `--output FILE` — write benchmark or crossover results to CSV/JSON
 - `--out-format {csv,json}` — select output format (default: csv)
+- `--wizard` — interactive mode to choose structures and settings (easy "test-all" flow)
 - `--memory-tracking` — enable detailed memory tracking during runs
 - `--pattern {sequential,random,mixed}` — data pattern for inserts/search/removes; with `--seed N` for reproducibility
 - `--crossover-analysis` — estimate crossover points by running a size sweep
@@ -144,6 +145,9 @@ Examples:
 ./build/hashbrowns --crossover-analysis --max-size 100000 \
     --structures array,slist,hashmap --runs 5 \
     --out-format json --output build/crossover_results.json
+
+# Wizard (interactive)
+./build/hashbrowns --wizard
 ```
 
 ---

@@ -19,6 +19,7 @@ using namespace hashbrowns;
 
 void demonstrate_dynamic_array();
 static int run_op_tests(const std::vector<std::string>& names, std::size_t size);
+static int run_wizard();
 
 void print_banner() {
     std::cout << R"(
@@ -167,6 +168,7 @@ OPTIONS:
         --hash-load F         max load factor (applies to both strategies)
   --verbose             Detailed output
   --help               Show this help message
+    --wizard             Interactive mode to choose structures and settings
 
 EXAMPLES:
   hashbrowns --size 50000 --runs 20
@@ -192,6 +194,7 @@ int main(int argc, char* argv[]) {
     // Parse basic command line arguments
     bool show_help = false;
     bool demo_mode = true;
+    bool wizard_mode = false;
     std::size_t opt_size = 10000;
     int opt_runs = 10;
     int opt_series_runs = -1; // if <0, choose default based on opt_runs
@@ -213,6 +216,9 @@ int main(int argc, char* argv[]) {
         std::string arg = argv[i];
         if (arg == "--help" || arg == "-h") {
             show_help = true;
+            demo_mode = false;
+        } else if (arg == "--wizard" || arg == "-wizard") {
+            wizard_mode = true;
             demo_mode = false;
         } else if (arg == "--size" && i + 1 < argc) {
             opt_size = static_cast<std::size_t>(std::stoull(argv[++i]));
@@ -289,6 +295,10 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     
+    if (wizard_mode) {
+        return run_wizard();
+    }
+
     if (demo_mode) {
         std::cout << "Running in demonstration mode...\n";
         demonstrate_core_features();
@@ -381,6 +391,161 @@ int main(int argc, char* argv[]) {
     }
     
     return 0;
+}
+
+static std::string prompt_line(const std::string& question, const std::string& def = "") {
+    std::string ans;
+    std::cout << question;
+    if (!def.empty()) std::cout << " [" << def << "]";
+    std::cout << ": ";
+    std::getline(std::cin, ans);
+    if (ans.empty()) return def;
+    return ans;
+}
+
+static bool prompt_yesno(const std::string& question, bool def = false) {
+    std::string defStr = def ? "Y/n" : "y/N";
+    while (true) {
+        std::string a = prompt_line(question + " (" + defStr + ")");
+        if (a.empty()) return def;
+        for (auto& c : a) c = static_cast<char>(::tolower(c));
+        if (a == "y" || a == "yes") return true;
+        if (a == "n" || a == "no") return false;
+        std::cout << "Please answer 'y' or 'n'.\n";
+    }
+}
+
+static std::vector<std::string> split_list(const std::string& s) {
+    std::vector<std::string> out;
+    std::size_t start = 0, pos = 0;
+    while ((pos = s.find(',', start)) != std::string::npos) {
+        auto t = s.substr(start, pos - start);
+        if (!t.empty()) out.push_back(t);
+        start = pos + 1;
+    }
+    if (start < s.size()) out.push_back(s.substr(start));
+    return out;
+}
+
+static int run_wizard() {
+    using std::cout; using std::string; using std::vector;
+    cout << "\n=== Wizard Mode ===\n";
+    cout << "Answer with values or press Enter for defaults.\n\n";
+
+    // Mode selection
+    string mode = prompt_line("Mode [benchmark|crossover]", "benchmark");
+    for (auto& c : mode) c = static_cast<char>(::tolower(c));
+    bool crossover = (mode == "crossover" || mode == "sweep");
+
+    // Structures
+    string structs = prompt_line("Structures (comma list or 'all')", "all");
+    vector<string> structures;
+    if (structs == "all") {
+        structures = {"array","slist","dlist","hashmap"};
+    } else {
+        structures = split_list(structs);
+        if (structures.empty()) structures = {"array","slist","dlist","hashmap"};
+    }
+
+    // Basics
+    string size_s = prompt_line("Size", "10000");
+    std::size_t size = static_cast<std::size_t>(std::stoull(size_s));
+    string runs_s = prompt_line("Runs", "10");
+    int runs = std::stoi(runs_s);
+
+    // Pattern and seed
+    string pattern = prompt_line("Pattern [sequential|random|mixed]", "sequential");
+    BenchmarkConfig::Pattern pat = BenchmarkConfig::Pattern::SEQUENTIAL;
+    if (pattern == "random") pat = BenchmarkConfig::Pattern::RANDOM;
+    else if (pattern == "mixed") pat = BenchmarkConfig::Pattern::MIXED;
+    string seed_s = prompt_line("Seed (blank=random)", "");
+    std::optional<unsigned long long> seed;
+    if (!seed_s.empty()) seed = static_cast<unsigned long long>(std::stoull(seed_s));
+
+    // Output
+    string fmt = prompt_line("Output format [csv|json]", "csv");
+    for (auto& c : fmt) c = static_cast<char>(::tolower(c));
+    BenchmarkConfig::OutputFormat outfmt = (fmt=="json" ? BenchmarkConfig::OutputFormat::JSON : BenchmarkConfig::OutputFormat::CSV);
+    string def_out = (outfmt==BenchmarkConfig::OutputFormat::CSV ? "benchmark_results.csv" : "benchmark_results.json");
+    string out_path = prompt_line(std::string("Output file (blank=skip, default=") + def_out + ")", def_out);
+    if (out_path == "skip" || out_path == "none") out_path.clear();
+
+    // HashMap tuning
+    string hs = prompt_line("Hash strategy [open|chain]", "open");
+    HashStrategy hstrat = (hs=="chain" ? HashStrategy::SEPARATE_CHAINING : HashStrategy::OPEN_ADDRESSING);
+    string hcap = prompt_line("Hash initial capacity (blank=default)", "");
+    std::optional<std::size_t> hash_cap; if (!hcap.empty()) hash_cap = static_cast<std::size_t>(std::stoull(hcap));
+    string hload = prompt_line("Hash max load factor (blank=default)", "");
+    std::optional<double> hash_load; if (!hload.empty()) hash_load = std::stod(hload);
+
+    BenchmarkSuite suite;
+    BenchmarkConfig cfg;
+    cfg.size = size;
+    cfg.runs = runs;
+    cfg.structures = structures;
+    cfg.pattern = pat;
+    cfg.seed = seed;
+    cfg.output_format = outfmt;
+    cfg.hash_strategy = hstrat;
+    cfg.hash_initial_capacity = hash_cap;
+    cfg.hash_max_load_factor = hash_load;
+    if (!out_path.empty()) cfg.csv_output = out_path;
+
+    if (!crossover) {
+        auto results = suite.run(cfg);
+        cout << "\n=== Benchmark Results (avg ms over " << runs << ", size=" << size << ") ===\n";
+        for (const auto& r : results) {
+            cout << "- " << r.structure
+                 << ": insert=" << r.insert_ms_mean
+                 << ", search=" << r.search_ms_mean
+                 << ", remove=" << r.remove_ms_mean
+                 << ", mem=" << r.memory_bytes << " bytes\n";
+        }
+        if (cfg.csv_output) {
+            cout << "\nSaved " << (outfmt==BenchmarkConfig::OutputFormat::CSV?"CSV":"JSON") << " to: " << *cfg.csv_output << "\n";
+        }
+        return results.empty() ? 1 : 0;
+    }
+
+    // Crossover path
+    string maxsz_s = prompt_line("Max size (sweep)", "100000");
+    std::size_t maxsz = static_cast<std::size_t>(std::stoull(maxsz_s));
+    string srun_s = prompt_line("Series runs per size", "1");
+    int srun = std::stoi(srun_s);
+    string tbudget_s = prompt_line("Time budget seconds (blank=no cap)", "");
+    std::optional<double> tbudget; if (!tbudget_s.empty()) tbudget = std::stod(tbudget_s);
+    cfg.runs = srun;
+
+    // Default crossover output name if none
+    if (!cfg.csv_output) {
+        std::string defcx = (outfmt==BenchmarkConfig::OutputFormat::CSV ? "crossover_results.csv" : "crossover_results.json");
+        std::string cxout = prompt_line(std::string("Crossover output file (blank=default= ") + defcx + ")", defcx);
+        if (!cxout.empty()) cfg.csv_output = cxout; // reuse same member
+    }
+
+    std::vector<std::size_t> sizes;
+    for (std::size_t s = 512; s <= maxsz; s *= 2) sizes.push_back(s);
+    auto start = std::chrono::steady_clock::now();
+    BenchmarkSuite::Series series;
+    for (auto s : sizes) {
+        cfg.size = s;
+        auto res = suite.run(cfg);
+        for (const auto& r : res) series.push_back({ s, r.structure, r.insert_ms_mean, r.search_ms_mean, r.remove_ms_mean });
+        if (tbudget) {
+            double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+            if (elapsed >= *tbudget) { std::cout << "[INFO] Stopping early due to time budget" << std::endl; break; }
+        }
+    }
+    auto cx = suite.compute_crossovers(series);
+    cout << "\n=== Crossover Analysis (approximate sizes) ===\n";
+    cout << "(runs per size: " << srun << ")\n";
+    for (const auto& c : cx) cout << c.operation << ": " << c.a << " vs " << c.b << " -> ~" << c.size_at_crossover << " elements\n";
+    if (cfg.csv_output) {
+        if (outfmt == BenchmarkConfig::OutputFormat::CSV) suite.write_crossover_csv(*cfg.csv_output, cx);
+        else suite.write_crossover_json(*cfg.csv_output, cx, cfg);
+        cout << "\nSaved crossover " << (outfmt==BenchmarkConfig::OutputFormat::CSV?"CSV":"JSON") << " to: " << *cfg.csv_output << "\n";
+    }
+    return cx.empty() ? 1 : 0;
 }
 
 static int run_op_tests(const std::vector<std::string>& names, std::size_t size) {
