@@ -17,8 +17,12 @@
 namespace hashbrowns {
 
 static std::string read_cpu_governor() {
+#ifdef __linux__
     std::ifstream f("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
     std::string g; if (f) std::getline(f, g); return g;
+#else
+    return "unknown";
+#endif
 }
 
 static bool set_cpu_affinity(int cpu_index) {
@@ -50,11 +54,16 @@ static bool disable_turbo_linux() {
 }
 
 static std::string git_commit_sha() {
+#ifdef _WIN32
+    // Simplest fallback on Windows to avoid _popen portability issues
+    return "unknown";
+#else
     FILE* pipe = popen("git rev-parse --short HEAD 2>/dev/null", "r");
     if (!pipe) return "unknown";
     char buf[64]; std::string out; if (fgets(buf, sizeof(buf), pipe)) out = buf; pclose(pipe);
     if (!out.empty() && out.back()=='\n') out.pop_back();
     return out.empty()?"unknown":out;
+#endif
 }
 
 static DataStructurePtr make_structure(const std::string& name, const BenchmarkConfig& cfg) {
