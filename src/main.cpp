@@ -151,8 +151,11 @@ void show_usage() {
 Usage: hashbrowns [OPTIONS]
 
 OPTIONS:
-  --size N              Set benchmark data size (default: 10000)
-  --runs N              Number of benchmark runs (default: 10)
+    --size N              Set benchmark data size (default: 10000). Acts as MAX size when --series-count>1
+    --runs N              Number of benchmark runs (default: 10) (per size when series enabled)
+    --series-count N      If >1: run a linear multi-size series up to --size (treated as max). Example: --size 10000 --series-count 4 -> sizes 2500,5000,7500,10000
+    --series-out FILE     Output file for multi-size series (default: results/csvs/series_results.csv|json)
+    --sizes N             (Wizard alt) Treat size as max and run linearly spaced sizes (interactive in --wizard)
     --structures LIST     Comma-separated list: array,slist,dlist,hashmap
   --output FILE         Export results to CSV file
   --memory-tracking     Enable detailed memory analysis
@@ -172,6 +175,7 @@ OPTIONS:
 
 EXAMPLES:
   hashbrowns --size 50000 --runs 20
+    hashbrowns --size 10000 --series-count 5 --runs 5 --series-out results/csvs/series_results.csv
   hashbrowns --structures array,hashmap --output results.csv
   hashbrowns --crossover-analysis --max-size 100000
 )" << std::endl;
@@ -197,6 +201,8 @@ int main(int argc, char* argv[]) {
     bool wizard_mode = false;
     std::size_t opt_size = 10000;
     int opt_runs = 10;
+    int opt_series_count = 0;
+    std::optional<std::string> opt_series_out;
     int opt_series_runs = -1; // if <0, choose default based on opt_runs
     std::vector<std::string> opt_structures;
     std::optional<std::string> opt_output;
@@ -225,6 +231,12 @@ int main(int argc, char* argv[]) {
             demo_mode = false;
         } else if (arg == "--runs" && i + 1 < argc) {
             opt_runs = std::stoi(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--series-count" && i + 1 < argc) {
+            opt_series_count = std::stoi(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--series-out" && i + 1 < argc) {
+            opt_series_out = std::string(argv[++i]);
             demo_mode = false;
         } else if (arg == "--series-runs" && i + 1 < argc) {
             opt_series_runs = std::stoi(argv[++i]);
@@ -328,7 +340,7 @@ int main(int argc, char* argv[]) {
         }
 
         BenchmarkSuite suite;
-        if (!opt_crossover) {
+        if (!opt_crossover && opt_series_count <= 1) {
             auto results = suite.run(cfg);
             if (!quiet) {
                 std::cout << "\n=== Benchmark Results (avg ms over " << opt_runs << " runs, size=" << opt_size << ") ===\n";
@@ -344,7 +356,7 @@ int main(int argc, char* argv[]) {
                 }
             }
             return results.empty() ? 1 : 0;
-        } else {
+        } else if (opt_crossover) {
             // Crossover analysis mode
             std::vector<std::size_t> sizes;
             for (std::size_t s = 512; s <= opt_max_size; s *= 2) sizes.push_back(s);
@@ -387,6 +399,44 @@ int main(int argc, char* argv[]) {
                 else suite.write_crossover_json(*opt_output, cx, cfg);
             }
             return cx.empty() ? 1 : 0;
+        } else if (opt_series_count > 1) {
+            // Multi-size linear series benchmark
+            std::vector<std::size_t> sizes;
+            double step = static_cast<double>(opt_size) / opt_series_count;
+            for (int i = 1; i <= opt_series_count; ++i) sizes.push_back(static_cast<std::size_t>(std::llround(step * i)));
+            BenchmarkSuite::Series series;
+            for (auto s : sizes) {
+                cfg.size = s;
+                auto res = suite.run(cfg);
+                if (!quiet) {
+                    std::cout << "\n-- Size " << s << " --\n";
+                    for (const auto& r : res) {
+                        std::cout << r.structure
+                                  << ": insert=" << r.insert_ms_mean
+                                  << ", search=" << r.search_ms_mean
+                                  << ", remove=" << r.remove_ms_mean
+                                  << ", mem=" << r.memory_bytes << " bytes\n";
+                    }
+                }
+                for (const auto& r : res) series.push_back({ s, r.structure, r.insert_ms_mean, r.search_ms_mean, r.remove_ms_mean });
+            }
+            if (!quiet) {
+                std::cout << "\n=== Series Summary (sizes=";
+                for (auto s : sizes) std::cout << s << ";";
+                std::cout << ") runs-per-size=" << opt_runs << " ===\n";
+            }
+            // Write series output
+            std::string out_path;
+            if (opt_series_out) out_path = *opt_series_out;
+            else {
+                out_path = (opt_out_fmt==BenchmarkConfig::OutputFormat::CSV ? "results/csvs/series_results.csv" : "results/csvs/series_results.json");
+            }
+            if (opt_out_fmt == BenchmarkConfig::OutputFormat::CSV) {
+                suite.write_series_csv(out_path, series);
+            } else {
+                suite.write_series_json(out_path, series, cfg);
+            }
+            if (!quiet) std::cout << "Saved series " << (opt_out_fmt==BenchmarkConfig::OutputFormat::CSV?"CSV":"JSON") << " to: " << out_path << "\n";
         }
     }
     
@@ -447,11 +497,13 @@ static int run_wizard() {
         if (structures.empty()) structures = {"array","slist","dlist","hashmap"};
     }
 
-    // Basics
-    string size_s = prompt_line("Size", "10000");
-    std::size_t size = static_cast<std::size_t>(std::stoull(size_s));
-    string runs_s = prompt_line("Runs", "10");
-    int runs = std::stoi(runs_s);
+    // Basics (interpret size as max if multi-size requested)
+    string size_s = prompt_line("Max size", "10000");
+    std::size_t max_size = static_cast<std::size_t>(std::stoull(size_s));
+    string runs_s = prompt_line("Sizes count (number of distinct sizes)", "10");
+    int size_count = std::stoi(runs_s);
+    string reps_s = prompt_line("Runs per size", "10");
+    int runs_per_size = std::stoi(reps_s);
 
     // Pattern and seed
     string pattern = prompt_line("Pattern [sequential|random|mixed]", "sequential");
@@ -466,7 +518,8 @@ static int run_wizard() {
     string fmt = prompt_line("Output format [csv|json]", "csv");
     for (auto& c : fmt) c = static_cast<char>(::tolower(c));
     BenchmarkConfig::OutputFormat outfmt = (fmt=="json" ? BenchmarkConfig::OutputFormat::JSON : BenchmarkConfig::OutputFormat::CSV);
-    string def_out = (outfmt==BenchmarkConfig::OutputFormat::CSV ? "benchmark_results.csv" : "benchmark_results.json");
+        // default series/bench outputs under results/csvs
+        string def_out = (outfmt==BenchmarkConfig::OutputFormat::CSV ? "results/csvs/benchmark_results.csv" : "results/csvs/benchmark_results.json");
     string out_path = prompt_line(std::string("Output file (blank=skip, default=") + def_out + ")", def_out);
     if (out_path == "skip" || out_path == "none") out_path.clear();
 
@@ -480,8 +533,8 @@ static int run_wizard() {
 
     BenchmarkSuite suite;
     BenchmarkConfig cfg;
-    cfg.size = size;
-    cfg.runs = runs;
+    cfg.size = max_size; // updated per iteration if multi-size
+    cfg.runs = runs_per_size;
     cfg.structures = structures;
     cfg.pattern = pat;
     cfg.seed = seed;
@@ -492,19 +545,69 @@ static int run_wizard() {
     if (!out_path.empty()) cfg.csv_output = out_path;
 
     if (!crossover) {
-        auto results = suite.run(cfg);
-        cout << "\n=== Benchmark Results (avg ms over " << runs << ", size=" << size << ") ===\n";
-        for (const auto& r : results) {
-            cout << "- " << r.structure
-                 << ": insert=" << r.insert_ms_mean
-                 << ", search=" << r.search_ms_mean
-                 << ", remove=" << r.remove_ms_mean
-                 << ", mem=" << r.memory_bytes << " bytes\n";
+        if (size_count <= 1) {
+            auto results = suite.run(cfg);
+            cout << "\n=== Benchmark Results (avg ms over " << runs_per_size << ", size=" << max_size << ") ===\n";
+            for (const auto& r : results) {
+                cout << "- " << r.structure
+                     << ": insert=" << r.insert_ms_mean
+                     << ", search=" << r.search_ms_mean
+                     << ", remove=" << r.remove_ms_mean
+                     << ", mem=" << r.memory_bytes << " bytes\n";
+            }
+            if (cfg.csv_output) {
+                cout << "\nSaved " << (outfmt==BenchmarkConfig::OutputFormat::CSV?"CSV":"JSON") << " to: " << *cfg.csv_output << "\n";
+            }
+            return results.empty() ? 1 : 0;
+        } else {
+            // Generate linearly spaced sizes: e.g. count=4, max=10000 -> 2500,5000,7500,10000
+            std::vector<std::size_t> sizes;
+            double step = static_cast<double>(max_size) / size_count;
+            for (int i = 1; i <= size_count; ++i) sizes.push_back(static_cast<std::size_t>(std::llround(step * i)));
+            BenchmarkSuite::Series series;
+            for (auto s : sizes) {
+                cfg.size = s;
+                auto res = suite.run(cfg);
+                // Print results for this size inline
+                cout << "\n-- Size " << s << " --\n";
+                for (const auto& r : res) {
+                    cout << r.structure
+                         << ": insert=" << r.insert_ms_mean
+                         << ", search=" << r.search_ms_mean
+                         << ", remove=" << r.remove_ms_mean
+                         << ", mem=" << r.memory_bytes << " bytes\n";
+                }
+                for (const auto& r : res) series.push_back({ s, r.structure, r.insert_ms_mean, r.search_ms_mean, r.remove_ms_mean });
+            }
+            cout << "\n=== Multi-Size Benchmark Series (runs per size=" << runs_per_size << ") ===\n";
+            for (auto s : sizes) cout << " size=" << s;
+            cout << "\n";
+            // Summarize last size results (already captured) and mention series file
+            if (cfg.csv_output) {
+                std::string path = *cfg.csv_output;
+                if (outfmt == BenchmarkConfig::OutputFormat::CSV) suite.write_series_csv(path, series);
+                else suite.write_series_json(path, series, cfg);
+                cout << "\nSaved series " << (outfmt==BenchmarkConfig::OutputFormat::CSV?"CSV":"JSON") << " to: " << path << "\n";
+                // Offer to generate plots
+                if (outfmt == BenchmarkConfig::OutputFormat::CSV) {
+                    bool gen = prompt_yesno("Generate series plots now?", true);
+                    if (gen) {
+                            // ensure results/plots exists
+                            std::string cmd = "python3 scripts/plot_results.py --series-csv '" + path + "' --out-dir results/plots --yscale auto --note 'wizard series'";
+                        int rc = std::system(cmd.c_str());
+                        if (rc != 0) std::cout << "[WARN] Plotting command failed; ensure Python/matplotlib are installed.\n";
+                    }
+                } else {
+                    std::cout << "[INFO] Skipping plots: plotting supports CSV only.\n";
+                }
+            } else {
+                // Print a brief table if no output file
+                for (const auto& p : series) {
+                    cout << p.size << ": " << p.structure << " ins=" << p.insert_ms << " sea=" << p.search_ms << " rem=" << p.remove_ms << "\n";
+                }
+            }
+            return series.empty() ? 1 : 0;
         }
-        if (cfg.csv_output) {
-            cout << "\nSaved " << (outfmt==BenchmarkConfig::OutputFormat::CSV?"CSV":"JSON") << " to: " << *cfg.csv_output << "\n";
-        }
-        return results.empty() ? 1 : 0;
     }
 
     // Crossover path
@@ -518,7 +621,7 @@ static int run_wizard() {
 
     // Default crossover output name if none
     if (!cfg.csv_output) {
-        std::string defcx = (outfmt==BenchmarkConfig::OutputFormat::CSV ? "crossover_results.csv" : "crossover_results.json");
+        std::string defcx = (outfmt==BenchmarkConfig::OutputFormat::CSV ? "results/csvs/crossover_results.csv" : "results/csvs/crossover_results.json");
         std::string cxout = prompt_line(std::string("Crossover output file (blank=default= ") + defcx + ")", defcx);
         if (!cxout.empty()) cfg.csv_output = cxout; // reuse same member
     }

@@ -116,6 +116,8 @@ The executable supports the following options:
 
 - `--size N` — number of elements (default: 10000)
 - `--runs N` — repetitions per test (default: 10)
+- `--series-count N` — if >1, treat `--size` as the maximum and run a linear multi-size series with N evenly spaced sizes (e.g. `--size 10000 --series-count 4` -> 2500, 5000, 7500, 10000)
+- `--series-out FILE` — output file for multi-size series results (default: `results/csvs/series_results.csv|json` depending on `--out-format`)
 - `--structures LIST` — comma-separated list of structures: `array,slist,dlist,hashmap`
 - `--output FILE` — write benchmark or crossover results to CSV/JSON
 - `--out-format {csv,json}` — select output format (default: csv)
@@ -138,16 +140,24 @@ Examples:
 # Compare default structures at a single size
 ./build/hashbrowns --size 50000 --runs 20
 
-# Select structures and write benchmark CSV
-./build/hashbrowns --structures array,hashmap --size 20000 --runs 10 --output build/benchmark_results.csv
+# Select structures and write benchmark CSV (written under results/csvs by default if path omitted)
+./build/hashbrowns --structures array,hashmap --size 20000 --runs 10 --output results/csvs/benchmark_results.csv
 
 # Crossover analysis over a size sweep, writing JSON
 ./build/hashbrowns --crossover-analysis --max-size 100000 \
     --structures array,slist,hashmap --runs 5 \
-    --out-format json --output build/crossover_results.json
+    --out-format json --output results/csvs/crossover_results.json
 
-# Wizard (interactive)
+# Wizard (interactive multi-size benchmarking + optional plotting)
 ./build/hashbrowns --wizard
+    # Prompts will include: structures, max size, number of sizes (default 10), runs per size (default 10),
+    # pattern, seed, output format, and an option to auto-generate series plots.
+
+# CLI multi-size series without wizard (CSV):
+./build/hashbrowns --size 20000 --series-count 5 --runs 5 --series-out results/csvs/series_results.csv --out-format csv
+
+# CLI multi-size series JSON (default path):
+./build/hashbrowns --size 50000 --series-count 8 --runs 3 --out-format json
 ```
 
 ---
@@ -156,7 +166,7 @@ Examples:
 
 Convenience tools for common workflows:
 
-- `scripts/run_benchmarks.sh` — builds the project if needed, runs benchmarks and a size-sweep crossover analysis, writes CSV/JSON, and (by default) generates PNG plots if `matplotlib` is available.
+-- `scripts/run_benchmarks.sh` — builds the project if needed, runs benchmarks and a size-sweep crossover analysis, writes CSV/JSON under `results/csvs`, and (by default) generates PNG plots (if `matplotlib` is available) under `results/plots`.
         - Examples:
             - Quick, with plots (auto y-scale):
                 - `scripts/run_benchmarks.sh --runs 5 --size 20000 --yscale auto`
@@ -165,11 +175,12 @@ Convenience tools for common workflows:
             - Focus on structures and smaller sweep:
                 - `STRUCTURES=array,hashmap scripts/run_benchmarks.sh --max-size 8192 --series-runs 1`
     - Outputs:
-        - `build/benchmark_results.csv|json`
-        - `build/crossover_results.csv|json`
-        - `build/plots/benchmark_summary.png` (if plotting available)
-    - `build/plots/crossover_points.png` (if plotting available)
-    - `build/plots/benchmark_by_operation.png` (if plotting available)
+        - `results/csvs/benchmark_results.csv|json`
+        - `results/csvs/crossover_results.csv|json`
+        - `results/plots/benchmark_summary.png` (if plotting available)
+        - `results/plots/crossover_points.png` (if plotting available)
+        - `results/plots/benchmark_by_operation.png` (if plotting available)
+        - `results/plots/series_insert.png|series_search.png|series_remove.png` (multi-size series plots)
     - Options:
         - `--no-plots` to skip PNG generation
         - `--plots` to force plotting (fails if matplotlib absent)
@@ -186,9 +197,12 @@ Convenience tools for common workflows:
     - Example:
         - `scripts/analyze_results.py --bench-csv build/benchmark_results.csv --cross-csv build/crossover_results.csv`
 
-- `scripts/plot_results.py` — generates PNG plots from the CSV outputs (requires matplotlib).
+- `scripts/plot_results.py` — generates PNG plots from the CSV outputs (requires matplotlib). Now supports `--series-csv` for multi-size runs. Install deps with:
+    ```bash
+    pip install -r requirements.txt
+    ```
     - Example:
-        - `scripts/plot_results.py --bench-csv build/benchmark_results.csv --cross-csv build/crossover_results.csv --out-dir build/plots`
+    - `scripts/plot_results.py --bench-csv results/csvs/benchmark_results.csv --cross-csv results/csvs/crossover_results.csv --out-dir results/plots`
     - Outputs:
         - `benchmark_summary.png` (auto log scale if dominated by outliers)
         - `benchmark_by_operation.png` (separate subplots for insert/search/remove)
@@ -199,7 +213,7 @@ Convenience tools for common workflows:
 
 ## Run benchmarks (recommended)
 
-Use the helper script to compile, run, and generate CSVs/PNGs in one go.
+Use the helper script to compile, run, and generate CSVs/PNGs in one go. All generated artifacts land under `results/`.
 
 - Quick run with crossover sweep and plots:
     ```bash
@@ -221,9 +235,35 @@ Notes:
 - Large `max-size` with arrays can be very slow for remove; prefer smaller `max-size` or fewer `series-runs`.
 - Plots include a footer with the parameters and hardware summary for traceability.
 
-- Reproducible random workload:
-    ```bash
-    scripts/run_benchmarks.sh --pattern random --seed 12345 --runs 5 --size 20000
+Reproducible random workload:
+```bash
+scripts/run_benchmarks.sh --pattern random --seed 12345 --runs 5 --size 20000
+```
+
+### Results directory layout
+
+All benchmark outputs (CSV/JSON) and plots are now organized under a top-level `results/` directory:
+
+```
+results/
+    csvs/
+        benchmark_results.csv        # single-size benchmark summary
+        benchmark_results.json       # same data serialized as JSON (if requested)
+        crossover_results.csv        # size sweep crossover estimates
+        crossover_results.json       # crossover JSON (if requested)
+        series_results.csv           # multi-size series produced via wizard (CSV only for plotting)
+        series_results.json          # optional JSON for series metadata/results
+    # (CLI multi-size also uses these if --series-count provided)
+    plots/
+        benchmark_summary.png
+        benchmark_by_operation.png
+        crossover_points.png
+        series_insert.png
+        series_search.png
+        series_remove.png
+```
+
+If you supply a custom `--output` path for the main executable it can still write anywhere; scripts and wizard defaults prefer the structured layout above.
     ```
 
 ---
@@ -282,7 +322,7 @@ docker build -t hashbrowns:latest .
 docker run --rm -it -v "$PWD/build:/app/build" hashbrowns:latest
 ```
 
-This produces CSVs and PNGs in `build/` mounted from the host.
+This produces build artifacts in `build/` and result artifacts in `results/` mounted from the host.
 
 ---
 
@@ -299,6 +339,8 @@ Or from the build directory:
 ```bash
 ctest --output-on-failure
 ```
+
+The test `test_series_json.cpp` ensures the JSON writer for multi-size series emits metadata (`runs_per_size`) and the expected number of points.
 
 ---
 
