@@ -5,6 +5,10 @@
 #include <chrono>
 #include <vector>
 #include <numeric>
+#ifdef __linux__
+#include <sched.h>
+#endif
+#include <fstream>
 
 #include "core/data_structure.h"
 #include "core/memory_manager.h"
@@ -167,6 +171,8 @@ OPTIONS:
         --series-runs N       Runs per size during crossover analysis (default: 1)
     --pattern TYPE        Data pattern for keys: sequential, random, mixed (default: sequential)
     --seed N              RNG seed used when pattern is random/mixed (default: random_device)
+    --pin-cpu [IDX]      Pin process to CPU index (default 0 if IDX omitted) for reproducibility (Linux-only)
+    --no-turbo           Attempt to disable CPU turbo boost (Linux-only, best-effort; may need root)
     --max-seconds N       Time budget for crossover sweep; stop early when exceeded
         --out-format F        csv|json (default: csv)
         --hash-strategy S     open|chain (default: open)
@@ -210,6 +216,7 @@ int main(int argc, char* argv[]) {
     int opt_warmup = 0;
     int opt_bootstrap = 0;
     int opt_series_runs = -1; // if <0, choose default based on opt_runs
+    bool opt_pin_cpu = false; int opt_cpu_index = 0; bool opt_no_turbo = false;
     std::vector<std::string> opt_structures;
     std::optional<std::string> opt_output;
     bool opt_memory_tracking = false;
@@ -293,6 +300,16 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--seed" && i + 1 < argc) {
             opt_seed = static_cast<unsigned long long>(std::stoull(argv[++i]));
             demo_mode = false;
+        } else if (arg == "--pin-cpu") {
+            opt_pin_cpu = true;
+            if (i + 1 < argc) {
+                std::string maybe = argv[i+1];
+                if (!maybe.empty() && std::all_of(maybe.begin(), maybe.end(), ::isdigit)) { ++i; opt_cpu_index = std::stoi(maybe); }
+            }
+            demo_mode = false;
+        } else if (arg == "--no-turbo") {
+            opt_no_turbo = true;
+            demo_mode = false;
         } else if (arg == "--max-seconds" && i + 1 < argc) {
             opt_max_seconds = std::stod(argv[++i]);
             demo_mode = false;
@@ -375,6 +392,7 @@ int main(int argc, char* argv[]) {
     cfg.hash_strategy = opt_hash_strategy;
     cfg.hash_initial_capacity = opt_hash_capacity;
     cfg.hash_max_load_factor = opt_hash_load;
+    cfg.pin_cpu = opt_pin_cpu; cfg.pin_cpu_index = opt_cpu_index; cfg.disable_turbo = opt_no_turbo;
 
         if (opt_memory_tracking) {
             MemoryTracker::instance().set_detailed_tracking(true);
@@ -382,6 +400,31 @@ int main(int argc, char* argv[]) {
         }
 
         BenchmarkSuite suite;
+        // Repro flags: apply affinity & (best-effort) turbo disable before benchmarking
+#ifdef __linux__
+        if (cfg.pin_cpu) {
+            cpu_set_t set; CPU_ZERO(&set); CPU_SET(cfg.pin_cpu_index, &set);
+            if (sched_setaffinity(0, sizeof(set), &set) != 0 && !quiet) {
+                std::cout << "[WARN] Failed to set CPU affinity (index=" << cfg.pin_cpu_index << ")\n";
+            }
+        }
+        if (cfg.disable_turbo) {
+            bool any = false;
+            {
+                std::ofstream o("/sys/devices/system/cpu/intel_pstate/no_turbo");
+                if (o) { o << "1"; any = true; }
+            }
+            {
+                std::ofstream o("/sys/devices/system/cpu/cpufreq/boost");
+                if (o) { o << "0"; any = true; }
+            }
+            if (!any && !quiet) std::cout << "[WARN] Could not disable turbo (requires Linux with appropriate sysfs entries).\n";
+        }
+#else
+        if ((cfg.pin_cpu || cfg.disable_turbo) && !quiet) {
+            std::cout << "[INFO] --pin-cpu/--no-turbo ignored: only supported on Linux.\n";
+        }
+#endif
         if (!opt_crossover && opt_series_count <= 1) {
             auto results = suite.run(cfg);
             if (!quiet) {

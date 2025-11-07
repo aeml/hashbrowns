@@ -31,6 +31,11 @@ struct BenchmarkConfig {
     HashStrategy hash_strategy = HashStrategy::OPEN_ADDRESSING;
     std::optional<std::size_t> hash_initial_capacity; // default 16
     std::optional<double> hash_max_load_factor;       // applies to both strategies if provided
+
+    // Repro/affinity flags
+    bool pin_cpu = false;            // if true attempt to pin
+    int pin_cpu_index = 0;           // CPU index to pin to (default 0)
+    bool disable_turbo = false;      // attempt to disable turbo boost (Linux-only, may require privileges)
 };
 
 struct BenchmarkResult {

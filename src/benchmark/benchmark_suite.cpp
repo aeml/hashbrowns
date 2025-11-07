@@ -21,6 +21,34 @@ static std::string read_cpu_governor() {
     std::string g; if (f) std::getline(f, g); return g;
 }
 
+static bool set_cpu_affinity(int cpu_index) {
+#ifdef __linux__
+    cpu_set_t set; CPU_ZERO(&set); CPU_SET(cpu_index, &set);
+    return sched_setaffinity(0, sizeof(set), &set) == 0;
+#else
+    (void)cpu_index; return false;
+#endif
+}
+
+static bool disable_turbo_linux() {
+#ifdef __linux__
+    // Try Intel no_turbo first
+    {
+        std::ofstream o("/sys/devices/system/cpu/intel_pstate/no_turbo");
+        if (o) { o << "1"; }
+    }
+    // Try generic cpufreq boost disable
+    {
+        std::ofstream o("/sys/devices/system/cpu/cpufreq/boost");
+        if (o) { o << "0"; }
+    }
+    // Cannot easily verify without reading back (may require root); we attempt best-effort.
+    return true;
+#else
+    return false;
+#endif
+}
+
 static std::string git_commit_sha() {
     FILE* pipe = popen("git rev-parse --short HEAD 2>/dev/null", "r");
     if (!pipe) return "unknown";
@@ -119,6 +147,8 @@ static void write_results_json(const std::string& path,
     out << "    \"hash_strategy\": \"" << to_string(config.hash_strategy) << "\"";
     if (config.hash_initial_capacity) out << ",\n    \"hash_capacity\": " << *config.hash_initial_capacity;
     if (config.hash_max_load_factor) out << ",\n    \"hash_load\": " << *config.hash_max_load_factor;
+    out << ",\n    \"pinned_cpu\": " << (config.pin_cpu ? config.pin_cpu_index : -1);
+    out << ",\n    \"turbo_disabled\": " << (config.disable_turbo ? 1 : 0);
     out << "\n  },\n";
     // results
     out << "  \"results\": [\n";
