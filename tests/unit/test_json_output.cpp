@@ -39,6 +39,12 @@ static void test_results_json_has_meta_and_results() {
     if (content.find("\"cpu_governor\"") == std::string::npos) throw std::runtime_error("JSON meta missing cpu_governor");
     if (content.find("\"git_commit\"") == std::string::npos) throw std::runtime_error("JSON meta missing git_commit");
     if (content.find("\"compiler\"") == std::string::npos) throw std::runtime_error("JSON meta missing compiler");
+    if (content.find("\"cpp_standard\"") == std::string::npos) throw std::runtime_error("JSON meta missing cpp_standard");
+    if (content.find("\"build_type\"") == std::string::npos) throw std::runtime_error("JSON meta missing build_type");
+    if (content.find("\"cpu_model\"") == std::string::npos) throw std::runtime_error("JSON meta missing cpu_model");
+    if (content.find("\"cores\"") == std::string::npos) throw std::runtime_error("JSON meta missing cores");
+    if (content.find("\"total_ram_bytes\"") == std::string::npos) throw std::runtime_error("JSON meta missing total_ram_bytes");
+    if (content.find("\"kernel\"") == std::string::npos) throw std::runtime_error("JSON meta missing kernel");
 
     // result stats keys
     if (content.find("\"insert_ms_median\"") == std::string::npos) throw std::runtime_error("JSON results missing insert_ms_median");
@@ -57,6 +63,22 @@ static void test_results_json_has_meta_and_results() {
     if (content.find("\"memory_search_stddev\"") == std::string::npos) throw std::runtime_error("JSON results missing memory_search_stddev");
     if (content.find("\"memory_remove_mean\"") == std::string::npos) throw std::runtime_error("JSON results missing memory_remove_mean");
     if (content.find("\"memory_remove_stddev\"") == std::string::npos) throw std::runtime_error("JSON results missing memory_remove_stddev");
+}
+
+static void test_memory_deltas_nonnegative() {
+    BenchmarkConfig cfg;
+    cfg.size = 64;
+    cfg.runs = 2;
+    cfg.structures = {"hashmap"};
+    cfg.pattern = BenchmarkConfig::Pattern::SEQUENTIAL;
+
+    BenchmarkSuite suite;
+    auto res = suite.run(cfg);
+    if (res.empty()) throw std::runtime_error("No results produced for memory delta test");
+    const auto& r = res.front();
+    if (r.memory_insert_bytes_mean < 0.0) throw std::runtime_error("memory_insert_bytes_mean negative");
+    if (r.memory_search_bytes_mean < 0.0) throw std::runtime_error("memory_search_bytes_mean negative");
+    if (r.memory_remove_bytes_mean < 0.0) throw std::runtime_error("memory_remove_bytes_mean negative");
 }
 
 static void test_series_json_has_meta_and_series() {
@@ -97,6 +119,7 @@ int run_json_output_tests() {
     std::cout << "=======================\n\n";
     try {
         test_results_json_has_meta_and_results();
+    test_memory_deltas_nonnegative();
         test_series_json_has_meta_and_series();
         std::cout << "\n✅ JSON output tests passed!\n";
         return 0;

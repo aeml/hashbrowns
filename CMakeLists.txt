@@ -11,6 +11,9 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# Propagate build type as a define for embedding in JSON meta
+add_definitions(-DHASHBROWNS_BUILD_TYPE="$<CONFIG>")
+
 # Compiler-specific options
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wall -Wextra -Wpedantic -fsanitize=address,undefined")
@@ -107,13 +110,15 @@ add_library(simple_test INTERFACE)
 target_include_directories(simple_test INTERFACE tests)
 
 # Unit tests
-file(GLOB_RECURSE TEST_SOURCES tests/unit/*.cpp)
+file(GLOB TEST_SOURCES tests/unit/*.cpp)
 if(TEST_SOURCES)
     add_executable(unit_tests ${TEST_SOURCES})
     target_link_libraries(unit_tests PRIVATE hashbrowns_core hashbrowns_structures simple_test)
     if(TARGET hashbrowns_benchmark)
         target_link_libraries(unit_tests PRIVATE hashbrowns_benchmark)
     endif()
+    # Ensure tests directory is available as an include root for cross-platform builds
+    target_include_directories(unit_tests PRIVATE tests)
     add_test(NAME UnitTests COMMAND unit_tests)
 endif()
 

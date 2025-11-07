@@ -1,5 +1,5 @@
 #include "benchmark/benchmark_suite.h"
-#include "tests/unit/test_framework.h"
+#include "test_framework.h"
 #include <fstream>
 #include <sstream>
 

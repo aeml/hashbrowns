@@ -13,6 +13,15 @@
 #include <random>
 #include <ctime>
 #include <cstdio>
+#include <thread>
+#include <sstream>
+
+#if defined(__unix__) || defined(__APPLE__)
+#include <sys/utsname.h>
+#endif
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#endif
 
 namespace hashbrowns {
 
@@ -63,6 +72,90 @@ static std::string git_commit_sha() {
     char buf[64]; std::string out; if (fgets(buf, sizeof(buf), pipe)) out = buf; pclose(pipe);
     if (!out.empty() && out.back()=='\n') out.pop_back();
     return out.empty()?"unknown":out;
+#endif
+}
+
+static std::string cpu_model() {
+#ifdef __linux__
+    std::ifstream in("/proc/cpuinfo");
+    std::string line;
+    while (std::getline(in, line)) {
+        auto pos = line.find(":");
+        if (pos == std::string::npos) continue;
+        auto key = line.substr(0, pos);
+        if (key.find("model name") != std::string::npos) {
+            std::string val = line.substr(pos + 1);
+            // trim leading spaces
+            val.erase(0, val.find_first_not_of(" \t"));
+            return val;
+        }
+    }
+    return "unknown";
+#elif defined(__APPLE__)
+    char buf[256]; size_t sz = sizeof(buf);
+    if (sysctlbyname("machdep.cpu.brand_string", &buf, &sz, nullptr, 0) == 0) {
+        return std::string(buf, strnlen(buf, sizeof(buf)));
+    }
+    return "unknown";
+#else
+    return "unknown";
+#endif
+}
+
+static unsigned long long total_ram_bytes() {
+#ifdef __linux__
+    std::ifstream in("/proc/meminfo");
+    std::string key, unit; unsigned long long val = 0ULL;
+    while (in >> key >> val >> unit) {
+        if (key == "MemTotal:") {
+            if (unit == "kB") return val * 1024ULL;
+            return val; // bytes if unit not present
+        }
+    }
+    return 0ULL;
+#elif defined(__APPLE__)
+    uint64_t mem = 0; size_t sz = sizeof(mem);
+    if (sysctlbyname("hw.memsize", &mem, &sz, nullptr, 0) == 0) return static_cast<unsigned long long>(mem);
+    return 0ULL;
+#else
+    return 0ULL;
+#endif
+}
+
+static std::string kernel_version() {
+#if defined(__unix__) || defined(__APPLE__)
+    struct utsname u{};
+    if (uname(&u) == 0) {
+        std::ostringstream oss; oss << u.sysname << " " << u.release;
+        return oss.str();
+    }
+    return "unknown";
+#else
+    return "unknown";
+#endif
+}
+
+static const char* cpp_standard_str() {
+#if __cplusplus >= 202302L
+    return "C++23+";
+#elif __cplusplus >= 202002L
+    return "C++20";
+#elif __cplusplus >= 201703L
+    return "C++17";
+#elif __cplusplus >= 201402L
+    return "C++14";
+#elif __cplusplus >= 201103L
+    return "C++11";
+#else
+    return "pre-C++11";
+#endif
+}
+
+static const char* build_type_str() {
+#ifdef HASHBROWNS_BUILD_TYPE
+    return HASHBROWNS_BUILD_TYPE;
+#else
+    return "Unknown";
 #endif
 }
 
@@ -153,6 +246,12 @@ static void write_results_json(const std::string& path,
     out << "    \"cpu_governor\": \"" << read_cpu_governor() << "\",\n";
     out << "    \"git_commit\": \"" << git_commit_sha() << "\",\n";
     out << "    \"compiler\": \"" << __VERSION__ << "\",\n";
+    out << "    \"cpp_standard\": \"" << cpp_standard_str() << "\",\n";
+    out << "    \"build_type\": \"" << build_type_str() << "\",\n";
+    out << "    \"cpu_model\": \"" << cpu_model() << "\",\n";
+    out << "    \"cores\": " << std::thread::hardware_concurrency() << ",\n";
+    out << "    \"total_ram_bytes\": " << total_ram_bytes() << ",\n";
+    out << "    \"kernel\": \"" << kernel_version() << "\",\n";
     out << "    \"hash_strategy\": \"" << to_string(config.hash_strategy) << "\"";
     if (config.hash_initial_capacity) out << ",\n    \"hash_capacity\": " << *config.hash_initial_capacity;
     if (config.hash_max_load_factor) out << ",\n    \"hash_load\": " << *config.hash_max_load_factor;

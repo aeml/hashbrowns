@@ -1,5 +1,5 @@
 #include "benchmark/stats_analyzer.h"
-#include "tests/unit/test_framework.h"
+#include "test_framework.h"
 #include <vector>
 
 using namespace hashbrowns;
