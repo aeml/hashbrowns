@@ -223,6 +223,7 @@ static void write_results_json(const std::string& path,
     out << "{\n";
     // metadata
     out << "  \"meta\": {\n";
+    out << "    \"schema_version\": 1,\n";
     out << "    \"size\": " << config.size << ",\n";
     out << "    \"runs\": " << config.runs << ",\n";
     out << "    \"warmup_runs\": " << config.warmup_runs << ",\n";
@@ -556,6 +557,7 @@ void BenchmarkSuite::write_crossover_json(const std::string& path, const std::ve
     out << "{\n";
     // metadata
     out << "  \"meta\": {\n";
+    out << "    \"schema_version\": 1,\n";
     out << "    \"runs\": " << config.runs << ",\n";
     out << "    \"structures\": [";
     for (std::size_t i = 0; i < config.structures.size(); ++i) {
@@ -596,6 +598,7 @@ void BenchmarkSuite::write_series_json(const std::string& path, const Series& se
     out << "{\n";
     // metadata similar to results/crossover
     out << "  \"meta\": {\n";
+    out << "    \"schema_version\": 1,\n";
     out << "    \"runs_per_size\": " << config.runs << ",\n";
     out << "    \"structures\": [";
     for (std::size_t i = 0; i < config.structures.size(); ++i) {

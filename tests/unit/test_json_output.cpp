@@ -28,6 +28,7 @@ static void test_results_json_has_meta_and_results() {
     if (content.find("\"meta\"") == std::string::npos) throw std::runtime_error("JSON missing meta section");
     if (content.find("\"results\"") == std::string::npos) throw std::runtime_error("JSON missing results section");
     // meta keys
+    if (content.find("\"schema_version\"") == std::string::npos) throw std::runtime_error("JSON meta missing schema_version");
     if (content.find("\"size\"") == std::string::npos) throw std::runtime_error("JSON meta missing size");
     if (content.find("\"runs\"") == std::string::npos) throw std::runtime_error("JSON meta missing runs");
     if (content.find("\"warmup_runs\"") == std::string::npos) throw std::runtime_error("JSON meta missing warmup_runs");
@@ -103,6 +104,7 @@ static void test_series_json_has_meta_and_series() {
 
     if (content.find("\"meta\"") == std::string::npos) throw std::runtime_error("Series JSON missing meta section");
     if (content.find("\"series\"") == std::string::npos) throw std::runtime_error("Series JSON missing series section");
+    if (content.find("\"schema_version\"") == std::string::npos) throw std::runtime_error("Series JSON meta missing schema_version");
     if (content.find("\"runs_per_size\"") == std::string::npos) throw std::runtime_error("Series JSON meta missing runs_per_size");
     if (content.find("\"pattern\"") == std::string::npos) throw std::runtime_error("Series JSON meta missing pattern");
     if (content.find("\"structures\"") == std::string::npos) throw std::runtime_error("Series JSON meta missing structures");
