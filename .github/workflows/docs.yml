@@ -21,18 +21,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install Doxygen
+      - name: Install tooling
         run: |
           sudo apt-get update
-          sudo apt-get install -y doxygen graphviz
-      - name: Configure project
+          sudo apt-get install -y doxygen graphviz g++ cmake lcov python3 ccache
+      - name: Configure (Release for API docs)
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build API docs
         run: cmake --build build --target docs -- -j2
+      - name: Generate coverage (Debug + gcov)
+        run: |
+          cmake -S . -B build-coverage \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-O0 -g --coverage -fprofile-arcs -ftest-coverage" \
+            -DCMAKE_C_FLAGS="-O0 -g --coverage -fprofile-arcs -ftest-coverage"
+          cmake --build build-coverage -- -j2
+          ctest --test-dir build-coverage --output-on-failure
+          lcov --capture --directory build-coverage --output-file coverage.info
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/CMakeFiles/*' --output-file coverage.filtered.info
+          genhtml coverage.filtered.info --output-directory coverage_html --title "hashbrowns Coverage" --legend --show-details
+          # Extract coverage percentages
+          lcov --summary coverage.filtered.info > coverage.summary.txt
+          line_pct=$(awk '/lines\./{gsub("%","",$2); print $2}' coverage.summary.txt)
+          branch_pct=$(awk '/branches\./{gsub("%","",$2); print $2}' coverage.summary.txt)
+          func_pct=$(awk '/functions\./{gsub("%","",$2); print $2}' coverage.summary.txt)
+          : "${line_pct:=0}"; : "${branch_pct:=0}"; : "${func_pct:=0}"
+          color=red
+          awk -v l="$line_pct" 'BEGIN{ if(l>=80)print "green"; else if(l>=60)print "yellow"; else print "red" }' | read color || true
+          printf '{"schemaVersion":1,"label":"coverage","message":"%.1f%%","color":"%s"}' "$line_pct" "$color" > coverage_badge.json
+          printf '{"line":%.1f,"branch":%.1f,"function":%.1f}' "$line_pct" "$branch_pct" "$func_pct" > coverage_summary.json
+      - name: Prepare Pages artifact structure
+        run: |
+          mkdir -p public/docs public/coverage
+          cp -r build/docs/html/* public/docs/
+          cp -r coverage_html/* public/coverage/
+          cp coverage_badge.json coverage_summary.json coverage.info coverage.filtered.info public/coverage/
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build/docs/html
+          path: public
 
   deploy:
     needs: build-docs

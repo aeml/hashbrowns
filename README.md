@@ -12,6 +12,7 @@
 # hashbrowns
 
 [![CI](https://github.com/aeml/hashbrowns/actions/workflows/ci.yml/badge.svg)](https://github.com/aeml/hashbrowns/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://aeml.github.io/hashbrowns/coverage/coverage_badge.json)](https://aeml.github.io/hashbrowns/coverage/)
 
 hashbrowns is a C++17 benchmarking suite for comparing custom implementations of dynamic arrays, linked lists, and hash maps. It measures insert, search, and remove performance across configurable sizes and runs, and can export results to CSV or estimate crossover points between data structures.
 
@@ -362,6 +363,17 @@ open build/docs/html/index.html      # macOS (optional)
 ```
 
 Documentation excludes test sources and is intentionally lightweight (no diagrams by default). Enable diagrams by editing `docs/Doxyfile.in` and setting `HAVE_DOT = YES` locally if you need call graphs.
+
+### Coverage report (hosted)
+
+We publish the latest coverage HTML and a JSON badge via GitHub Pages:
+
+- Coverage badge (lines): linked at the top of this README
+- Full report: https://aeml.github.io/hashbrowns/coverage/
+
+Notes:
+- Values are from lcov on a Debug build with gcov flags; system and test files are filtered out.
+- Line coverage is used for the badge; branch/function coverage totals are included in the coverage_summary.json.
 
 ### Results directory layout
 
