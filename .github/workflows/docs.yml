@@ -22,7 +22,7 @@ jobs:
       - name: Install tooling
         run: |
           sudo apt-get update
-          sudo apt-get install -y doxygen graphviz g++ cmake lcov python3 ccache
+          sudo apt-get install -y doxygen graphviz g++ cmake lcov python3 ccache pandoc
       - name: Configure (Release for API docs)
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build API docs
@@ -56,6 +56,14 @@ jobs:
           cp -r build/docs/html/* public/docs/
           cp -r coverage_html/* public/coverage/
           cp coverage_badge.json coverage_summary.json coverage.info coverage.filtered.info public/coverage/
+          # Convert tutorials markdown to standalone HTML pages
+          if ls docs/tutorials/*.md >/dev/null 2>&1; then
+            mkdir -p public/tutorials
+            for f in docs/tutorials/*.md; do
+              base=$(basename "$f" .md)
+              pandoc "$f" -f markdown -t html5 -s -o "public/tutorials/${base}.html" --metadata title="${base}"
+            done
+          fi
           cat > public/index.html << 'HTML'
           <!doctype html>
           <html lang="en">
@@ -67,8 +75,11 @@ jobs:
           </head>
           <body>
             <h1>hashbrowns</h1>
-            <a href="/hashbrowns/docs/">API Docs</a>
-            <a href="/hashbrowns/coverage/">Coverage Report</a>
+            <a href="docs/">API Docs</a>
+            <a href="coverage/">Coverage Report</a>
+            <h2>Tutorials</h2>
+            <a href="tutorials/quickstart.html">Quickstart</a>
+            <a href="tutorials/memory_and_probes.html">Memory & Probes</a>
           </body>
           </html>
           HTML
