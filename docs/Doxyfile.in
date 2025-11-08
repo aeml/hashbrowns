@@ -6,8 +6,8 @@ OUTPUT_DIRECTORY       = "@CMAKE_CURRENT_BINARY_DIR@/docs"
 CREATE_SUBDIRS         = NO
 
 # Inputs
-INPUT                  = "@CMAKE_CURRENT_SOURCE_DIR@/src"
-FILE_PATTERNS          = *.h *.hpp *.cpp
+INPUT                  = "@CMAKE_CURRENT_SOURCE_DIR@/src @CMAKE_CURRENT_SOURCE_DIR@/docs/api @CMAKE_CURRENT_SOURCE_DIR@/docs/tutorials"
+FILE_PATTERNS          = *.h *.hpp *.cpp *.md
 RECURSIVE              = YES
 EXCLUDE_PATTERNS       = */tests/* */build/*
 
@@ -33,3 +33,7 @@ GENERATE_XML           = NO
 
 # Diagrams (disabled by default to keep CI light)
 HAVE_DOT               = NO
+
+# Use a markdown file as the landing page and enable Markdown support
+USE_MDFILE_AS_MAINPAGE = "@CMAKE_CURRENT_SOURCE_DIR@/docs/api/mainpage.md"
+MARKDOWN_SUPPORT       = YES
