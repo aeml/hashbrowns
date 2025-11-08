@@ -1,20 +1,17 @@
-/**
-@mainpage hashbrowns Documentation
+\mainpage hashbrowns Documentation
 
-Welcome to the API documentation for hashbrowns @ref index "(v1.0.0)".
+Welcome to the API documentation for hashbrowns.
 
 This site contains:
 
 - Namespaces, classes, and public headers for the core, structures, and benchmarking components.
 - Links to high-level tutorials for hands-on usage.
 
-@section tutorials Tutorials
+## Tutorials
 
-- @subpage quickstart_tutorial "Quickstart"
-- @subpage memory_probes_tutorial "Memory & Probes"
+- \subpage quickstart_tutorial "Quickstart"
+- \subpage memory_probes_tutorial "Memory & Probes"
 
-@section coverage Coverage & Pages
+## Coverage
 
-- Coverage HTML and badge are published under <a href="../coverage/">/coverage/</a>.
-
-*/
+Coverage HTML and the badge are published under <a href="../coverage/">/coverage/</a>.
