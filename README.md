@@ -16,6 +16,7 @@
 
 hashbrowns is a C++17 benchmarking suite for comparing custom implementations of dynamic arrays, linked lists, and hash maps. It measures insert, search, and remove performance across configurable sizes and runs, and can export results to CSV or estimate crossover points between data structures.
 
+> Documentation & Tutorials: API docs, coverage report, Quickstart, and Memory & Probes guides are published via GitHub Pages: https://aeml.github.io/hashbrowns/
 ---
 
 ## Overview
@@ -403,6 +404,46 @@ If you supply a custom `--output` path for the main executable it can still writ
 
 ---
 
+## Documentation & Tutorials
+
+Hosted (GitHub Pages): https://aeml.github.io/hashbrowns/
+
+| Resource | URL |
+|----------|-----|
+| API Docs | https://aeml.github.io/hashbrowns/docs/ |
+| Coverage Report | https://aeml.github.io/hashbrowns/coverage/ |
+| Quickstart Tutorial | https://aeml.github.io/hashbrowns/tutorials/quickstart.html |
+| Memory & Probes Tutorial | https://aeml.github.io/hashbrowns/tutorials/memory_and_probes.html |
+| JSON Schema (repo) | docs/api/schema.md |
+| Example JSON Parser | scripts/example_parse.py |
+
+### Parsing JSON (example)
+
+Summarize a benchmark JSON (lines, functions, memory):
+
+```bash
+python3 scripts/example_parse.py results/csvs/benchmark_results.json --summary
+```
+
+CSV-style condensed output for automation:
+```bash
+python3 scripts/example_parse.py results/csvs/benchmark_results.json --csv > summary.csv
+```
+
+### Rebuilding docs locally
+
+```bash
+cmake -S . -B build
+cmake --build build --target docs
+xdg-open build/docs/html/index.html  # or open build/docs/html/index.html on macOS
+```
+
+Tutorial Markdown lives in `docs/tutorials/` and is converted to HTML during the Pages workflow via pandoc.
+
+---
+
+---
+
 ## Building on different platforms
 
 Requirements:
@@ -482,11 +523,6 @@ The test `test_series_json.cpp` ensures the JSON writer for multi-size series em
 ## License
 
 This project is licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE).
-
-- ✅ **Template Metaprogramming** for type-safe generics
-- ✅ **Professional C++ Development** with modern tooling
-
-Perfect for portfolios, technical interviews, and advanced C++ learning!
 
 ```
 
