@@ -41,9 +41,10 @@ jobs:
           genhtml coverage.filtered.info --output-directory coverage_html --title "hashbrowns Coverage" --legend --show-details
           # Extract coverage percentages
           lcov --summary coverage.filtered.info > coverage.summary.txt
-          line_pct=$(awk '/lines\./{gsub("%","",$2); print $2}' coverage.summary.txt)
-          branch_pct=$(awk '/branches\./{gsub("%","",$2); print $2}' coverage.summary.txt)
-          func_pct=$(awk '/functions\./{gsub("%","",$2); print $2}' coverage.summary.txt)
+          # Robustly extract numeric percentages; branch coverage may report 'no data found'.
+          line_pct=$(awk '/lines\./{if(match($0,/([0-9.]+)%/)){print substr($0,RSTART,RLENGTH-1)}}' coverage.summary.txt)
+          branch_pct=$(awk '/branches\./{if(match($0,/([0-9.]+)%/)){print substr($0,RSTART,RLENGTH-1)} else {print 0}}' coverage.summary.txt)
+          func_pct=$(awk '/functions\./{if(match($0,/([0-9.]+)%/)){print substr($0,RSTART,RLENGTH-1)}}' coverage.summary.txt)
           : "${line_pct:=0}"; : "${branch_pct:=0}"; : "${func_pct:=0}"
           color=red
           awk -v l="$line_pct" 'BEGIN{ if(l>=80)print "green"; else if(l>=60)print "yellow"; else print "red" }' | read color || true
