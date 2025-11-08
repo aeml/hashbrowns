@@ -3,8 +3,6 @@ name: Docs
 on:
   push:
     branches: [ main ]
-    tags: [ 'v*' ]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -56,6 +54,22 @@ jobs:
           cp -r build/docs/html/* public/docs/
           cp -r coverage_html/* public/coverage/
           cp coverage_badge.json coverage_summary.json coverage.info coverage.filtered.info public/coverage/
+          cat > public/index.html << 'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>hashbrowns</title>
+            <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:2rem}a{display:block;margin:.5rem 0}</style>
+          </head>
+          <body>
+            <h1>hashbrowns</h1>
+            <a href="/hashbrowns/docs/">API Docs</a>
+            <a href="/hashbrowns/coverage/">Coverage Report</a>
+          </body>
+          </html>
+          HTML
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
