@@ -9,7 +9,7 @@ CREATE_SUBDIRS         = NO
 # NOTE: Use relative paths so this file works both when configured by CMake (substituting
 # @CMAKE_SOURCE_DIR@) and when run directly by CI without configure step.
 # Doxygen treats these relative to the location of this file (project_root/docs).
-INPUT                  = ../src ../docs/api ../docs/tutorials
+INPUT                  = ../src ../docs/api ../docs/tutorials ../README.md
 FILE_PATTERNS          = *.h *.hpp *.cpp *.md
 RECURSIVE              = YES
 EXCLUDE_PATTERNS       = */tests/* */build/*
