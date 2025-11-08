@@ -219,7 +219,9 @@ jobs:
       - name: Capture coverage (lcov)
         run: |
           lcov --capture --directory build-coverage --output-file coverage.info
-          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/CMakeFiles/*' --output-file coverage.filtered.info
+          # On some runners, certain exclude patterns may not match any file.
+          # "lcov" treats that as an error by default; allow unused patterns so the step doesn't fail.
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/CMakeFiles/*' --ignore-errors unused --output-file coverage.filtered.info
           lcov --summary coverage.filtered.info
       - name: Generate HTML report
         run: |

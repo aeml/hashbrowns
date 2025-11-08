@@ -36,7 +36,8 @@ jobs:
           cmake --build build-coverage -- -j2
           ctest --test-dir build-coverage --output-on-failure
           lcov --capture --directory build-coverage --output-file coverage.info
-          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/CMakeFiles/*' --output-file coverage.filtered.info
+          # Allow unused exclude patterns so this step doesn't error on runners without matching files
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/CMakeFiles/*' --ignore-errors unused --output-file coverage.filtered.info
           genhtml coverage.filtered.info --output-directory coverage_html --title "hashbrowns Coverage" --legend --show-details
           # Extract coverage percentages
           lcov --summary coverage.filtered.info > coverage.summary.txt
