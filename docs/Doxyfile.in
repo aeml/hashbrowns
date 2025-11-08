@@ -1,16 +1,35 @@
-# Minimal Doxygen config template
+## Doxygen configuration (configured via CMake)
 
 PROJECT_NAME           = "@PROJECT_NAME@"
 PROJECT_NUMBER         = "@PROJECT_VERSION@"
-OUTPUT_DIRECTORY       = "@CMAKE_BINARY_DIR@/docs"
+OUTPUT_DIRECTORY       = "@CMAKE_CURRENT_BINARY_DIR@/docs"
 CREATE_SUBDIRS         = NO
-GENERATE_LATEX         = NO
-QUIET                  = YES
+
+# Inputs
+INPUT                  = "@CMAKE_CURRENT_SOURCE_DIR@/src"
+FILE_PATTERNS          = *.h *.hpp *.cpp
+RECURSIVE              = YES
+EXCLUDE_PATTERNS       = */tests/* */build/*
+
+# Extraction
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+JAVADOC_AUTOBRIEF      = YES
+MULTILINE_CPP_IS_BRIEF = YES
+
+# Warnings
 WARN_IF_UNDOCUMENTED   = NO
 WARNINGS               = YES
-INPUT                  = "@CMAKE_SOURCE_DIR@/src"
-RECURSIVE              = YES
-EXTRACT_ALL            = YES
-FILE_PATTERNS          = *.h *.hpp
-GENERATE_TREEVIEW      = YES
+QUIET                  = YES
 FULL_PATH_NAMES        = NO
+
+# Output
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO
+GENERATE_XML           = NO
+
+# Diagrams (disabled by default to keep CI light)
+HAVE_DOT               = NO

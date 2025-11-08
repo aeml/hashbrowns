@@ -349,6 +349,19 @@ Reproducible random workload:
 scripts/run_benchmarks.sh --pattern random --seed 12345 --runs 5 --size 20000
 ```
 
+### Generate API Documentation (Optional)
+
+If Doxygen is installed you can build browsable HTML docs for the public interfaces:
+
+```bash
+cmake -S . -B build
+cmake --build build --target docs
+xdg-open build/docs/html/index.html  # Linux (optional)
+open build/docs/html/index.html      # macOS (optional)
+```
+
+Documentation excludes test sources and is intentionally lightweight (no diagrams by default). Enable diagrams by editing `docs/Doxyfile.in` and setting `HAVE_DOT = YES` locally if you need call graphs.
+
 ### Results directory layout
 
 All benchmark outputs (CSV/JSON) and plots are now organized under a top-level `results/` directory:
