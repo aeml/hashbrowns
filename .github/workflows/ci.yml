@@ -34,27 +34,50 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-
+            ccache-${{ runner.os }}-
+
       - name: Set up compiler (Linux)
         if: runner.os == 'Linux'
         run: |
           if [ "${{ matrix.compiler }}" = "clang" ]; then
             sudo apt-get update
-            sudo apt-get install -y clang
+            sudo apt-get install -y clang ccache
             echo "CC=clang" >> $GITHUB_ENV
             echo "CXX=clang++" >> $GITHUB_ENV
           else
             sudo apt-get update
-            sudo apt-get install -y g++
+            sudo apt-get install -y g++ ccache
             echo "CC=gcc" >> $GITHUB_ENV
             echo "CXX=g++" >> $GITHUB_ENV
           fi
+          echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
+          echo "CCACHE_MAXSIZE=500M" >> $GITHUB_ENV
+
+      - name: Set up ccache (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update || true
+          brew install ccache || true
+          echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
+          echo "CCACHE_MAXSIZE=500M" >> $GITHUB_ENV
+
+      - name: ccache stats (pre)
+        run: ccache -s || true
 
       - name: Configure (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Configure (Windows)
         if: runner.os == 'Windows'
@@ -63,6 +86,9 @@ jobs:
       - name: Build (Linux/macOS)
         if: runner.os != 'Windows'
         run: cmake --build build --config ${{ matrix.build_type }} -- -j2
+
+      - name: ccache stats (post)
+        run: ccache -s || true
 
       - name: Build (Windows)
         if: runner.os == 'Windows'
@@ -89,7 +115,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install deps
-        run: sudo apt-get update && sudo apt-get install -y cmake clang-format
+        run: sudo apt-get update && sudo apt-get install -y cmake clang-format ccache
       - name: Build Release
         run: |
           bash scripts/build.sh -t Release
@@ -168,16 +194,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-coverage-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ccache-coverage-${{ runner.os }}-
       - name: Install build & coverage deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++ cmake lcov
+          sudo apt-get install -y g++ cmake lcov ccache
       - name: Configure (Debug + coverage flags)
         run: |
           cmake -S . -B build-coverage \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS="-O0 -g --coverage -fprofile-arcs -ftest-coverage" \
-            -DCMAKE_C_FLAGS="-O0 -g --coverage -fprofile-arcs -ftest-coverage"
+            -DCMAKE_C_FLAGS="-O0 -g --coverage -fprofile-arcs -ftest-coverage" \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
       - name: Build
         run: cmake --build build-coverage -- -j2
       - name: Run tests (coverage)
