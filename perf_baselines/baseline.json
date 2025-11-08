@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "size": 20000,
+    "runs": 5,
+    "warmup_runs": 0,
+    "bootstrap_iters": 0,
+    "structures": ["array","slist","dlist","hashmap"],
+    "pattern": "sequential",
+    "seed": 0,
+    "timestamp": "2025-11-08T01:25:20Z",
+    "cpu_governor": "schedutil",
+    "git_commit": "08dbc4f",
+    "compiler": "GCC 15.2.1 20250813",
+    "cpp_standard": "C++17",
+    "build_type": "Release",
+    "cpu_model": "AMD Ryzen 9 4900HS with Radeon Graphics",
+    "cores": 16,
+    "total_ram_bytes": 16146726912,
+    "kernel": "Linux 6.17.6-arch1-1.1-g14",
+    "hash_strategy": "open",
+    "pinned_cpu": -1,
+    "turbo_disabled": 0
+  },
+  "results": [
+    {"structure": "array","insert_ms_mean": 1429.13,"insert_ms_stddev": 107.727,"insert_ms_median": 1384.13,"insert_ms_p95": 1594.41,"insert_ci_low": 1429.13,"insert_ci_high": 1429.13,"search_ms_mean": 83226.8,"search_ms_stddev": 1596.64,"search_ms_median": 82888.4,"search_ms_p95": 85040.6,"search_ci_low": 83226.8,"search_ci_high": 83226.8,"remove_ms_mean": 741720,"remove_ms_stddev": 4454.29,"remove_ms_median": 743633,"remove_ms_p95": 746669,"remove_ci_low": 741720,"remove_ci_high": 741720,"memory_bytes": 1310776,"memory_insert_mean": 2.6214e+06,"memory_insert_stddev": 0,"memory_search_mean": 0,"memory_search_stddev": 0,"memory_remove_mean": 0,"memory_remove_stddev": 0,"insert_probes_mean": 0,"insert_probes_stddev": 0,"search_probes_mean": 0,"search_probes_stddev": 0,"remove_probes_mean": 0,"remove_probes_stddev": 0},
+    {"structure": "slist","insert_ms_mean": 688.132,"insert_ms_stddev": 133.377,"insert_ms_median": 632.946,"insert_ms_p95": 890.943,"insert_ci_low": 688.132,"insert_ci_high": 688.132,"search_ms_mean": 238837,"search_ms_stddev": 1432.84,"search_ms_median": 237959,"search_ms_p95": 240941,"search_ci_low": 238837,"search_ci_high": 238837,"remove_ms_mean": 169.861,"remove_ms_stddev": 31.108,"remove_ms_median": 145.334,"remove_ms_p95": 213.58,"remove_ci_low": 169.861,"remove_ci_high": 169.861,"memory_bytes": 960104,"memory_insert_mean": 933888,"memory_insert_stddev": 0,"memory_search_mean": 0,"memory_search_stddev": 0,"memory_remove_mean": 0,"memory_remove_stddev": 0,"insert_probes_mean": 0,"insert_probes_stddev": 0,"search_probes_mean": 0,"search_probes_stddev": 0,"remove_probes_mean": 0,"remove_probes_stddev": 0},
+    {"structure": "dlist","insert_ms_mean": 624.398,"insert_ms_stddev": 40.0079,"insert_ms_median": 610.667,"insert_ms_p95": 684.571,"insert_ci_low": 624.398,"insert_ci_high": 624.398,"search_ms_mean": 255888,"search_ms_stddev": 1034.91,"search_ms_median": 256157,"search_ms_p95": 257199,"search_ci_low": 255888,"search_ci_high": 255888,"remove_ms_mean": 174.289,"remove_ms_stddev": 34.3263,"remove_ms_median": 154.483,"remove_ms_p95": 227.128,"remove_ci_low": 174.289,"remove_ci_high": 174.289,"memory_bytes": 1120104,"memory_insert_mean": 1.08954e+06,"memory_insert_stddev": 0,"memory_search_mean": 0,"memory_search_stddev": 0,"memory_remove_mean": 0,"memory_remove_stddev": 0,"insert_probes_mean": 0,"insert_probes_stddev": 0,"search_probes_mean": 0,"search_probes_stddev": 0,"remove_probes_mean": 0,"remove_probes_stddev": 0},
+    {"structure": "hashmap","insert_ms_mean": 2233.39,"insert_ms_stddev": 374.117,"insert_ms_median": 2273.59,"insert_ms_p95": 2645.56,"insert_ci_low": 2233.39,"insert_ci_high": 2233.39,"search_ms_mean": 399.965,"search_ms_stddev": 24.1042,"search_ms_median": 389.14,"search_ms_p95": 436.56,"search_ci_low": 399.965,"search_ci_high": 399.965,"remove_ms_mean": 281.463,"remove_ms_stddev": 15.0594,"remove_ms_median": 271.322,"remove_ms_p95": 303.908,"remove_ci_low": 281.463,"remove_ci_high": 281.463,"memory_bytes": 1573096,"memory_insert_mean": 3.14419e+06,"memory_insert_stddev": 0,"memory_search_mean": 0,"memory_search_stddev": 0,"memory_remove_mean": 0,"memory_remove_stddev": 0,"insert_probes_mean": 2.78135,"insert_probes_stddev": 0,"search_probes_mean": 1.79345,"search_probes_stddev": 0,"remove_probes_mean": 1.79345,"remove_probes_stddev": 0}
+  ]
+}

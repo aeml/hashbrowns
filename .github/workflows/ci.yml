@@ -81,6 +81,24 @@ jobs:
         run: |
           ./build/regression_check --current build/ci_bench.csv --baseline docs/baselines/benchmark_results.csv --threshold 10
 
+  perf-guard:
+    name: Linux • perf guard (non-blocking)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'perf')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y cmake clang-format
+      - name: Build Release
+        run: |
+          bash scripts/build.sh -t Release
+      - name: Perf guard
+        env:
+          TOL_PCT_INSERT: 25
+          TOL_PCT_SEARCH: 25
+          TOL_PCT_REMOVE: 25
+        run: |
+          bash scripts/perf_guard.sh || echo "[WARN] perf guard failed (non-blocking)" && true
   asan-ubsan:
     name: Linux • clang • ASAN/UBSAN
     runs-on: ubuntu-latest
