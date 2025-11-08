@@ -234,6 +234,43 @@ Notes:
 
 Performance reproducibility tips are in the section below; the snapshot fields help post-hoc analysis & plot annotations.
 
+### Memory Tracking Details
+
+Enable with `--memory-tracking` to capture allocation deltas per operation. Internally a lightweight tracker records net bytes allocated/free during each insert/search/remove loop.
+
+Reported fields:
+- `memory_bytes` – total peak bytes retained by the structure at benchmark end (approximate live footprint).
+- `memory_insert_mean/stddev` – average incremental allocation cost (bytes) during inserts across runs.
+- `memory_search_mean/stddev` – usually zero (search is read-only for these structures); non‑zero indicates incidental allocations (should be investigated).
+- `memory_remove_mean/stddev` – net allocation delta during removals (often small or zero; deallocation may not appear as negative if allocation tracking normalizes to positive deltas).
+
+Interpretation tips:
+- Large `memory_insert_mean` for a dynamic array suggests frequent growth; consider a different growth strategy.
+- For HashMap, spikes can reflect rehashing; tune with `--hash-capacity` / `--hash-load`.
+- If search/remove show unexpected non-zero means, it may indicate hidden allocations (e.g., string constructions); profile further.
+
+Overhead: Tracking adds a small constant cost; for tight microbenchmarks you can disable it to avoid perturbing timings. Memory numbers are still meaningful for relative comparisons.
+
+### HashMap Probe Metrics
+
+The HashMap implementation (open addressing strategy) records average probe counts per operation to illuminate table efficiency:
+- `insert_probes_mean/stddev` – average number of slot probes during insert.
+- `search_probes_mean/stddev` – average probes for lookup.
+- `remove_probes_mean/stddev` – average probes during deletes.
+
+Healthy ranges:
+- At moderate load (< 0.7) typical search probes should be near 1–2; insert may be slightly higher especially near growth thresholds.
+- If means climb above ~5 consistently, table is either too full or hash distribution is poor; consider lowering `--hash-load` or increasing initial capacity.
+- Large stddev coupled with high mean can signal clustering; switching to `--hash-strategy chain` (separate chaining) might stabilize probe counts for skewed workloads.
+
+Tuning guidelines:
+1. Start with `--hash-load 0.75` (default behavior) and observe probe means.
+2. Reduce to `--hash-load 0.6` if probes exceed 3–4.
+3. Provide a generous `--hash-capacity` for very large initial `--size` to avoid repeated rehash cycles.
+4. For mixed/random patterns, stable probe counts help keep variance low; pair with a fixed `--seed` when comparing changes.
+
+Structures other than the HashMap report zeros for probe fields.
+
 ## Scripts
 
 Convenience tools for common workflows:
