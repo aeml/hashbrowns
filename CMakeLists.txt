@@ -35,6 +35,18 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Include directories
 include_directories(src)
 
+# Resolve short Git SHA for traceability (best-effort)
+execute_process(
+    COMMAND git rev-parse --short=12 HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_SHA
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT GIT_SHA)
+    set(GIT_SHA "unknown")
+endif()
+
 # Core library
 set(CORE_SOURCES
     src/core/memory_manager.cpp
@@ -106,6 +118,7 @@ target_link_libraries(hashbrowns PRIVATE hashbrowns_core hashbrowns_structures)
 if(TARGET hashbrowns_benchmark)
     target_link_libraries(hashbrowns PRIVATE hashbrowns_benchmark)
 endif()
+target_compile_definitions(hashbrowns PRIVATE HB_PROJECT_VERSION="${PROJECT_VERSION}" HB_GIT_SHA="${GIT_SHA}")
 
 # Enable testing
 enable_testing()

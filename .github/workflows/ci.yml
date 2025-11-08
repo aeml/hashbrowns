@@ -82,8 +82,9 @@ jobs:
           ./build/regression_check --current build/ci_bench.csv --baseline docs/baselines/benchmark_results.csv --threshold 10
 
   perf-guard:
-    name: Linux • perf guard (non-blocking)
+    name: Linux • perf guard
     runs-on: ubuntu-latest
+    # Run on pushes to main and PRs, but only gate (fail) when PR has 'perf' label
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'perf')
     steps:
       - uses: actions/checkout@v4
@@ -97,8 +98,20 @@ jobs:
           TOL_PCT_INSERT: 25
           TOL_PCT_SEARCH: 25
           TOL_PCT_REMOVE: 25
+        # Non-blocking except when this is a PR explicitly labeled 'perf'
+        continue-on-error: ${{ github.event_name != 'pull_request' || ! contains(github.event.pull_request.labels.*.name, 'perf') }}
         run: |
-          bash scripts/perf_guard.sh || echo "[WARN] perf guard failed (non-blocking)" && true
+          bash scripts/perf_guard.sh
+      - name: Upload perf guard artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-guard-${{ github.run_id }}
+          path: |
+            build/perf_guard_current.json
+            perf_baselines/baseline.json
+          if-no-files-found: ignore
+          retention-days: 7
   asan-ubsan:
     name: Linux • clang • ASAN/UBSAN
     runs-on: ubuntu-latest

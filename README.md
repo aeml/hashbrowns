@@ -154,6 +154,7 @@ HashMap tuning:
 Help & verbosity:
 - `--verbose`  Print extra per-run diagnostics.
 - `--help`  Show help text.
+- `--version`  Print the project version and short git SHA and exit.
 
 ### Examples
 

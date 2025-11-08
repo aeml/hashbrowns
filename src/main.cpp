@@ -194,15 +194,28 @@ int main(int argc, char* argv[]) {
     // Pre-scan for banner/verbosity flags before printing anything
     bool no_banner = false;
     bool quiet = false;
+    bool version_only = false;
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--no-banner") no_banner = true;
         if (arg == "--quiet") { quiet = true; no_banner = true; }
+        if (arg == "--version") { version_only = true; no_banner = true; }
     }
 
-    if (!no_banner) {
-        print_banner();
+    if (version_only) {
+#ifdef HB_PROJECT_VERSION
+#ifdef HB_GIT_SHA
+        std::cout << "hashbrowns " << HB_PROJECT_VERSION << " (git " << HB_GIT_SHA << ")" << std::endl;
+#else
+        std::cout << "hashbrowns " << HB_PROJECT_VERSION << " (git unknown)" << std::endl;
+#endif
+#else
+        std::cout << "hashbrowns (version unknown)" << std::endl;
+#endif
+        return 0;
     }
+
+    if (!no_banner) { print_banner(); }
 
     // Parse basic command line arguments
     bool show_help = false;
@@ -235,6 +248,9 @@ int main(int argc, char* argv[]) {
         std::string arg = argv[i];
         if (arg == "--help" || arg == "-h") {
             show_help = true;
+            demo_mode = false;
+        } else if (arg == "--version") {
+            // already handled early; ensure we don't treat as demo
             demo_mode = false;
         } else if (arg == "--wizard" || arg == "-wizard") {
             wizard_mode = true;
