@@ -153,16 +153,31 @@ endif()
 
 # Custom targets for development workflow
 
-# Format code using clang-format
+# Formatting helpers (clang-format)
 find_program(CLANG_FORMAT_EXE NAMES clang-format)
-if(CLANG_FORMAT_EXE)
-    file(GLOB_RECURSE ALL_SOURCE_FILES 
-         src/*.cpp src/*.h 
-         tests/*.cpp tests/*.h)
-    add_custom_target(format
-        COMMAND ${CLANG_FORMAT_EXE} -i ${ALL_SOURCE_FILES}
-        COMMENT "Formatting source code with clang-format"
+if (CLANG_FORMAT_EXE)
+    message(STATUS "Found clang-format: ${CLANG_FORMAT_EXE}")
+    file(GLOB_RECURSE HB_FORMAT_SOURCES
+        CONFIGURE_DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cxx
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.h
     )
+    add_custom_target(format
+        COMMAND ${CLANG_FORMAT_EXE} -i ${HB_FORMAT_SOURCES}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Formatting C/C++ sources with clang-format"
+        VERBATIM)
+    add_custom_target(check-format
+        COMMAND ${CLANG_FORMAT_EXE} --dry-run --Werror ${HB_FORMAT_SOURCES}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Checking code style with clang-format"
+        VERBATIM)
 endif()
 
 # Static analysis with clang-tidy
