@@ -60,7 +60,10 @@ set(CORE_HEADERS
 )
 
 add_library(hashbrowns_core STATIC ${CORE_SOURCES} ${CORE_HEADERS})
-target_include_directories(hashbrowns_core PUBLIC src)
+target_include_directories(hashbrowns_core PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    $<INSTALL_INTERFACE:include/hashbrowns>
+)
 
 # Data structures library (will be populated with implementations)
 set(STRUCTURES_SOURCES
@@ -78,7 +81,10 @@ set(STRUCTURES_HEADERS
 # Create structures library now that we have sources
 add_library(hashbrowns_structures STATIC ${STRUCTURES_SOURCES} ${STRUCTURES_HEADERS})
 target_link_libraries(hashbrowns_structures PUBLIC hashbrowns_core)
-target_include_directories(hashbrowns_structures PUBLIC src)
+target_include_directories(hashbrowns_structures PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    $<INSTALL_INTERFACE:include/hashbrowns>
+)
 
 # Benchmark library
 set(BENCHMARK_SOURCES
@@ -99,7 +105,10 @@ if(BENCHMARK_SOURCES)
     if(TARGET hashbrowns_structures)
         target_link_libraries(hashbrowns_benchmark PUBLIC hashbrowns_structures)
     endif()
-    target_include_directories(hashbrowns_benchmark PUBLIC src)
+    target_include_directories(hashbrowns_benchmark PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<INSTALL_INTERFACE:include/hashbrowns>
+    )
 endif()
 
 # Regression check CLI tool (optional helper)
@@ -269,6 +278,35 @@ endif()
 install(DIRECTORY src/
         DESTINATION include/hashbrowns
         FILES_MATCHING PATTERN "*.h")
+
+# Export targets and generate a package config for find_package(hashbrowns)
+include(CMakePackageConfigHelpers)
+
+set(HB_INSTALL_CMAKEDIR lib/cmake/hashbrowns)
+set(INCLUDE_INSTALL_DIR include/hashbrowns)
+
+install(EXPORT hashbrownsTargets
+        NAMESPACE hashbrowns::
+        FILE hashbrownsTargets.cmake
+        DESTINATION ${HB_INSTALL_CMAKEDIR})
+
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/hashbrownsConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/hashbrownsConfig.cmake
+    INSTALL_DESTINATION ${HB_INSTALL_CMAKEDIR}
+    PATH_VARS INCLUDE_INSTALL_DIR
+)
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/hashbrownsConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/hashbrownsConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/hashbrownsConfigVersion.cmake
+    DESTINATION ${HB_INSTALL_CMAKEDIR}
+)
 
 # Development helpers
 add_custom_target(clean-all

@@ -178,6 +178,13 @@ jobs:
         run: |
           ./build/hashbrowns --size 2048 --runs 3 --structures array,slist,hashmap --output build/benchmark_results.csv || true
           ./build/hashbrowns --crossover-analysis --max-size 8192 --runs 2 --structures array,slist,hashmap --output build/crossover_results.csv || true
+          ./build/hashbrowns --size 1024 --runs 2 --structures array,hashmap --out-format json --output build/benchmark_results.json || true
+          ./build/hashbrowns --size 1024 --runs 2 --structures array,hashmap --series-count 2 --out-format json --series-out build/series_results.json || true
+          ./build/hashbrowns --crossover-analysis --max-size 2048 --runs 1 --structures array,hashmap --out-format json --output build/crossover_results.json || true
+      - name: Validate JSON outputs against schema
+        run: |
+          python3 -m pip install --user jsonschema
+          python3 scripts/validate_json.py build/benchmark_results.json build/series_results.json build/crossover_results.json
       - name: Optional regression check (if baseline present)
         if: hashFiles('docs/baselines/benchmark_results.csv') != ''
         run: |
@@ -189,6 +196,9 @@ jobs:
           path: |
             build/benchmark_results.csv
             build/crossover_results.csv
+            build/benchmark_results.json
+            build/series_results.json
+            build/crossover_results.json
   coverage:
     name: Linux • coverage (gcov/lcov)
     runs-on: ubuntu-latest

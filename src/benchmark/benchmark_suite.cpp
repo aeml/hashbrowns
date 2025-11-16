@@ -22,6 +22,10 @@
 #ifdef __APPLE__
 #include <sys/sysctl.h>
 #endif
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#endif
 
 namespace hashbrowns {
 
@@ -38,6 +42,12 @@ static bool set_cpu_affinity(int cpu_index) {
 #ifdef __linux__
     cpu_set_t set; CPU_ZERO(&set); CPU_SET(cpu_index, &set);
     return sched_setaffinity(0, sizeof(set), &set) == 0;
+#elif defined(_WIN32)
+    DWORD_PTR mask = (cpu_index >= 0 && cpu_index < (int)(8 * sizeof(DWORD_PTR)))
+        ? (DWORD_PTR(1) << cpu_index)
+        : 1;
+    HANDLE h = GetCurrentThread();
+    return SetThreadAffinityMask(h, mask) != 0;
 #else
     (void)cpu_index; return false;
 #endif

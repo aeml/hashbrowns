@@ -8,6 +8,10 @@
 #ifdef __linux__
 #include <sched.h>
 #endif
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#endif
 #include <fstream>
 
 #include "core/data_structure.h"
@@ -435,6 +439,19 @@ int main(int argc, char* argv[]) {
                 if (o) { o << "0"; any = true; }
             }
             if (!any && !quiet) std::cout << "[WARN] Could not disable turbo (requires Linux with appropriate sysfs entries).\n";
+        }
+#elif defined(_WIN32)
+        if (cfg.pin_cpu) {
+            DWORD_PTR mask = (cfg.pin_cpu_index >= 0 && cfg.pin_cpu_index < (int)(8 * sizeof(DWORD_PTR)))
+                ? (DWORD_PTR(1) << cfg.pin_cpu_index)
+                : 1;
+            HANDLE h = GetCurrentThread();
+            if (SetThreadAffinityMask(h, mask) == 0 && !quiet) {
+                std::cout << "[WARN] Failed to set CPU affinity on Windows (index=" << cfg.pin_cpu_index << ")\n";
+            }
+        }
+        if (cfg.disable_turbo && !quiet) {
+            std::cout << "[INFO] --no-turbo not supported on Windows; ignoring.\n";
         }
 #else
         if ((cfg.pin_cpu || cfg.disable_turbo) && !quiet) {

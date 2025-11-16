@@ -1,0 +1,19 @@
+# hashbrownsConfig.cmake - CMake package configuration file
+
+@PACKAGE_INIT@
+
+# Ensure that dependencies are found (none external required currently)
+# If you add dependencies, use find_dependency(SomePackage REQUIRED)
+include(CMakeFindDependencyMacro)
+
+# Set package version variables
+set_and_check(hashbrowns_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")
+
+# Exported targets
+include("${CMAKE_CURRENT_LIST_DIR}/hashbrownsTargets.cmake")
+
+# Provide convenient imported target alias if desired
+# Users should link against targets already exported, e.g., hashbrowns::core, hashbrowns::structures, hashbrowns::benchmark
+
+# Backward-compat variables (optional)
+set(hashbrowns_FOUND TRUE)

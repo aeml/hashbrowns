@@ -105,6 +105,33 @@ make -j$(nproc)
 ctest --output-on-failure
 ```
 
+Windows (MSVC + PowerShell):
+
+```powershell
+# From project root
+scripts\build.ps1 -Type Release -Test
+
+# Or manual CMake (Visual Studio generator)
+mkdir build; cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --config Release
+ctest -C Release --output-on-failure
+```
+
+Helpful wrappers on Windows:
+
+```powershell
+# Run a benchmark and crossover analysis, then plot (PNG)
+scripts\run_benchmarks.ps1 -Size 20000 -Runs 10 -Structures 'array,hashmap' -OutFormat csv
+
+# Summarize CSVs in console
+scripts\analyze_results.ps1
+
+# Performance guard vs baseline (update or check)
+scripts\perf_guard.ps1 -Update
+scripts\perf_guard.ps1
+```
+
 Install (optional):
 ```bash
 cmake --install build --prefix /usr/local
@@ -133,8 +160,8 @@ Multi-size / sweeping:
 Workload pattern & reproducibility:
 - `--pattern {sequential,random,mixed}`  Key access pattern; affects insert/search/remove ordering.
 - `--seed N`  RNG seed for random/mixed patterns (default: generated via `std::random_device`). Emitted in JSON/CSV for reproducibility.
-- `--pin-cpu [IDX]`  Pin process to a specific CPU core (Linux-only). If IDX omitted, uses 0. Emits `pinned_cpu` in meta.
-- `--no-turbo`  Attempt to disable CPU turbo boost (Linux-only, best-effort). Emits `turbo_disabled` and current `cpu_governor`.
+- `--pin-cpu [IDX]`  Pin process to a specific CPU core (Linux and Windows). If IDX omitted, uses 0. Emits `pinned_cpu` in meta.
+- `--no-turbo`  Attempt to disable CPU turbo boost (Linux only, best-effort). Emits `turbo_disabled` and current `cpu_governor`.
 
 Output & formatting:
 - `--output FILE`  Write single-size benchmark OR crossover results to file (CSV/JSON based on `--out-format`).
@@ -391,6 +418,24 @@ results/
         series_results.json          # optional JSON for series metadata/results
     # (CLI multi-size also uses these if --series-count provided)
     plots/
+
+---
+
+## JSON Schema Validation
+
+Schemas for all JSON outputs live under `docs/api/schemas/`. Validate files with:
+
+```bash
+python3 scripts/validate_json.py results/csvs/benchmark_results.json
+```
+
+This uses `jsonschema` (installed via `requirements.txt`). CI also validates sample JSON outputs.
+
+---
+
+## Using as a Library
+
+See `docs/api/consuming_library.md` for `find_package` and `target_link_libraries` examples using the installed targets (`hashbrowns_benchmark`, `hashbrowns_structures`, `hashbrowns_core`).
         benchmark_summary.png
         benchmark_by_operation.png
         crossover_points.png
