@@ -264,12 +264,14 @@ if(TARGET hashbrowns)
 endif()
 
 install(TARGETS hashbrowns_core hashbrowns_structures
+    EXPORT hashbrownsTargets
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin)
 
 if(TARGET hashbrowns_benchmark)
     install(TARGETS hashbrowns_benchmark
+            EXPORT hashbrownsTargets
             ARCHIVE DESTINATION lib
             LIBRARY DESTINATION lib
             RUNTIME DESTINATION bin)
