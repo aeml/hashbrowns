@@ -145,6 +145,9 @@ set(TEST_SOURCES
     tests/unit/test_linked_list.cpp
     tests/unit/test_series_json.cpp
     tests/unit/test_stats.cpp
+    tests/unit/test_memory_tracker.cpp
+    tests/unit/test_timer.cpp
+    tests/unit/test_benchmark_crossover.cpp
 )
 if(TEST_SOURCES)
     add_executable(unit_tests ${TEST_SOURCES})

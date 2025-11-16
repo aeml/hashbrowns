@@ -4,6 +4,9 @@ int run_dynamic_array_tests();
 int run_linked_list_tests();
 int run_hash_map_tests();
 int run_json_output_tests();
+int run_memory_tracker_tests();
+int run_timer_tests();
+int run_benchmark_crossover_tests();
 // Integrated series JSON and stats tests (inlined to avoid linkage edge cases on some platforms)
 #include "benchmark/benchmark_suite.h"
 #include "benchmark/stats_analyzer.h"
@@ -85,6 +88,12 @@ int main() {
     failures += run_series_json_tests();
     std::cout << "\n------------------------------------\n";
     failures += run_stats_tests();
+    std::cout << "\n------------------------------------\n";
+    failures += run_memory_tracker_tests();
+    std::cout << "\n------------------------------------\n";
+    failures += run_timer_tests();
+    std::cout << "\n------------------------------------\n";
+    failures += run_benchmark_crossover_tests();
 
     if (failures == 0) {
         std::cout << "\n✅ All unit test suites passed!\n";
