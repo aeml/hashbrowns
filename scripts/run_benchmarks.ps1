@@ -24,7 +24,10 @@ param(
   [ValidateSet('open','chain')]
   [string]$HashStrategy = 'open',
   [Nullable[int]]$HashCapacity,
-  [Nullable[double]]$HashLoad
+  [Nullable[double]]$HashLoad,
+  [string]$Baseline,
+  [double]$BaselineThreshold = 20,
+  [double]$BaselineNoise = 1
 )
 
 $ErrorActionPreference = 'Stop'
@@ -64,6 +67,9 @@ if ($Seed) { $argsListSingle += @('--seed', $Seed); $argsListCross += @('--seed'
 if ($HashStrategy) { $argsListSingle += @('--hash-strategy', $HashStrategy); $argsListCross += @('--hash-strategy', $HashStrategy) }
 if ($HashCapacity) { $argsListSingle += @('--hash-capacity', $HashCapacity); $argsListCross += @('--hash-capacity', $HashCapacity) }
 if ($HashLoad) { $argsListSingle += @('--hash-load', $HashLoad); $argsListCross += @('--hash-load', $HashLoad) }
+if ($Baseline) {
+  $argsListSingle += @('--baseline', $Baseline, '--baseline-threshold', $BaselineThreshold, '--baseline-noise', $BaselineNoise)
+}
 
 Write-Host "[INFO] Running benchmark..." -ForegroundColor Cyan
 & $Bin @argsListSingle | Write-Output

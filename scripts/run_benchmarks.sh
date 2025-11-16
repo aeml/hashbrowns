@@ -30,6 +30,9 @@ SERIES_RUNS=${SERIES_RUNS:-1}
 SEED=${SEED:-}
 PATTERN=${PATTERN:-sequential}
 MAX_SECONDS=${MAX_SECONDS:-}
+BASELINE=${BASELINE:-}
+BASELINE_THRESHOLD=${BASELINE_THRESHOLD:-20}
+BASELINE_NOISE=${BASELINE_NOISE:-1}
 
 usage() {
   cat <<EOF
@@ -56,6 +59,9 @@ Options (also available via env vars):
   --hash-strategy S  open|chain (default: open)
   --hash-capacity N  initial capacity for hashmap
   --hash-load F      max load factor for hashmap
+  --baseline PATH    Optional baseline JSON to compare single-size run against
+  --baseline-threshold PCT  Max allowed slowdown percentage (default: ${BASELINE_THRESHOLD})
+  --baseline-noise PCT      Ignore deltas within this band as noise (default: ${BASELINE_NOISE})
   -h, --help         Show this help
 
 Examples:
@@ -87,6 +93,9 @@ while [[ $# -gt 0 ]]; do
   --hash-strategy) HASH_STRATEGY="$2"; shift 2;;
   --hash-capacity) HASH_CAPACITY="$2"; shift 2;;
   --hash-load) HASH_LOAD="$2"; shift 2;;
+  --baseline) BASELINE="$2"; shift 2;;
+  --baseline-threshold) BASELINE_THRESHOLD="$2"; shift 2;;
+  --baseline-noise) BASELINE_NOISE="$2"; shift 2;;
     -h|--help) usage; exit 0;;
     *) echo "Unknown option: $1"; usage; exit 2;;
   esac
@@ -151,6 +160,9 @@ BENCH_ARGS=(--no-banner --size "${SIZE}" --runs "${RUNS}" --structures "${STRUCT
 [[ -n "${HASH_STRATEGY}" ]] && BENCH_ARGS+=(--hash-strategy "${HASH_STRATEGY}")
 [[ -n "${HASH_CAPACITY}" ]] && BENCH_ARGS+=(--hash-capacity "${HASH_CAPACITY}")
 [[ -n "${HASH_LOAD}" ]] && BENCH_ARGS+=(--hash-load "${HASH_LOAD}")
+if [[ -n "${BASELINE}" ]]; then
+  BENCH_ARGS+=(--baseline "${BASELINE}" --baseline-threshold "${BASELINE_THRESHOLD}" --baseline-noise "${BASELINE_NOISE}")
+fi
 "${BIN}" "${BENCH_ARGS[@]}" || true
 echo "[INFO] Wrote: ${BENCH_OUT}"
 

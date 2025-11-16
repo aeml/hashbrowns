@@ -38,6 +38,30 @@ struct BenchmarkConfig {
     bool disable_turbo = false;      // attempt to disable turbo boost (Linux-only, may require privileges)
 };
 
+// Configuration for comparing current benchmark results against a stored baseline.
+struct BaselineConfig {
+    std::string baseline_path;           // path to baseline benchmark_results.json
+    double threshold_pct = 20.0;         // max allowed slowdown (%) per metric
+    double noise_floor_pct = 1.0;        // ignore deltas within this band as noise
+    // Which metrics to consider when evaluating regressions.
+    enum class MetricScope { MEAN, P95, CI_HIGH, ANY };
+    MetricScope scope = MetricScope::MEAN;
+};
+
+struct BaselineComparison {
+    struct Entry {
+        std::string structure;
+        double insert_delta_pct{0.0};
+        double search_delta_pct{0.0};
+        double remove_delta_pct{0.0};
+        bool insert_ok{true};
+        bool search_ok{true};
+        bool remove_ok{true};
+    };
+    std::vector<Entry> entries;
+    bool all_ok{true};
+};
+
 struct BenchmarkResult {
     std::string structure;
     double insert_ms_mean{0.0};
@@ -91,6 +115,18 @@ public:
     void write_series_csv(const std::string& path, const Series& series);
     void write_series_json(const std::string& path, const Series& series, const BenchmarkConfig& config);
 };
+
+// Load a benchmark_results.json file and extract the per-structure results.
+// Returns empty vector on error.
+std::vector<BenchmarkResult> load_benchmark_results_json(const std::string& path);
+
+// Compare current results against a baseline using the provided configuration.
+BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& baseline,
+                                            const std::vector<BenchmarkResult>& current,
+                                            const BaselineConfig& cfg);
+
+// Pretty-print a comparison summary to stdout.
+void print_baseline_report(const BaselineComparison& report, double threshold_pct, double noise_floor_pct);
 
 } // namespace hashbrowns
 

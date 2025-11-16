@@ -247,6 +247,11 @@ int main(int argc, char* argv[]) {
     std::optional<std::size_t> opt_hash_capacity;
     std::optional<double> opt_hash_load;
     bool opt_op_tests = false;
+    // Baseline comparison options
+    std::optional<std::string> opt_baseline_path;
+    double opt_baseline_threshold = 20.0;
+    double opt_baseline_noise = 1.0;
+    BaselineConfig::MetricScope opt_baseline_scope = BaselineConfig::MetricScope::MEAN;
     
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -346,6 +351,22 @@ int main(int argc, char* argv[]) {
             demo_mode = false;
         } else if (arg == "--hash-load" && i + 1 < argc) {
             opt_hash_load = std::stod(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--baseline" && i + 1 < argc) {
+            opt_baseline_path = std::string(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--baseline-threshold" && i + 1 < argc) {
+            opt_baseline_threshold = std::stod(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--baseline-noise" && i + 1 < argc) {
+            opt_baseline_noise = std::stod(argv[++i]);
+            demo_mode = false;
+        } else if (arg == "--baseline-scope" && i + 1 < argc) {
+            std::string s = argv[++i];
+            if (s == "mean") opt_baseline_scope = BaselineConfig::MetricScope::MEAN;
+            else if (s == "p95") opt_baseline_scope = BaselineConfig::MetricScope::P95;
+            else if (s == "ci_high") opt_baseline_scope = BaselineConfig::MetricScope::CI_HIGH;
+            else if (s == "any") opt_baseline_scope = BaselineConfig::MetricScope::ANY;
             demo_mode = false;
         } else if (arg == "--op-tests") {
             opt_op_tests = true;
@@ -473,7 +494,24 @@ int main(int argc, char* argv[]) {
                     std::cout << "\nSaved " << (opt_out_fmt==BenchmarkConfig::OutputFormat::CSV?"CSV":"JSON") << " to: " << *opt_output << "\n";
                 }
             }
-            return results.empty() ? 1 : 0;
+
+            int base_rc = results.empty() ? 1 : 0;
+            if (opt_baseline_path) {
+                BaselineConfig bcfg;
+                bcfg.baseline_path = *opt_baseline_path;
+                bcfg.threshold_pct = opt_baseline_threshold;
+                bcfg.noise_floor_pct = opt_baseline_noise;
+                bcfg.scope = opt_baseline_scope;
+                auto baseline = load_benchmark_results_json(bcfg.baseline_path);
+                if (baseline.empty()) {
+                    std::cerr << "[baseline] Failed to load baseline from " << bcfg.baseline_path << "\n";
+                    return 3;
+                }
+                auto cmp = compare_against_baseline(baseline, results, bcfg);
+                print_baseline_report(cmp, bcfg.threshold_pct, bcfg.noise_floor_pct);
+                if (!cmp.all_ok) return 4;
+            }
+            return base_rc;
         } else if (opt_crossover) {
             // Crossover analysis mode
             std::vector<std::size_t> sizes;

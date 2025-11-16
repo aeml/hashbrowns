@@ -24,6 +24,25 @@ The CSV will contain mean and standard deviation for insert, search, and remove.
 
 The CSV will list approximate crossover sizes by operation.
 
+## Baseline comparison
+
+To guard against regressions, first record a baseline JSON:
+
+```bash
+./build/hashbrowns --size 20000 --runs 5 --structures array,slist,dlist,hashmap \ 
+	--pattern sequential --seed 12345 --out-format json --output perf_baselines/baseline.json
+```
+
+Then compare new runs against it:
+
+```bash
+./build/hashbrowns --size 20000 --runs 5 --structures array,slist,dlist,hashmap \ 
+	--pattern sequential --seed 12345 --out-format json --output build/benchmark_results.json \ 
+	--baseline perf_baselines/baseline.json --baseline-threshold 20 --baseline-noise 1
+```
+
+On regression beyond the threshold, the process exits non-zero, which is ideal for CI.
+
 ## Quick helper
 
 ```bash

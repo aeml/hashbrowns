@@ -26,7 +26,9 @@ if (-not (Test-Path $Bin)) {
   if (-not (Test-Path $Bin)) { $Bin = Join-Path (Join-Path $BuildDir $BuildType) 'hashbrowns.exe' }
 }
 
-# Run a fixed-seed small benchmark to produce JSON
+# Run a fixed-seed small benchmark to produce JSON. If updating, simply
+# write the reference baseline; otherwise, use the built-in baseline
+# comparison mode in the hashbrowns binary.
 Write-Host "[INFO] Running benchmark for perf guard..." -ForegroundColor Cyan
 & $Bin --size $Size --runs $Runs --structures $Structures --pattern sequential --seed $Seed --out-format json --output $TmpJson | Write-Output
 
@@ -42,36 +44,12 @@ if (-not (Test-Path $BaselineJson)) {
   exit 3
 }
 
-$base = Get-Content $BaselineJson -Raw | ConvertFrom-Json
-$cur  = Get-Content $TmpJson -Raw | ConvertFrom-Json
-
-# Build lookup by structure (use approved verb naming)
-function ConvertTo-ResultsMap {
-  param($obj)
-  $map = @{}
-  foreach($r in $obj.results){ $map[$r.structure] = $r }
-  return $map
+# Delegate comparison to the native baseline mode in the executable.
+Write-Host "[INFO] Comparing against baseline via built-in checker..." -ForegroundColor Cyan
+& $Bin --size $Size --runs $Runs --structures $Structures --pattern sequential --seed $Seed --out-format json --output $TmpJson --baseline $BaselineJson --baseline-threshold $TolInsertPct --baseline-noise 1.0 --baseline-scope mean | Write-Output
+if ($LASTEXITCODE -ne 0) {
+  Write-Error "Performance regression detected (exit code $LASTEXITCODE)"
+  exit 2
 }
-$mb = ConvertTo-ResultsMap $base
-$mc = ConvertTo-ResultsMap $cur
-
-$fail = $false
-function PctDelta($a, $b){ if ($a -eq 0) { return 0 } else { return [math]::Abs(($b - $a) / $a) * 100 } }
-
-$structuresList = $Structures.Split(',')
-foreach($s in $structuresList){
-  if (-not $mb.ContainsKey($s) -or -not $mc.ContainsKey($s)) { Write-Warning "Missing results for $s in baseline or current"; continue }
-  $rb = $mb[$s]
-  $rc = $mc[$s]
-  $di = PctDelta $rb.insert_ms_mean $rc.insert_ms_mean
-  $ds = PctDelta $rb.search_ms_mean $rc.search_ms_mean
-  $dr = PctDelta $rb.remove_ms_mean $rc.remove_ms_mean
-  $okI = $di -le $TolInsertPct
-  $okS = $ds -le $TolSearchPct
-  $okR = $dr -le $TolRemovePct
-  $emoji = if ($okI -and $okS -and $okR) { '✅' } else { '❌' }
-  Write-Host ("{0} {1,-8} insert {2,6:N1}% (tol {3}%), search {4,6:N1}% (tol {5}%), remove {6,6:N1}% (tol {7}%)" -f $emoji,$s,$di,$TolInsertPct,$ds,$TolSearchPct,$dr,$TolRemovePct)
-  if (-not ($okI -and $okS -and $okR)) { $fail = $true }
-}
-
-if ($fail) { Write-Error "Performance regression detected"; exit 2 } else { Write-Host "All metrics within tolerance" -ForegroundColor Green; exit 0 }
+Write-Host "All metrics within tolerance" -ForegroundColor Green
+exit 0
