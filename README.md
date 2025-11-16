@@ -141,6 +141,42 @@ cmake --install build --prefix /usr/local
 
 ## Usage
 
+### Recommended profiles
+
+To make runs repeatable and easy to remember, here are five suggested "profiles" built from the existing flags:
+
+- **P0 – Tiny sanity check** (fast, good for local smoke):
+    ```bash
+    ./build/hashbrowns --size 4096 --runs 5 --structures array,slist,hashmap --output results/csvs/benchmark_results.csv
+    ```
+- **P1 – Small CI benchmark** (what CI should run by default):
+    ```bash
+    ./build/hashbrowns --size 20000 --runs 10 \
+            --structures array,slist,hashmap \
+            --pattern sequential --seed 12345 \
+            --output results/csvs/benchmark_results.csv
+    ```
+- **P2 – Medium series sweep** (few sizes, modest runs):
+    ```bash
+    ./build/hashbrowns --size 60000 --series-count 6 --runs 3 \
+            --structures array,hashmap --out-format json \
+            --series-out results/csvs/series_results.json
+    ```
+- **P3 – Full crossover analysis** (used when you care about crossover points):
+    ```bash
+    ./build/hashbrowns --crossover-analysis --max-size 100000 --runs 4 \
+            --structures array,slist,hashmap --pattern sequential --seed 12345 \
+            --out-format json --output results/csvs/crossover_results.json
+    ```
+- **P4 – Deep analysis with memory & CIs** (slower, most information):
+    ```bash
+    ./build/hashbrowns --size 50000 --runs 20 \
+            --structures array,slist,dlist,hashmap \
+            --pattern random --seed 12345 \
+            --memory-tracking --bootstrap 400 \
+            --out-format json --output results/csvs/benchmark_results_deep.json
+    ```
+
 ### Core CLI Flags (single-size, series, crossover, reproducibility)
 
 The `hashbrowns` executable supports a rich set of flags. All flags are optional; sensible defaults are chosen for quick runs.
@@ -226,6 +262,14 @@ Notes:
 - `--baseline-threshold` sets the maximum allowed slowdown (%); regressions beyond this cause a non-zero exit code.
 - `--baseline-noise` treats changes smaller than this percentage as noise.
 - The comparison uses mean timings by default; advanced scopes are supported via `--baseline-scope {mean,p95,ci_high,any}`.
+
+### API & stability
+
+The following surfaces are considered stable for consumers of hashbrowns:
+- **CLI flags and output schemas**: The documented flags in this README and the JSON/CSV column names written by the tool are treated as stable. New flags may be added, but existing ones will not be renamed or repurposed without a major version bump.
+- **Public C++ interfaces**: `BenchmarkConfig`, `BenchmarkSuite`, and the `DataStructure` interface in `core/data_structure.h`, plus the public methods of `DynamicArray`, `SinglyLinkedList`, `DoublyLinkedList`, and `HashMap`, form the supported API for embedding hashbrowns in other code.
+
+Internal implementation details (e.g., specific probing strategies or allocation patterns) may evolve over time to improve clarity or performance, but the observable behavior of the CLI, schemas, and public headers will remain compatible.
 
 ---
 

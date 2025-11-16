@@ -76,6 +76,57 @@ Series & crossover:
 - Multi-size runs: `--series-count N` or explicit `--series-sizes 512,2048,8192`.
 - Crossover analysis: `--crossover-analysis --max-size N --series-runs 1`.
 
+### Recommended benchmark profiles
+
+To keep runs consistent between contributors and CI, we use a small set of common CLI profiles:
+
+- **P0 – Tiny sanity check (local):** quick smoke before committing
+	```bash
+	./build/hashbrowns --size 4096 --runs 5 \
+			--structures array,slist,hashmap \
+			--output results/csvs/benchmark_results.csv
+	```
+
+- **P1 – Small CI benchmark (authoritative):** what CI runs by default
+	```bash
+	./build/hashbrowns --size 20000 --runs 10 \
+			--structures array,slist,hashmap \
+			--pattern sequential --seed 12345 \
+			--output results/csvs/benchmark_results.csv
+	```
+
+- **P2 – Medium series sweep:** a few sizes for shape of curves
+	```bash
+	./build/hashbrowns --size 60000 --series-count 6 --runs 3 \
+			--structures array,hashmap --out-format json \
+			--series-out results/csvs/series_results.json
+	```
+
+- **P3 – Full crossover analysis:** crossover points between structures
+	```bash
+	./build/hashbrowns --crossover-analysis --max-size 100000 --runs 4 \
+			--structures array,slist,hashmap \
+			--pattern sequential --seed 12345 \
+			--out-format json --output results/csvs/crossover_results.json
+	```
+
+- **P4 – Deep analysis:** heavier run with memory tracking and CIs
+	```bash
+	./build/hashbrowns --size 50000 --runs 20 \
+			--structures array,slist,dlist,hashmap \
+			--pattern random --seed 12345 \
+			--memory-tracking --bootstrap 400 \
+			--out-format json --output results/csvs/benchmark_results_deep.json
+	```
+
+Contributor expectations:
+- Before opening a PR:
+	- Run unit tests (e.g. `scripts/build.sh -t Release --test`).
+	- Run **P0** locally; if your change may affect performance, also run **P1**.
+- For intentional performance changes:
+	- Run **P1** and compare against the current baseline via `scripts/perf_guard.*`.
+	- Optionally run **P2–P3** to understand impact across sizes.
+
 ## 6. Performance Regression Guard (Planned)
 Upcoming: a script under `scripts/perf_guard.sh` will:
 - Run a small fixed-seed benchmark subset.
