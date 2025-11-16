@@ -118,6 +118,76 @@ static void test_separate_chaining_growth_and_rehash() {
     std::cout << "✓ SC growth & rehash passed" << std::endl;
 }
 
+static void test_additional_coverage() {
+    std::cout << "Testing additional HashMap functions for coverage..." << std::endl;
+    
+    // Test DataStructure interface methods for OPEN_ADDRESSING
+    HashMap map_oa(HashStrategy::OPEN_ADDRESSING, 16);
+    std::string type_n = map_oa.type_name();
+    std::string insert_c = map_oa.insert_complexity();
+    std::string search_c = map_oa.search_complexity();
+    std::string remove_c = map_oa.remove_complexity();
+    assert(!type_n.empty());
+    assert(!insert_c.empty());
+    assert(!search_c.empty());
+    assert(!remove_c.empty());
+    
+    // Test strategy() getter
+    assert(map_oa.strategy() == HashStrategy::OPEN_ADDRESSING);
+    
+    // Test max_load_factor() getter
+    float load_factor_oa = map_oa.max_load_factor();
+    assert(load_factor_oa > 0.0f);
+    
+    // Test DataStructure interface methods for SEPARATE_CHAINING
+    HashMap map_sc(HashStrategy::SEPARATE_CHAINING, 16);
+    type_n = map_sc.type_name();
+    insert_c = map_sc.insert_complexity();
+    search_c = map_sc.search_complexity();
+    remove_c = map_sc.remove_complexity();
+    assert(!type_n.empty());
+    assert(!insert_c.empty());
+    assert(!search_c.empty());
+    assert(!remove_c.empty());
+    
+    // Test strategy() getter
+    assert(map_sc.strategy() == HashStrategy::SEPARATE_CHAINING);
+    
+    // Test max_load_factor() getter
+    float load_factor_sc = map_sc.max_load_factor();
+    assert(load_factor_sc > 0.0f);
+    
+    // Test set_strategy() on empty map
+    HashMap map_empty(HashStrategy::OPEN_ADDRESSING, 8);
+    map_empty.set_strategy(HashStrategy::SEPARATE_CHAINING);
+    assert(map_empty.strategy() == HashStrategy::SEPARATE_CHAINING);
+    
+    // Test set_strategy() on non-empty map (should trigger rehash)
+    HashMap map_full(HashStrategy::OPEN_ADDRESSING, 8);
+    map_full.insert(1, "one");
+    map_full.insert(2, "two");
+    map_full.set_strategy(HashStrategy::SEPARATE_CHAINING);
+    assert(map_full.strategy() == HashStrategy::SEPARATE_CHAINING);
+    std::string v;
+    assert(map_full.search(1, v) && v == "one");
+    assert(map_full.search(2, v) && v == "two");
+    
+    // Test set_max_load_factor() for separate chaining
+    HashMap map_sc2(HashStrategy::SEPARATE_CHAINING, 8);
+    map_sc2.set_max_load_factor(2.0f);
+    float new_load = map_sc2.max_load_factor();
+    assert(new_load == 2.0f);
+    
+    // Test memory_usage() for separate chaining
+    HashMap map_mem(HashStrategy::SEPARATE_CHAINING, 8);
+    map_mem.insert(1, "one");
+    map_mem.insert(2, "two");
+    size_t mem_usage = map_mem.memory_usage();
+    assert(mem_usage > 0);
+    
+    std::cout << "✓ Additional coverage passed" << std::endl;
+}
+
 int run_hash_map_tests() {
     std::cout << "HashMap Test Suite\n";
     std::cout << "==================\n\n";
@@ -131,6 +201,7 @@ int run_hash_map_tests() {
         test_open_addressing_growth_and_tombstones();
         test_basic_separate_chaining();
         test_separate_chaining_growth_and_rehash();
+        test_additional_coverage();
 
         std::cout << "\n✅ All HashMap tests passed!\n";
         auto stats = tracker.get_stats();
