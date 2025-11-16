@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aeml.github.io/hashbrowns/schemas/benchmark_results.schema.json",
+  "title": "hashbrowns benchmark results",
+  "type": "object",
+  "required": ["meta", "results"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": [
+        "schema_version","size","runs","warmup_runs","bootstrap_iters",
+        "structures","pattern","timestamp","git_commit","compiler",
+        "cpp_standard","build_type","cpu_model","cores","total_ram_bytes",
+        "kernel","hash_strategy","pinned_cpu","turbo_disabled","seed"
+      ],
+      "properties": {
+        "schema_version": {"type": "integer"},
+        "size": {"type": "integer", "minimum": 0},
+        "runs": {"type": "integer", "minimum": 0},
+        "warmup_runs": {"type": "integer", "minimum": 0},
+        "bootstrap_iters": {"type": "integer", "minimum": 0},
+        "structures": {"type": "array", "items": {"type": "string"}},
+        "pattern": {"type": "string", "enum": ["sequential","random","mixed"]},
+        "seed": {"type": "integer", "minimum": 0},
+        "timestamp": {"type": "string"},
+        "cpu_governor": {"type": "string"},
+        "git_commit": {"type": "string"},
+        "compiler": {"type": "string"},
+        "cpp_standard": {"type": "string"},
+        "build_type": {"type": "string"},
+        "cpu_model": {"type": "string"},
+        "cores": {"type": "integer", "minimum": 1},
+        "total_ram_bytes": {"type": "integer", "minimum": 0},
+        "kernel": {"type": "string"},
+        "hash_strategy": {"type": "string", "enum": ["open","chain"]},
+        "hash_capacity": {"type": "integer", "minimum": 0},
+        "hash_load": {"type": "number", "minimum": 0},
+        "pinned_cpu": {"type": "integer"},
+        "turbo_disabled": {"type": "integer", "enum": [0,1]}
+      },
+      "additionalProperties": true
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "structure",
+          "insert_ms_mean","insert_ms_stddev","insert_ms_median","insert_ms_p95","insert_ci_low","insert_ci_high",
+          "search_ms_mean","search_ms_stddev","search_ms_median","search_ms_p95","search_ci_low","search_ci_high",
+          "remove_ms_mean","remove_ms_stddev","remove_ms_median","remove_ms_p95","remove_ci_low","remove_ci_high",
+          "memory_bytes",
+          "memory_insert_mean","memory_insert_stddev","memory_search_mean","memory_search_stddev","memory_remove_mean","memory_remove_stddev"
+        ],
+        "properties": {
+          "structure": {"type": "string"},
+          "insert_ms_mean": {"type": "number"},
+          "insert_ms_stddev": {"type": "number"},
+          "insert_ms_median": {"type": "number"},
+          "insert_ms_p95": {"type": "number"},
+          "insert_ci_low": {"type": "number"},
+          "insert_ci_high": {"type": "number"},
+          "search_ms_mean": {"type": "number"},
+          "search_ms_stddev": {"type": "number"},
+          "search_ms_median": {"type": "number"},
+          "search_ms_p95": {"type": "number"},
+          "search_ci_low": {"type": "number"},
+          "search_ci_high": {"type": "number"},
+          "remove_ms_mean": {"type": "number"},
+          "remove_ms_stddev": {"type": "number"},
+          "remove_ms_median": {"type": "number"},
+          "remove_ms_p95": {"type": "number"},
+          "remove_ci_low": {"type": "number"},
+          "remove_ci_high": {"type": "number"},
+          "memory_bytes": {"type": "integer", "minimum": 0},
+          "memory_insert_mean": {"type": "number"},
+          "memory_insert_stddev": {"type": "number"},
+          "memory_search_mean": {"type": "number"},
+          "memory_search_stddev": {"type": "number"},
+          "memory_remove_mean": {"type": "number"},
+          "memory_remove_stddev": {"type": "number"},
+          "insert_probes_mean": {"type": "number"},
+          "insert_probes_stddev": {"type": "number"},
+          "search_probes_mean": {"type": "number"},
+          "search_probes_stddev": {"type": "number"},
+          "remove_probes_mean": {"type": "number"},
+          "remove_probes_stddev": {"type": "number"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}
