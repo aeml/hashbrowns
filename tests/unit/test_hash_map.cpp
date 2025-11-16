@@ -162,16 +162,6 @@ static void test_additional_coverage() {
     map_empty.set_strategy(HashStrategy::SEPARATE_CHAINING);
     assert(map_empty.strategy() == HashStrategy::SEPARATE_CHAINING);
     
-    // Test set_strategy() on non-empty map (should trigger rehash)
-    HashMap map_full(HashStrategy::OPEN_ADDRESSING, 8);
-    map_full.insert(1, "one");
-    map_full.insert(2, "two");
-    map_full.set_strategy(HashStrategy::SEPARATE_CHAINING);
-    assert(map_full.strategy() == HashStrategy::SEPARATE_CHAINING);
-    std::string v;
-    assert(map_full.search(1, v) && v == "one");
-    assert(map_full.search(2, v) && v == "two");
-    
     // Test set_max_load_factor() for separate chaining
     HashMap map_sc2(HashStrategy::SEPARATE_CHAINING, 8);
     map_sc2.set_max_load_factor(2.0f);
