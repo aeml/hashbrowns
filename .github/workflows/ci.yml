@@ -184,6 +184,11 @@ jobs:
             --structures array,slist,hashmap \
             --pattern sequential --seed 12345 \
             --output build/benchmark_results.csv || true
+          # P1 JSON – Same benchmark but JSON output for schema validation
+          ./build/hashbrowns --size 20000 --runs 10 \
+            --structures array,slist,hashmap \
+            --pattern sequential --seed 12345 \
+            --out-format json --output build/benchmark_results.json || true
           # P3 – Full crossover analysis (reduced max-size for CI speed)
           ./build/hashbrowns --crossover-analysis --max-size 65536 --runs 3 \
             --structures array,slist,hashmap \
