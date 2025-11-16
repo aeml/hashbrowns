@@ -12,6 +12,16 @@ This tutorial explains two sets of diagnostics provided by hashbrowns when you e
 
 Along the way we’ll show small runs and how to tune the HashMap.
 
+## Memory Footprints (size=10000)
+
+From a recent benchmark run, typical memory usage:
+- **Array**: 655,416 bytes (contiguous allocation with growth factor)
+- **Singly-linked list**: 480,104 bytes (node pointers, no backlinks)
+- **Doubly-linked list**: 560,104 bytes (additional back pointers)
+- **HashMap**: 786,664 bytes (table + open addressing overhead)
+
+The HashMap uses more memory due to maintaining empty slots for efficiency, while linked lists have per-node pointer overhead. Arrays show the highest footprint due to geometric growth reserving extra capacity.
+
 ## Enable metrics
 
 - Memory tracking is off by default. Turn it on with:
@@ -53,7 +63,16 @@ For open addressing, average probe counts highlight table efficiency:
 
 Rules of thumb:
 
-- With load < ~0.7, searches should average ~1–2 probes and inserts slightly higher.
+- Probe counts should stay near 1–2 for searches under moderate load (< 0.7). Values above ~5 suggest reducing load factor or increasing capacity.
+
+**Actual benchmark results** (size=10000, default settings):
+```json
+"insert_probes_mean": 2.7669,
+"search_probes_mean": 1.7398,
+"remove_probes_mean": 1.7398
+```
+
+These healthy probe counts (< 3) indicate good hash distribution and appropriate load factor.
 - Means > ~5 indicate clustering or over‑filled tables.
 - Large stddev implies unstable performance; address load factor or hashing strategy.
 

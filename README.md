@@ -221,6 +221,18 @@ Help & verbosity:
 - `--help`  Show help text.
 - `--version`  Print the project version and short git SHA and exit.
 
+### Console Output
+
+The benchmark executable displays a colorful banner and progress information. When memory tracking is enabled, you'll see `[DEALLOC]` messages showing allocation details (useful for debugging). The final summary shows mean timings and memory usage:
+
+```
+=== Benchmark Results (avg ms over 5 runs, size=10000) ===
+- array: insert=712.99, search=16337.3, remove=199231, mem=655416 bytes
+- slist: insert=336.687, search=57940.9, remove=79.0626, mem=480104 bytes
+- dlist: insert=298.357, search=62316.8, remove=80.2504, mem=560104 bytes
+- hashmap: insert=1099.77, search=198.998, remove=142.816, mem=786664 bytes
+```
+
 ### Examples
 
 ```bash
@@ -234,6 +246,10 @@ Help & verbosity:
 ./build/hashbrowns --crossover-analysis --max-size 100000 \
     --structures array,slist,hashmap --runs 5 \
     --out-format json --output results/csvs/crossover_results.json
+
+### Version info
+./build/hashbrowns --version
+# Output: hashbrowns 1.0.0 (git b792a4354ada)
 
 ### Wizard (interactive multi-size benchmarking + optional plotting)
 ./build/hashbrowns --wizard
@@ -277,8 +293,9 @@ Internal implementation details (e.g., specific probing strategies or allocation
 
 Each JSON output (`benchmark_results.json`, `crossover_results.json`, `series_results.json`) includes a `meta` block capturing run parameters and a reproducibility snapshot:
 
-```
+```json
 "meta": {
+    "schema_version": 1,          // current schema version
     "size": <int>,                // single-size only
     "runs": <int>,
     "warmup_runs": <int>,
@@ -524,10 +541,20 @@ Hosted (GitHub Pages): https://aeml.github.io/hashbrowns/
 
 ### Parsing JSON (example)
 
-Summarize a benchmark JSON (lines, functions, memory):
+The included Python parser (`scripts/example_parse.py`) can summarize benchmark results:
 
 ```bash
-python3 scripts/example_parse.py results/csvs/benchmark_results.json --summary
+python3 scripts/example_parse.py benchmark_single.json --summary
+```
+
+Output:
+```
+Structure  Insert(ms)  Search(ms)  Remove(ms)  Memory(bytes)
+array      712.99      16337.30    199231.00   655416       
+slist      336.69      57940.90    79.06       480104       
+dlist      298.36      62316.80    80.25       560104       
+hashmap    1099.77     199.00      142.82      786664       
+Summary: structures=4 seed=0 size=10000 runs=5
 ```
 
 CSV-style condensed output for automation:

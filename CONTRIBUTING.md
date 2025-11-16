@@ -127,13 +127,26 @@ Contributor expectations:
 	- Run **P1** and compare against the current baseline via `scripts/perf_guard.*`.
 	- Optionally run **P2–P3** to understand impact across sizes.
 
-## 6. Performance Regression Guard (Planned)
-Upcoming: a script under `scripts/perf_guard.sh` will:
-- Run a small fixed-seed benchmark subset.
-- Compare key operations against a stored baseline with tolerances.
-- Emit warning or fail on significant regressions.
+## 6. Performance Regression Guard
+The `scripts/perf_guard.sh` script:
+- Runs a small fixed-seed benchmark (P1 profile).
+- Compares key operations against a stored baseline (`perf_baselines/baseline.json`) with configurable tolerances.
+- Emits warnings or fails on significant regressions (>threshold % slowdown).
+- CI runs this conditionally when a PR has the 'perf' label.
 
-Contributors changing hot paths should provide before/after JSON plus rationale.
+Usage:
+```bash
+# Check against baseline (fails if regression detected)
+scripts/perf_guard.sh
+
+# Update baseline with current results
+scripts/update_baseline.sh
+```
+
+Contributors changing hot paths should:
+- Run perf guard locally before pushing.
+- Provide before/after JSON plus rationale in PR if intentional performance changes.
+- Update baseline only with team approval.
 
 ## 7. Memory Tracking & Probe Metrics
 Enable detailed memory deltas: `--memory-tracking`.

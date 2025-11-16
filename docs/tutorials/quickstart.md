@@ -21,13 +21,28 @@ All commands assume you have run a build already (e.g. `scripts/build.sh -t Rele
 Run the executable directly specifying a size and number of runs:
 
 ```bash
-./build/hashbrowns --size 20000 --runs 15 --structures array,slist,hashmap --out-format json --output results/csvs/benchmark_results.json
+./build/hashbrowns --size 10000 --runs 5 --structures array,slist,hashmap --memory-tracking --bootstrap 200 --out-format json --output benchmark_single.json
+```
+
+You'll see a colorful banner followed by benchmark progress:
+
+```
+🥔 hashbrowns - C++ Data Structure Benchmarking Suite
+======================================================
+
+=== Benchmark Results (avg ms over 5 runs, size=10000) ===
+- array: insert=712.99, search=16337.3, remove=199231, mem=655416 bytes
+- slist: insert=336.687, search=57940.9, remove=79.0626, mem=480104 bytes
+- hashmap: insert=1099.77, search=198.998, remove=142.816, mem=786664 bytes
+
+Saved JSON to: benchmark_single.json
 ```
 
 Key points:
-- `--structures` picks the set; omit it to use all defaults.
-- `--out-format csv` would emit a CSV instead (default).
-- Add `--memory-tracking` to include allocation deltas and `--bootstrap 400` for 95% CI estimation.
+- `--structures` picks the set; omit it to use all defaults (array, slist, dlist, hashmap).
+- `--out-format csv` would emit a CSV instead.
+- `--memory-tracking` includes allocation deltas (the `mem=` values shown).
+- `--bootstrap 200` computes 95% confidence intervals for statistical rigor.
 
 Minimal CSV example:
 ```bash
@@ -122,4 +137,11 @@ scripts/run_benchmarks.sh --runs 8 --size 50000 --max-size 65536 --plots --yscal
 ```
 
 ---
-Last updated: (auto) commit short SHA will appear via `--version`.
+
+Check your version:
+```bash
+./build/hashbrowns --version
+# Output: hashbrowns 1.0.0 (git b792a4354ada)
+```
+
+Last updated: November 2025
