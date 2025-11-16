@@ -400,7 +400,10 @@ int main(int argc, char* argv[]) {
         if (!opt_structures.empty()) {
             std::vector<std::string> valid = {"array","dynamic-array","slist","list","singly-list","dlist","doubly-list","hashmap","hash-map"};
             auto is_valid = [&valid](const std::string& s){
-                for (const auto& v : valid) if (s == v) return true; return false;
+                for (const auto& v : valid) {
+                    if (s == v) return true;
+                }
+                return false;
             };
             std::vector<std::string> bad;
             for (const auto& s : opt_structures) if (!is_valid(s)) bad.push_back(s);

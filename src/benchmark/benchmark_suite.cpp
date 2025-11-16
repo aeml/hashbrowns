@@ -39,7 +39,7 @@ static std::string read_cpu_governor() {
 #endif
 }
 
-static bool set_cpu_affinity(int cpu_index) {
+[[maybe_unused]] static bool set_cpu_affinity(int cpu_index) {
 #ifdef __linux__
     cpu_set_t set; CPU_ZERO(&set); CPU_SET(cpu_index, &set);
     return sched_setaffinity(0, sizeof(set), &set) == 0;
@@ -54,24 +54,17 @@ static bool set_cpu_affinity(int cpu_index) {
 #endif
 }
 
-static bool disable_turbo_linux() {
 #ifdef __linux__
-    // Try Intel no_turbo first
-    {
-        std::ofstream o("/sys/devices/system/cpu/intel_pstate/no_turbo");
-        if (o) { o << "1"; }
-    }
-    // Try generic cpufreq boost disable
-    {
-        std::ofstream o("/sys/devices/system/cpu/cpufreq/boost");
-        if (o) { o << "0"; }
-    }
-    // Cannot easily verify without reading back (may require root); we attempt best-effort.
-    return true;
-#else
+[[maybe_unused]] static bool disable_turbo_linux() {
+    std::ofstream turbo("/sys/devices/system/cpu/intel_pstate/no_turbo");
+    if (turbo) { turbo << "1"; return true; }
+    std::ofstream turbo2("/sys/devices/system/cpu/cpufreq/boost");
+    if (turbo2) { turbo2 << "0"; return true; }
     return false;
-#endif
 }
+#else
+[[maybe_unused]] static bool disable_turbo_linux() { return false; }
+#endif
 
 static std::string git_commit_sha() {
 #ifdef _WIN32
@@ -188,7 +181,7 @@ static DataStructurePtr make_structure(const std::string& name, const BenchmarkC
 
 static void write_results_csv(const std::string& path,
                             const std::vector<BenchmarkResult>& results,
-                            const BenchmarkConfig& cfg,
+                            [[maybe_unused]] const BenchmarkConfig& cfg,
                             unsigned long long actual_seed) {
     std::ofstream out(path);
     if (!out) return;
