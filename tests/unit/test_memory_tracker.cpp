@@ -44,28 +44,30 @@ int run_memory_tracker_tests() {
         }
     }
 
-    // Optional: intentionally leak allocation and verify check_leaks() reports it
+    // Leak detection behavior when stats indicate a leak but no detailed map
     {
         auto& tracker = MemoryTracker::instance();
         tracker.reset();
 
-        // Use detailed tracking so the tracker can associate ptr->size
-        tracker.set_detailed_tracking(true);
-        {
-            // Intentionally leak by releasing ownership without freeing
-            auto arr = make_unique_array<int>(8);
-            (void)arr.release();
-        }
-
-        bool no_leaks = tracker.check_leaks();
-        if (no_leaks) {
-            std::cout << "❌ check_leaks() failed to detect intentional leak\n";
+        // Simulate a leak by recording an allocation without a matching deallocation
+        void* ptr = std::malloc(8 * sizeof(int));
+        if (!ptr) {
+            std::cout << "❌ Failed to allocate memory for leak simulation\n";
             ++failures;
-        }
+        } else {
+            tracker.record_allocation(ptr, 8 * sizeof(int));
 
-        // Clean up state for other tests
-        tracker.reset();
-        tracker.set_detailed_tracking(false);
+            bool no_leaks = tracker.check_leaks();
+            if (no_leaks) {
+                std::cout << "❌ check_leaks() failed to report simulated leak\n";
+                ++failures;
+            }
+
+            // Now properly clean up to keep ASan happy
+            tracker.record_deallocation(ptr);
+            std::free(ptr);
+            tracker.reset();
+        }
     }
 
     if (failures == 0) {
