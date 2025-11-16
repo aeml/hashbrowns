@@ -2,6 +2,7 @@
 #include <iostream>
 #include <thread>
 #include <stdexcept>
+#include <fstream>
 
 using namespace hashbrowns;
 
@@ -191,18 +192,16 @@ int run_timer_tests() {
     {
         BenchmarkRunner runner;
         
-        // Add some benchmark results
-        Timer timer1;
-        timer1.add_sample(Timer::duration(1000000));  // 1ms
-        timer1.add_sample(Timer::duration(1100000));
-        auto stats1 = timer1.get_statistics();
-        runner.add_result("test_op1", stats1, 1000000);
+        // Add some benchmark operations
+        int counter1 = 0;
+        runner.add_benchmark("test_op1", [&counter1]() {
+            for (int i = 0; i < 1000; ++i) counter1++;
+        }, 10, 1000);
         
-        Timer timer2;
-        timer2.add_sample(Timer::duration(2000000));  // 2ms
-        timer2.add_sample(Timer::duration(2100000));
-        auto stats2 = timer2.get_statistics();
-        runner.add_result("test_op2", stats2, 1000000);
+        int counter2 = 0;
+        runner.add_benchmark("test_op2", [&counter2]() {
+            for (int i = 0; i < 2000; ++i) counter2++;
+        }, 10, 2000);
         
         // Test print_comparison
         std::cout << "\nTesting BenchmarkRunner::print_comparison:\n";
@@ -217,6 +216,8 @@ int run_timer_tests() {
         if (!check.good()) {
             std::cout << "❌ Failed to export CSV file\n";
             ++failures;
+        } else {
+            std::cout << "✅ CSV export successful\n";
         }
         check.close();
     }
