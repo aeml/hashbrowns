@@ -656,5 +656,9 @@ The test `test_series_json.cpp` ensures the JSON writer for multi-size series em
 
 This project is licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE).
 
-```
+---
+
+## Author
+
+Created by **Robert Mendola** — [mendola.tech](https://mendola.tech)
 
