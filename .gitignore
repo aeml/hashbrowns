@@ -81,6 +81,27 @@ benchmark_results.*
 test_results.*
 coverage_report/
 
+# Debug/scratch source files at root
+/debug_test.cpp
+
+# Ad-hoc benchmark and test output JSON at root
+/benchmark_single.json
+/benchmark_crossover.json
+/crossovers_test.json
+/json_test_output.json
+/series_schema_test_output.json
+/series_test.json
+/test_baseline.json
+/perf_tmp.csv
+/series_results.csv
+/series_test.csv
+/crossovers_test.csv
+/test_benchmark_export.csv
+/test_results.csv
+
+# Legacy perf baselines directory (superseded by docs/baselines/)
+perf_baselines/
+
 # Temporary files
 *.tmp
 *.temp
