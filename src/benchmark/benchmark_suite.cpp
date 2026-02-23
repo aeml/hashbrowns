@@ -18,6 +18,8 @@
 
 #ifdef __linux__
 #include <sched.h>
+#elif defined(_WIN32)
+#include <windows.h>
 #endif
 
 namespace hashbrowns {
