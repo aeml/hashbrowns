@@ -1,31 +1,24 @@
-# 🥔 hashbrowns
-
-*A crispy C++ benchmarking suite comparing arrays, linked lists, and hash maps — cooked to perfection with real performance data.*
-
----
-
-## 🍳 Overview
-
-**hashbrowns** is a self-contained C++ project that benchmarks the performance of three fundamental data structures:
-
-- **Array** (contiguous memory)
 # hashbrowns
 
 [![CI](https://github.com/aeml/hashbrowns/actions/workflows/ci.yml/badge.svg)](https://github.com/aeml/hashbrowns/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://aeml.github.io/hashbrowns/coverage/coverage_badge.json)](https://aeml.github.io/hashbrowns/coverage/)
 
-hashbrowns is a C++17 benchmarking suite for comparing custom implementations of dynamic arrays, linked lists, and hash maps. It measures insert, search, and remove performance across configurable sizes and runs, and can export results to CSV or estimate crossover points between data structures.
+*A crispy C++ benchmarking suite comparing arrays, linked lists, and hash maps — cooked to perfection with real performance data.*
+
+hashbrowns is a C++17 benchmarking suite for comparing custom implementations of dynamic arrays, linked lists, and hash maps. It measures insert, search, and remove performance across configurable sizes and runs, and can export results to CSV or JSON, estimate crossover points between data structures, and compare runs against a stored performance baseline.
 
 > Documentation & Tutorials: API docs, coverage report, Quickstart, and Memory & Probes guides are published via GitHub Pages: https://aeml.github.io/hashbrowns/
+
 ---
 
 ## Overview
 
 The project contains:
 - Minimal data structure implementations (dynamic array, singly/doubly linked lists, hash map)
-- A small benchmarking framework with repeated runs and summary statistics
-- CSV export for offline analysis
+- A small benchmarking framework with repeated runs and summary statistics (mean, stddev, median, p95, bootstrap CIs)
+- CSV and JSON export for offline analysis
 - Optional crossover analysis over a sweep of input sizes
+- Baseline comparison mode for performance regression detection in CI
 
 The focus is on clear implementations and reproducible measurements rather than feature completeness.
 
@@ -35,9 +28,10 @@ The focus is on clear implementations and reproducible measurements rather than 
 
 - Custom data structures implemented in the repository
 - Polymorphic interface to benchmark different structures via a common API
-- High-resolution timing and aggregation (mean/stddev) over multiple runs
-- CLI flags for size, runs, output CSV, and crossover analysis
-- Convenience scripts to run and summarize benchmarks
+- High-resolution timing and aggregation (mean/stddev/median/p95) over multiple runs
+- CLI flags for size, runs, output format, crossover analysis, and baseline comparison
+- Convenience scripts to build, run, and summarize benchmarks
+- Optional detailed memory tracking and HashMap probe metrics
 
 ---
 
@@ -46,10 +40,19 @@ The focus is on clear implementations and reproducible measurements rather than 
 ```
 src/
     main.cpp
+    cli/
+        cli_args.h
+        cli_args.cpp
+        cli_handlers.h
+        cli_handlers.cpp
     benchmark/
         benchmark_suite.h
         benchmark_suite.cpp
+        benchmark_io.cpp
+        benchmark_baseline.cpp
         stats_analyzer.h
+        regression_tester.h
+        regression_tester.cpp
     core/
         data_structure.h
         memory_manager.h
@@ -68,14 +71,27 @@ tests/
         main_tests.cpp
         test_dynamic_array.cpp
         test_hash_map.cpp
+        test_json_output.cpp
         test_linked_list.cpp
+        test_memory_tracker.cpp
+        test_timer.cpp
+        test_series_json.cpp
+        test_stats.cpp
+        test_benchmark_crossover.cpp
 scripts/
     build.sh
     run_benchmarks.sh
     analyze_results.py
+    plot_results.py
+    example_parse.py
+    perf_guard.sh
+    update_baseline.sh
 docs/
     api/
+    baselines/
     tutorials/
+tools/
+    regression_check.cpp
 CMakeLists.txt
 README.md
 LICENSE
@@ -177,12 +193,12 @@ To make runs repeatable and easy to remember, here are five suggested "profiles"
             --out-format json --output results/csvs/benchmark_results_deep.json
     ```
 
-### Core CLI Flags (single-size, series, crossover, reproducibility)
+### Core CLI flags
 
 The `hashbrowns` executable supports a rich set of flags. All flags are optional; sensible defaults are chosen for quick runs.
 
 Benchmark scope & iteration control:
-- `--size N`  Size for single benchmark mode (default: 10000). When a series is requested this is treated as the MAX size unless explicit sizes provided.
+- `--size N`  Size for single benchmark mode (default: 10000). When a series is requested this is treated as the MAX size unless explicit sizes are provided.
 - `--runs N`  Repetitions per structure for single-size benchmark (default: 10). Used as "runs per size" for series unless overridden by `--series-runs`.
 - `--warmup N`  Discard first N runs (warm-up) from timing statistics (default: 0).
 - `--bootstrap N`  Perform N bootstrap iterations to build a 95% CI for mean (0 disables; typical: 200–1000).
@@ -200,7 +216,7 @@ Workload pattern & reproducibility:
 - `--no-turbo`  Attempt to disable CPU turbo boost (Linux only, best-effort). Emits `turbo_disabled` and current `cpu_governor`.
 
 Output & formatting:
-- `--output FILE`  Write single-size benchmark OR crossover results to file (CSV/JSON based on `--out-format`).
+- `--output FILE`  Write single-size benchmark or crossover results to file (CSV/JSON based on `--out-format`).
 - `--out-format {csv,json}`  Choose output serialization (default: csv).
 - `--memory-tracking`  Enable per-operation memory delta sampling (adds memory columns to CSV and memory stats to JSON).
 - `--wizard`  Interactive guided run (series or crossover) with prompts and default paths.
@@ -221,9 +237,9 @@ Help & verbosity:
 - `--help`  Show help text.
 - `--version`  Print the project version and short git SHA and exit.
 
-### Console Output
+### Console output
 
-The benchmark executable displays a colorful banner and progress information. When memory tracking is enabled, you'll see `[DEALLOC]` messages showing allocation details (useful for debugging). The final summary shows mean timings and memory usage:
+The benchmark executable displays a banner and result summary. The final output looks like:
 
 ```
 === Benchmark Results (avg ms over 5 runs, size=10000) ===
@@ -239,7 +255,7 @@ The benchmark executable displays a colorful banner and progress information. Wh
 # Compare default structures at a single size
 ./build/hashbrowns --size 50000 --runs 20
 
-# Select structures and write benchmark CSV (written under results/csvs by default if path omitted)
+# Select structures and write benchmark CSV
 ./build/hashbrowns --structures array,hashmap --size 20000 --runs 10 --output results/csvs/benchmark_results.csv
 
 # Crossover analysis over a size sweep, writing JSON
@@ -247,19 +263,17 @@ The benchmark executable displays a colorful banner and progress information. Wh
     --structures array,slist,hashmap --runs 5 \
     --out-format json --output results/csvs/crossover_results.json
 
-### Version info
+# Version info
 ./build/hashbrowns --version
 # Output: hashbrowns 1.0.0 (git b792a4354ada)
 
-### Wizard (interactive multi-size benchmarking + optional plotting)
+# Wizard (interactive multi-size benchmarking + optional plotting)
 ./build/hashbrowns --wizard
-    # Prompts will include: structures, max size, number of sizes (default 10), runs per size (default 10),
-    # pattern, seed, output format, and an option to auto-generate series plots.
 
-### CLI multi-size series without wizard (CSV example):
+# CLI multi-size series (CSV)
 ./build/hashbrowns --size 20000 --series-count 5 --runs 5 --series-out results/csvs/series_results.csv --out-format csv
 
-### CLI multi-size series JSON (default path):
+# CLI multi-size series JSON (default path)
 ./build/hashbrowns --size 50000 --series-count 8 --runs 3 --out-format json
 ```
 
@@ -268,8 +282,8 @@ The benchmark executable displays a colorful banner and progress information. Wh
 For CI or local performance guards, you can compare a fresh run against a stored JSON baseline generated by a previous version of the code:
 
 ```bash
-./build/hashbrowns --size 20000 --runs 10 --structures array,slist,dlist,hashmap \ 
-    --out-format json --output results/csvs/benchmark_results.json \ 
+./build/hashbrowns --size 20000 --runs 10 --structures array,slist,dlist,hashmap \
+    --out-format json --output results/csvs/benchmark_results.json \
     --baseline perf_baselines/baseline.json --baseline-threshold 20 --baseline-noise 1
 ```
 
@@ -289,20 +303,20 @@ Internal implementation details (e.g., specific probing strategies or allocation
 
 ---
 
-## Output Schema & Environment Metadata
+## Output schema & environment metadata
 
 Each JSON output (`benchmark_results.json`, `crossover_results.json`, `series_results.json`) includes a `meta` block capturing run parameters and a reproducibility snapshot:
 
 ```json
 "meta": {
-    "schema_version": 1,          // current schema version
-    "size": <int>,                // single-size only
+    "schema_version": 1,
+    "size": <int>,
     "runs": <int>,
     "warmup_runs": <int>,
     "bootstrap_iters": <int>,
     "structures": ["array", ...],
     "pattern": "sequential|random|mixed",
-    "seed": <uint64>,             // always resolved (generated if not supplied)
+    "seed": <uint64>,
     "timestamp": "UTC ISO-8601",
     "cpu_governor": "performance|powersave|unknown",
     "git_commit": "<short sha|unknown>",
@@ -332,173 +346,107 @@ insert_probes_mean,insert_probes_stddev,search_probes_mean,search_probes_stddev,
 ```
 
 Notes:
-- Bootstrapped CIs appear when `--bootstrap N` is non-zero (otherwise CI columns remain 0 or placeholder values).
+- Bootstrapped CIs appear when `--bootstrap N` is non-zero (otherwise CI columns remain 0).
 - Median for even sample counts uses the average of the two middle sorted values.
 - `memory_*` metrics represent per-operation incremental allocation deltas averaged across runs (requires `--memory-tracking`).
-- `*_probes_*` metrics are HashMap-specific (open addressing probe counts). Non-hash structures have zeros.
+- `*_probes_*` metrics are HashMap-specific (open addressing probe counts). Non-hash structures report zeros.
 - Series CSV: `size,structure,insert_ms,search_ms,remove_ms` (one row per size × structure).
 - Crossover CSV: `operation,a,b,size_at_crossover`.
 
-Performance reproducibility tips are in the section below; the snapshot fields help post-hoc analysis & plot annotations.
+### Memory tracking details
 
-### Memory Tracking Details
-
-Enable with `--memory-tracking` to capture allocation deltas per operation. Internally a lightweight tracker records net bytes allocated/free during each insert/search/remove loop.
+Enable with `--memory-tracking` to capture allocation deltas per operation.
 
 Reported fields:
 - `memory_bytes` – total peak bytes retained by the structure at benchmark end (approximate live footprint).
 - `memory_insert_mean/stddev` – average incremental allocation cost (bytes) during inserts across runs.
-- `memory_search_mean/stddev` – usually zero (search is read-only for these structures); non‑zero indicates incidental allocations (should be investigated).
-- `memory_remove_mean/stddev` – net allocation delta during removals (often small or zero; deallocation may not appear as negative if allocation tracking normalizes to positive deltas).
+- `memory_search_mean/stddev` – usually zero (search is read-only for these structures).
+- `memory_remove_mean/stddev` – net allocation delta during removals.
 
 Interpretation tips:
 - Large `memory_insert_mean` for a dynamic array suggests frequent growth; consider a different growth strategy.
 - For HashMap, spikes can reflect rehashing; tune with `--hash-capacity` / `--hash-load`.
-- If search/remove show unexpected non-zero means, it may indicate hidden allocations (e.g., string constructions); profile further.
 
-Overhead: Tracking adds a small constant cost; for tight microbenchmarks you can disable it to avoid perturbing timings. Memory numbers are still meaningful for relative comparisons.
+### HashMap probe metrics
 
-### HashMap Probe Metrics
-
-The HashMap implementation (open addressing strategy) records average probe counts per operation to illuminate table efficiency:
-- `insert_probes_mean/stddev` – average number of slot probes during insert.
-- `search_probes_mean/stddev` – average probes for lookup.
-- `remove_probes_mean/stddev` – average probes during deletes.
+The HashMap implementation records average probe counts per operation to illuminate table efficiency:
+- `insert_probes_mean/stddev`, `search_probes_mean/stddev`, `remove_probes_mean/stddev`
 
 Healthy ranges:
-- At moderate load (< 0.7) typical search probes should be near 1–2; insert may be slightly higher especially near growth thresholds.
-- If means climb above ~5 consistently, table is either too full or hash distribution is poor; consider lowering `--hash-load` or increasing initial capacity.
-- Large stddev coupled with high mean can signal clustering; switching to `--hash-strategy chain` (separate chaining) might stabilize probe counts for skewed workloads.
+- At moderate load (< 0.7) typical search probes should be near 1–2.
+- If means climb above ~5 consistently, the table is either too full or hash distribution is poor; consider lowering `--hash-load` or increasing initial capacity.
+- Large stddev coupled with high mean can signal clustering; switching to `--hash-strategy chain` may stabilize probe counts for skewed workloads.
 
-Tuning guidelines:
-1. Start with `--hash-load 0.75` (default behavior) and observe probe means.
-2. Reduce to `--hash-load 0.6` if probes exceed 3–4.
-3. Provide a generous `--hash-capacity` for very large initial `--size` to avoid repeated rehash cycles.
-4. For mixed/random patterns, stable probe counts help keep variance low; pair with a fixed `--seed` when comparing changes.
-
-Structures other than the HashMap report zeros for probe fields.
+---
 
 ## Scripts
 
 Convenience tools for common workflows:
 
--- `scripts/run_benchmarks.sh` — builds the project if needed, runs benchmarks and a size-sweep crossover analysis, writes CSV/JSON under `results/csvs`, and (by default) generates PNG plots (if `matplotlib` is available) under `results/plots`.
-        - Examples:
-            - Quick, with plots (auto y-scale):
-                - `scripts/run_benchmarks.sh --runs 5 --size 20000 --yscale auto`
-            - Thorough single-size benchmark only:
-                - `scripts/run_benchmarks.sh --runs 20 --size 50000 --no-plots`
-            - Focus on structures and smaller sweep:
-                - `STRUCTURES=array,hashmap scripts/run_benchmarks.sh --max-size 8192 --series-runs 1`
-    - Outputs:
-        - `results/csvs/benchmark_results.csv|json`
-        - `results/csvs/crossover_results.csv|json`
-        - `results/plots/benchmark_summary.png` (if plotting available)
-        - `results/plots/crossover_points.png` (if plotting available)
-        - `results/plots/benchmark_by_operation.png` (if plotting available)
-        - `results/plots/series_insert.png|series_search.png|series_remove.png` (multi-size series plots)
-    - Options:
-        - `--no-plots` to skip PNG generation
-        - `--plots` to force plotting (fails if matplotlib absent)
-        - `--plots-dir PATH` to select output directory for PNGs
-        - `--yscale {auto,linear,mid,log}` to control plot scaling (default: auto)
-    - `--out-format {csv,json}` select export format (plots currently support CSV only)
-    - `--series-runs N` to limit repeats per size during the crossover sweep (default: 1)
-    - `--pattern {sequential,random,mixed}` controls key order (inserts/search/removes)
-    - `--seed N` RNG seed for reproducible random/mixed patterns
-    - `--max-seconds N` time budget (seconds) to cap the crossover sweep
-    - `--hash-strategy {open,chain}`, `--hash-capacity N`, `--hash-load F` to tune HashMap behavior
+- `scripts/run_benchmarks.sh` — builds the project if needed, runs benchmarks and a size-sweep crossover analysis, writes CSV/JSON under `results/csvs`, and (by default) generates PNG plots under `results/plots`.
+    - Examples:
+        ```bash
+        # Quick run with plots
+        scripts/run_benchmarks.sh --runs 5 --size 20000 --yscale auto
+
+        # Full single-size benchmark without plots
+        scripts/run_benchmarks.sh --runs 20 --size 50000 --no-plots
+
+        # Reproducible random workload
+        scripts/run_benchmarks.sh --pattern random --seed 12345 --runs 5 --size 20000
+        ```
+    - Outputs under `results/`:
+        - `csvs/benchmark_results.csv|json`
+        - `csvs/crossover_results.csv|json`
+        - `plots/benchmark_summary.png`, `benchmark_by_operation.png`, `crossover_points.png`
+        - `plots/series_insert.png`, `series_search.png`, `series_remove.png` (multi-size series)
 
 - `scripts/analyze_results.py` — prints a concise summary from the CSV outputs (no external Python deps).
-    - Example:
-        - `scripts/analyze_results.py --bench-csv build/benchmark_results.csv --cross-csv build/crossover_results.csv`
 
-- `scripts/plot_results.py` — generates PNG plots from the CSV outputs (requires matplotlib). Now supports `--series-csv` for multi-size runs. Install deps with:
+- `scripts/plot_results.py` — generates PNG plots from the CSV outputs (requires matplotlib). Supports `--series-csv` for multi-size runs. Install deps with:
     ```bash
     pip install -r requirements.txt
     ```
-    - Example:
-    - `scripts/plot_results.py --bench-csv results/csvs/benchmark_results.csv --cross-csv results/csvs/crossover_results.csv --out-dir results/plots`
-    - Outputs:
-        - `benchmark_summary.png` (auto log scale if dominated by outliers)
-        - `benchmark_by_operation.png` (separate subplots for insert/search/remove)
-        - Options:
-            - `--yscale {auto,linear,mid,log}` to control y-axis scaling. "mid" uses an asinh-based scale for a middle ground between linear and log (good when one op dominates but you still want visible differences).
+
+- `scripts/perf_guard.sh` — performance guard wrapper; runs the benchmark and compares against the JSON baseline in `docs/baselines/`.
+
+- `scripts/update_baseline.sh` — runs a benchmark and saves the result as the new baseline JSON.
+
+- `scripts/example_parse.py` — demonstrates parsing benchmark JSON outputs:
+    ```bash
+    python3 scripts/example_parse.py benchmark_single.json --summary
+    python3 scripts/example_parse.py results/csvs/benchmark_results.json --csv > summary.csv
+    ```
 
 ---
 
-## Run benchmarks (recommended)
+## Results directory layout
 
-Use the helper script to compile, run, and generate CSVs/PNGs in one go. All generated artifacts land under `results/`.
-
-- Quick run with crossover sweep and plots:
-    ```bash
-    scripts/run_benchmarks.sh --runs 5 --size 20000 --max-size 32768 --yscale auto
-    ```
-
-- Faster sweep when arrays are included (avoid long array removals):
-    ```bash
-    scripts/run_benchmarks.sh --series-runs 1 --max-size 8192 --max-seconds 10
-    ```
-
-- Full single-size benchmark without plots:
-    ```bash
-    scripts/run_benchmarks.sh --runs 20 --size 50000 --no-plots
-    ```
-
-Notes:
-- The sweep defaults to `series-runs=1` for speed; increase to stabilize results.
-- Large `max-size` with arrays can be very slow for remove; prefer smaller `max-size` or fewer `series-runs`.
-- Plots include a footer with the parameters and hardware summary for traceability.
-
-Reproducible random workload:
-```bash
-scripts/run_benchmarks.sh --pattern random --seed 12345 --runs 5 --size 20000
-```
-
-### Generate API Documentation (Optional)
-
-If Doxygen is installed you can build browsable HTML docs for the public interfaces:
-
-```bash
-cmake -S . -B build
-cmake --build build --target docs
-xdg-open build/docs/html/index.html  # Linux (optional)
-open build/docs/html/index.html      # macOS (optional)
-```
-
-Documentation excludes test sources and is intentionally lightweight (no diagrams by default). Enable diagrams by editing `docs/Doxyfile.in` and setting `HAVE_DOT = YES` locally if you need call graphs.
-
-### Coverage report (hosted)
-
-We publish the latest coverage HTML and a JSON badge via GitHub Pages:
-
-- Coverage badge (lines): linked at the top of this README
-- Full report: https://aeml.github.io/hashbrowns/coverage/
-
-Notes:
-- Values are from lcov on a Debug build with gcov flags; system and test files are filtered out.
-- Line coverage is used for the badge; branch/function coverage totals are included in the coverage_summary.json.
-
-### Results directory layout
-
-All benchmark outputs (CSV/JSON) and plots are now organized under a top-level `results/` directory:
+All benchmark outputs (CSV/JSON) and plots are organized under `results/`:
 
 ```
 results/
     csvs/
         benchmark_results.csv        # single-size benchmark summary
-        benchmark_results.json       # same data serialized as JSON (if requested)
+        benchmark_results.json       # same data as JSON (if requested)
         crossover_results.csv        # size sweep crossover estimates
         crossover_results.json       # crossover JSON (if requested)
-        series_results.csv           # multi-size series produced via wizard (CSV only for plotting)
-        series_results.json          # optional JSON for series metadata/results
-    # (CLI multi-size also uses these if --series-count provided)
+        series_results.csv           # multi-size series (CSV for plotting)
+        series_results.json          # multi-size series (JSON)
     plots/
+        benchmark_summary.png
+        benchmark_by_operation.png
+        crossover_points.png
+        series_insert.png
+        series_search.png
+        series_remove.png
+```
+
+If you supply a custom `--output` path the executable can still write anywhere; scripts and wizard defaults prefer the structured layout above.
 
 ---
 
-## JSON Schema Validation
+## JSON schema validation
 
 Schemas for all JSON outputs live under `docs/api/schemas/`. Validate files with:
 
@@ -510,77 +458,26 @@ This uses `jsonschema` (installed via `requirements.txt`). CI also validates sam
 
 ---
 
-## Using as a Library
+## Using as a library
 
 See `docs/api/consuming_library.md` for `find_package` and `target_link_libraries` examples using the installed targets (`hashbrowns_benchmark`, `hashbrowns_structures`, `hashbrowns_core`).
-        benchmark_summary.png
-        benchmark_by_operation.png
-        crossover_points.png
-        series_insert.png
-        series_search.png
-        series_remove.png
-```
-
-If you supply a custom `--output` path for the main executable it can still write anywhere; scripts and wizard defaults prefer the structured layout above.
-    ```
 
 ---
 
-## Documentation & Tutorials
+## Generate API docs (optional)
 
-Hosted (GitHub Pages): https://aeml.github.io/hashbrowns/
-
-| Resource | URL |
-|----------|-----|
-| API Docs | https://aeml.github.io/hashbrowns/docs/ |
-| Coverage Report | https://aeml.github.io/hashbrowns/coverage/ |
-| Quickstart Tutorial | https://aeml.github.io/hashbrowns/tutorials/quickstart.html |
-| Memory & Probes Tutorial | https://aeml.github.io/hashbrowns/tutorials/memory_and_probes.html |
-| JSON Schema (repo) | docs/api/schema.md |
-| Example JSON Parser | scripts/example_parse.py |
-
-### Parsing JSON (example)
-
-The included Python parser (`scripts/example_parse.py`) can summarize benchmark results:
-
-```bash
-python3 scripts/example_parse.py benchmark_single.json --summary
-```
-
-Output:
-```
-Structure  Insert(ms)  Search(ms)  Remove(ms)  Memory(bytes)
-array      712.99      16337.30    199231.00   655416       
-slist      336.69      57940.90    79.06       480104       
-dlist      298.36      62316.80    80.25       560104       
-hashmap    1099.77     199.00      142.82      786664       
-Summary: structures=4 seed=0 size=10000 runs=5
-```
-
-CSV-style condensed output for automation:
-```bash
-python3 scripts/example_parse.py results/csvs/benchmark_results.json --csv > summary.csv
-```
-
-### Rebuilding docs locally
+If Doxygen is installed you can build browsable HTML docs for the public interfaces:
 
 ```bash
 cmake -S . -B build
 cmake --build build --target docs
-xdg-open build/docs/html/index.html  # or open build/docs/html/index.html on macOS
+xdg-open build/docs/html/index.html  # Linux
+open build/docs/html/index.html      # macOS
 ```
-
-Tutorial Markdown lives in `docs/tutorials/` and is converted to HTML during the Pages workflow via pandoc.
-
----
 
 ---
 
 ## Building on different platforms
-
-Requirements:
-- CMake 3.16+
-- A C++17 compiler
 
 Linux (Debian/Ubuntu):
 ```bash
@@ -591,8 +488,8 @@ scripts/build.sh -t Release --test
 
 macOS:
 ```bash
-xcode-select --install   # install command line tools
-brew install cmake       # if Homebrew is available
+xcode-select --install
+brew install cmake
 scripts/build.sh -t Release --test
 ```
 
@@ -630,8 +527,6 @@ docker build -t hashbrowns:latest .
 docker run --rm -it -v "$PWD/build:/app/build" hashbrowns:latest
 ```
 
-This produces build artifacts in `build/` and result artifacts in `results/` mounted from the host.
-
 ---
 
 ## Testing
@@ -648,7 +543,14 @@ Or from the build directory:
 ctest --output-on-failure
 ```
 
-The test `test_series_json.cpp` ensures the JSON writer for multi-size series emits metadata (`runs_per_size`) and the expected number of points.
+---
+
+## Coverage report (hosted)
+
+We publish the latest coverage HTML and a JSON badge via GitHub Pages:
+
+- Coverage badge (lines): linked at the top of this README
+- Full report: https://aeml.github.io/hashbrowns/coverage/
 
 ---
 
@@ -661,4 +563,3 @@ This project is licensed under the GNU General Public License v3.0. See [LICENSE
 ## Author
 
 Created by **Robert Mendola** — [mendola.tech](https://mendola.tech)
-
