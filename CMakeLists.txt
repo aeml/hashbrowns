@@ -119,6 +119,7 @@ target_include_directories(regression_check PRIVATE src)
 # Main executable
 set(MAIN_SOURCES
     src/main.cpp
+    src/cli/cli_args.cpp
 )
 
 # Create main executable
