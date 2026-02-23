@@ -104,7 +104,8 @@ jobs:
           ./build/hashbrowns --size 20000 --runs 10 \
             --structures array,slist,hashmap \
             --pattern sequential --seed 12345 \
-            --output build/ci_bench.csv || true
+            --no-banner --quiet \
+            --output build/ci_bench.csv
       - name: Optional regression check (Linux Release only)
         if: matrix.build_type == 'Release' && runner.os == 'Linux' && hashFiles('docs/baselines/benchmark_results.csv') != ''
         run: |
@@ -138,7 +139,7 @@ jobs:
           name: perf-guard-${{ github.run_id }}
           path: |
             build/perf_guard_current.json
-            perf_baselines/baseline.json
+            docs/baselines/baseline.json
           if-no-files-found: ignore
           retention-days: 7
   asan-ubsan:
@@ -183,21 +184,25 @@ jobs:
           ./build/hashbrowns --size 20000 --runs 10 \
             --structures array,slist,hashmap \
             --pattern sequential --seed 12345 \
-            --output build/benchmark_results.csv || true
+            --no-banner --quiet \
+            --output build/benchmark_results.csv
           # P1 JSON – Same benchmark but JSON output for schema validation
           ./build/hashbrowns --size 20000 --runs 10 \
             --structures array,slist,hashmap \
             --pattern sequential --seed 12345 \
-            --out-format json --output build/benchmark_results.json || true
+            --no-banner --quiet \
+            --out-format json --output build/benchmark_results.json
           # P3 – Full crossover analysis (reduced max-size for CI speed)
           ./build/hashbrowns --crossover-analysis --max-size 65536 --runs 3 \
             --structures array,slist,hashmap \
             --pattern sequential --seed 12345 \
-            --out-format json --output build/crossover_results.json || true
+            --no-banner --quiet \
+            --out-format json --output build/crossover_results.json
           # P2 – Medium series sweep (JSON series)
           ./build/hashbrowns --size 60000 --series-count 6 --runs 3 \
             --structures array,hashmap --out-format json \
-            --series-out build/series_results.json || true
+            --no-banner --quiet \
+            --series-out build/series_results.json
       - name: Validate JSON outputs against schema
         run: |
           python3 -m pip install --user jsonschema
