@@ -16,7 +16,9 @@ See `src/core/data_structure.h` for the required methods:
 1. Create header and source files under `src/structures/`.
 2. Implement the interface methods.
 3. Add the new files to `CMakeLists.txt` in the `STRUCTURES_SOURCES` and `STRUCTURES_HEADERS` lists.
-4. Update `src/benchmark/benchmark_suite.cpp` in `make_structure(...)` to map a CLI name to your implementation.
+4. Register the new name in two places:
+   - `src/benchmark/benchmark_suite.cpp` in `make_structure(...)` to map the CLI name to your implementation.
+   - `src/main.cpp` in the known-names validation list (the `valid` vector near the structure validation block).
 5. Build and run unit tests:
 
 ```bash

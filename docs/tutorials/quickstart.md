@@ -144,4 +144,4 @@ Check your version:
 # Output: hashbrowns 1.0.0 (git b792a4354ada)
 ```
 
-Last updated: November 2025
+Last updated: February 2026

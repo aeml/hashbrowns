@@ -8,7 +8,7 @@ Thanks for your interest in improving hashbrowns! This guide explains how to bui
 3. Code Style & Formatting
 4. Adding Data Structures
 5. Benchmarking & Reproducibility
-6. Performance Regression Guard (planned)
+6. Performance Regression Guard
 7. Memory Tracking & Probe Metrics
 8. Commit & PR Guidelines
 
@@ -50,7 +50,7 @@ If `clang-format` is missing the targets are skipped; please install it locally.
 ## 4. Adding Data Structures
 1. Create header/source in `src/structures/` implementing the `DataStructure` interface from `core/data_structure.h`.
 2. Add your sources to `STRUCTURES_SOURCES` and headers to `STRUCTURES_HEADERS` in `CMakeLists.txt`.
-3. Extend CLI parsing in `src/main.cpp` to recognize your structure name.
+3. Extend `src/benchmark/benchmark_suite.cpp`'s `make_structure()` function to map a CLI name to your implementation, and add it to the known-names validation list in `src/main.cpp`.
 4. Add unit tests (`tests/unit/test_<name>.cpp`). Include insert/search/remove basic coverage and complexity assertions if relevant.
 5. Run `scripts/build.sh -t Debug --test` before committing.
 

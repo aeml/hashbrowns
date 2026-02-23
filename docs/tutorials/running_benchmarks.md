@@ -11,7 +11,7 @@ scripts/build.sh -c -t Release --test
 ## Single-size benchmark
 
 ```bash
-./build/hashbrowns --size 50000 --runs 20 --structures array,slist,hashmap --output build/benchmark_results.csv
+./build/hashbrowns --size 50000 --runs 20 --structures array,slist,hashmap --output results/csvs/benchmark_results.csv
 ```
 
 The CSV will contain mean and standard deviation for insert, search, and remove.
@@ -19,7 +19,7 @@ The CSV will contain mean and standard deviation for insert, search, and remove.
 ## Crossover analysis
 
 ```bash
-./build/hashbrowns --crossover-analysis --max-size 100000 --runs 5 --structures array,slist,hashmap --output build/crossover_results.csv
+./build/hashbrowns --crossover-analysis --max-size 100000 --runs 5 --structures array,slist,hashmap --output results/csvs/crossover_results.csv
 ```
 
 The CSV will list approximate crossover sizes by operation.
@@ -49,4 +49,4 @@ On regression beyond the threshold, the process exits non-zero, which is ideal f
 scripts/run_benchmarks.sh --runs 10 --size 10000
 ```
 
-This script builds the project if needed and writes CSVs to `build/`.
+This script builds the project if needed and writes CSVs to `results/csvs/`.
