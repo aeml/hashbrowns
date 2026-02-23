@@ -4,7 +4,7 @@ from conan.tools.cmake import CMake, cmake_layout
 class HashbrownsConan(ConanFile):
     name = "hashbrowns"
     version = "1.0.0"
-    license = "MIT"
+    license = "GPL-3.0-only"
     url = "https://github.com/aeml/hashbrowns"
     description = "C++ data structure benchmarking suite"
     settings = "os", "compiler", "build_type", "arch"
