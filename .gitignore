@@ -43,6 +43,7 @@ CTestTestfile.cmake
 Makefile
 
 # IDE and editor files
+.cache/
 .vscode/
 .vs/
 *.vcxproj*
