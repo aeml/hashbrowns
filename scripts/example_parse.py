@@ -44,7 +44,7 @@ def is_benchmark_blob(blob: Dict[str, Any]) -> bool:
 
 
 def is_crossover_blob(blob: Dict[str, Any]) -> bool:
-    return 'crossover' in blob and isinstance(blob['crossover'], list)
+    return 'crossovers' in blob and isinstance(blob['crossovers'], list)
 
 
 def is_series_blob(blob: Dict[str, Any]) -> bool:
@@ -138,7 +138,7 @@ def render_series(blob: Dict[str, Any], args: argparse.Namespace):
 def render_crossover(blob: Dict[str, Any], args: argparse.Namespace):
     print("Crossover points:")
     print("Operation  Structures        Size")
-    for row in blob['crossover']:
+    for row in blob['crossovers']:
         op = row.get('operation','?')
         a = row.get('a','?'); b = row.get('b','?')
         size = row.get('size_at_crossover','?')
