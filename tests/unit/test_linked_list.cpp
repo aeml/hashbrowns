@@ -1,8 +1,9 @@
-#include "structures/linked_list.h"
 #include "core/memory_manager.h"
+#include "structures/linked_list.h"
+
+#include <cassert>
 #include <iostream>
 #include <string>
-#include <cassert>
 
 using namespace hashbrowns;
 
@@ -190,18 +191,18 @@ static void test_doubly_copy_move() {
 
 static void test_additional_coverage() {
     std::cout << "Testing additional functions for coverage..." << std::endl;
-    
+
     // Test SinglyLinkedList DataStructure interface methods
     SinglyLinkedList<std::pair<int, std::string>> slist;
-    std::string type_n = slist.type_name();
-    std::string insert_c = slist.insert_complexity();
-    std::string search_c = slist.search_complexity();
-    std::string remove_c = slist.remove_complexity();
+    std::string                                   type_n   = slist.type_name();
+    std::string                                   insert_c = slist.insert_complexity();
+    std::string                                   search_c = slist.search_complexity();
+    std::string                                   remove_c = slist.remove_complexity();
     assert(!type_n.empty());
     assert(!insert_c.empty());
     assert(!search_c.empty());
     assert(!remove_c.empty());
-    
+
     // Test copy assignment
     slist.insert(1, "one");
     slist.insert(2, "two");
@@ -210,16 +211,16 @@ static void test_additional_coverage() {
     assert(slist2.size() == 2);
     std::string v;
     assert(slist2.search(1, v) && v == "one");
-    
+
     // Test move assignment
     SinglyLinkedList<std::pair<int, std::string>> slist3;
     slist3 = std::move(slist2);
     assert(slist3.size() == 2);
     assert(slist2.size() == 0);
-    
+
     // Test DoublyLinkedList DataStructure interface methods
     DoublyLinkedList<std::pair<int, std::string>> dlist;
-    type_n = dlist.type_name();
+    type_n   = dlist.type_name();
     insert_c = dlist.insert_complexity();
     search_c = dlist.search_complexity();
     remove_c = dlist.remove_complexity();
@@ -227,7 +228,7 @@ static void test_additional_coverage() {
     assert(!insert_c.empty());
     assert(!search_c.empty());
     assert(!remove_c.empty());
-    
+
     // Test copy assignment
     dlist.insert(1, "one");
     dlist.insert(2, "two");
@@ -235,13 +236,13 @@ static void test_additional_coverage() {
     dlist2 = dlist;
     assert(dlist2.size() == 2);
     assert(dlist2.search(1, v) && v == "one");
-    
+
     // Test move assignment
     DoublyLinkedList<std::pair<int, std::string>> dlist3;
     dlist3 = std::move(dlist2);
     assert(dlist3.size() == 2);
     assert(dlist2.size() == 0);
-    
+
     std::cout << "✓ Additional coverage passed" << std::endl;
 }
 
@@ -269,11 +270,14 @@ int run_linked_list_tests() {
         if (stats.memory_leaked() > 0) {
             std::cout << "\n⚠️  Warning: Memory leaks detected!\n";
             tracker.check_leaks();
+            tracker.set_detailed_tracking(false);
             return 1;
         }
+        tracker.set_detailed_tracking(false);
         return 0;
     } catch (const std::exception& e) {
         std::cout << "\n❌ Test failed with exception: " << e.what() << "\n";
+        tracker.set_detailed_tracking(false);
         return 1;
     }
 }
