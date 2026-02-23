@@ -89,6 +89,8 @@ target_include_directories(hashbrowns_structures PUBLIC
 # Benchmark library
 set(BENCHMARK_SOURCES
     src/benchmark/benchmark_suite.cpp
+    src/benchmark/benchmark_io.cpp
+    src/benchmark/benchmark_baseline.cpp
     src/benchmark/regression_tester.cpp
 )
 
