@@ -7,8 +7,8 @@ This document describes the JSON structures emitted by hashbrowns. A minimal `sc
 - `meta.structures` (string[]): Names of structures included
 - `meta.pattern` (string): `sequential|random|mixed`
 - `meta.seed` (uint64, optional): RNG seed if provided
-- Environment snapshot fields (when present): `timestamp`, `cpu_governor`, `git_commit`, `compiler`, `cpp_standard`, `build_type`, `cpu_model`, `cores`, `total_ram_bytes`, `kernel`, and HashMap tuning `hash_strategy`, `hash_capacity?`, `hash_load?`, reproducibility `pinned_cpu`, `turbo_disabled`.
-- Baseline comparisons treat `size`, `runs`, `warmup_runs`, `bootstrap_iters`, `structures`, `pattern`, `seed`, `hash_strategy`, `hash_capacity`, `hash_load`, `pinned_cpu`, and `turbo_disabled` as hard compatibility requirements.
+- Environment snapshot fields (when present): `timestamp`, `cpu_governor`, `git_commit`, `compiler`, `cpp_standard`, `build_type`, `cpu_model`, `profile`, `cores`, `total_ram_bytes`, `kernel`, and HashMap tuning `hash_strategy`, `hash_capacity?`, `hash_load?`, reproducibility `pinned_cpu`, `turbo_disabled`.
+- Baseline comparisons treat `size`, `runs`, `warmup_runs`, `bootstrap_iters`, `profile`, `structures`, `pattern`, `seed`, `hash_strategy`, `hash_capacity`, `hash_load`, `pinned_cpu`, and `turbo_disabled` as hard compatibility requirements.
 - Baseline comparisons treat `cpu_model`, `compiler`, `cpp_standard`, `cpu_governor`, `cores`, `total_ram_bytes`, and `kernel` as warning-only context fields.
 
 ## benchmark_results.json

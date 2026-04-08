@@ -1,4 +1,5 @@
 #include "benchmark/benchmark_suite.h"
+#include "cli/cli_args.h"
 #include "core/memory_manager.h"
 
 #include <fstream>
@@ -69,9 +70,10 @@ int run_benchmark_crossover_tests() {
     {
         const char*     path = "crossovers_test.json";
         BenchmarkConfig config;
-        config.structures = {"A", "B"};
-        config.runs       = 3;
-        config.pattern    = BenchmarkConfig::Pattern::SEQUENTIAL;
+        config.structures   = {"A", "B"};
+        config.runs         = 3;
+        config.pattern      = BenchmarkConfig::Pattern::SEQUENTIAL;
+        config.profile_name = "crossover";
 
         suite.write_crossover_json(path, crossovers, config);
         std::ifstream in(path);
@@ -82,6 +84,9 @@ int run_benchmark_crossover_tests() {
             std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
             if (content.find("\"crossovers\"") == std::string::npos || content.find("\"meta\"") == std::string::npos) {
                 std::cout << "❌ JSON missing expected structure\n";
+                ++failures;
+            } else if (content.find("\"profile\": \"crossover\"") == std::string::npos) {
+                std::cout << "❌ Crossover JSON missing expected profile\n";
                 ++failures;
             }
         }
@@ -224,6 +229,19 @@ int run_benchmark_crossover_tests() {
         }
     }
 
+    // Test benchmark profiles via CLI parsing
+    {
+        std::cout << "\nTesting benchmark profile parsing:\n";
+        const char* argv[] = {"hashbrowns", "--profile", "ci"};
+        auto        parsed = hashbrowns::cli::parse_args(3, const_cast<char**>(argv));
+        if (!parsed.opt_profile.has_value() || *parsed.opt_profile != "ci") {
+            std::cout << "❌ CLI did not capture --profile ci\n";
+            ++failures;
+        } else {
+            std::cout << "✅ CLI captured named benchmark profile\n";
+        }
+    }
+
     // Test baseline comparison functionality
     {
         std::cout << "\nTesting baseline comparison:\n";
@@ -285,6 +303,7 @@ int run_benchmark_crossover_tests() {
         baseline_meta.pattern         = "random";
         baseline_meta.seed            = 12345ULL;
         baseline_meta.build_type      = "Release";
+        baseline_meta.profile         = "ci";
         baseline_meta.hash_strategy   = "open";
         baseline_meta.hash_capacity   = 1024;
         baseline_meta.hash_load       = 0.7;
@@ -303,6 +322,7 @@ int run_benchmark_crossover_tests() {
         }
 
         current_meta.pattern = "sequential";
+        current_meta.profile = "custom";
         current_meta.seed    = std::nullopt;
         auto meta_bad        = compare_benchmark_metadata(baseline_meta, current_meta, base_config);
         if (meta_bad.ok) {
@@ -311,14 +331,17 @@ int run_benchmark_crossover_tests() {
         }
         bool saw_pattern_mismatch = false;
         bool saw_seed_mismatch    = false;
+        bool saw_profile_mismatch = false;
         for (const auto& msg : meta_bad.errors) {
             if (msg.find("pattern") != std::string::npos)
                 saw_pattern_mismatch = true;
             if (msg.find("seed") != std::string::npos)
                 saw_seed_mismatch = true;
+            if (msg.find("profile") != std::string::npos)
+                saw_profile_mismatch = true;
         }
-        if (!saw_pattern_mismatch || !saw_seed_mismatch) {
-            std::cout << "❌ Metadata mismatch errors should mention pattern and seed\n";
+        if (!saw_pattern_mismatch || !saw_seed_mismatch || !saw_profile_mismatch) {
+            std::cout << "❌ Metadata mismatch errors should mention pattern, profile, and seed\n";
             ++failures;
         } else {
             std::cout << "✅ Metadata guardrails catch invalid workload changes\n";

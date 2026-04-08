@@ -44,7 +44,7 @@ fi
 mkdir -p "${BASE_DIR}"
 
 # Run a small benchmark and capture JSON
-"${BIN}" --no-banner --size "${SIZE}" --runs "${RUNS}" \
+"${BIN}" --no-banner --profile ci --size "${SIZE}" --runs "${RUNS}" \
   --structures "${STRUCTURES}" --seed "${SEED}" \
   --output "${TMP_JSON}" --out-format json >/dev/null || true
 
@@ -69,7 +69,7 @@ print(max(vals))
 PY
 )
 
-"${BIN}" --no-banner --size "${SIZE}" --runs "${RUNS}" \
+"${BIN}" --no-banner --profile ci --size "${SIZE}" --runs "${RUNS}" \
   --structures "${STRUCTURES}" --seed "${SEED}" \
   --output "${TMP_JSON}" --out-format json \
   --baseline "${BASE_JSON}" \

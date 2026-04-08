@@ -78,45 +78,31 @@ Series & crossover:
 
 ### Recommended benchmark profiles
 
-To keep runs consistent between contributors and CI, we use a small set of common CLI profiles:
+To keep runs consistent between contributors and CI, use the built-in named presets via `--profile {smoke,ci,series,crossover,deep}`. They standardize the experiment shape and stamp the chosen profile into JSON metadata so automation can tell whether two runs are actually comparable.
 
 - **P0 – Tiny sanity check (local):** quick smoke before committing
 	```bash
-	./build/hashbrowns --size 4096 --runs 5 \
-			--structures array,slist,hashmap \
-			--output results/csvs/benchmark_results.csv
+	./build/hashbrowns --profile smoke
 	```
 
 - **P1 – Small CI benchmark (authoritative):** what CI runs by default
 	```bash
-	./build/hashbrowns --size 20000 --runs 10 \
-			--structures array,slist,hashmap \
-			--pattern sequential --seed 12345 \
-			--output results/csvs/benchmark_results.csv
+	./build/hashbrowns --profile ci
 	```
 
 - **P2 – Medium series sweep:** a few sizes for shape of curves
 	```bash
-	./build/hashbrowns --size 60000 --series-count 6 --runs 3 \
-			--structures array,hashmap --out-format json \
-			--series-out results/csvs/series_results.json
+	./build/hashbrowns --profile series
 	```
 
 - **P3 – Full crossover analysis:** crossover points between structures
 	```bash
-	./build/hashbrowns --crossover-analysis --max-size 100000 --runs 4 \
-			--structures array,slist,hashmap \
-			--pattern sequential --seed 12345 \
-			--out-format json --output results/csvs/crossover_results.json
+	./build/hashbrowns --profile crossover
 	```
 
 - **P4 – Deep analysis:** heavier run with memory tracking and CIs
 	```bash
-	./build/hashbrowns --size 50000 --runs 20 \
-			--structures array,slist,dlist,hashmap \
-			--pattern random --seed 12345 \
-			--memory-tracking --bootstrap 400 \
-			--out-format json --output results/csvs/benchmark_results_deep.json
+	./build/hashbrowns --profile deep
 	```
 
 Contributor expectations:

@@ -160,6 +160,7 @@ OPTIONS:
     --runs N              Number of benchmark runs (default: 10) (per size when series enabled)
     --series-count N      If >1: run a linear multi-size series up to --size (treated as max). Example: --size 10000 --series-count 4 -> sizes 2500,5000,7500,10000
     --series-out FILE     Output file for multi-size series (default: results/csvs/series_results.csv|json)
+    --profile NAME        Canonical benchmark profile: smoke|ci|series|crossover|deep
     --series-sizes LIST   Explicit comma-separated sizes (overrides --series-count linear spacing). Example: --series-sizes 512,2048,8192
         --warmup N            Discard first N runs (warm-up) from timing stats (default: 0)
         --bootstrap N         Bootstrap iterations for mean CI (0=disabled; recommend 200-1000) (default: 0)
@@ -185,6 +186,7 @@ OPTIONS:
 
 EXAMPLES:
   hashbrowns --size 50000 --runs 20
+    hashbrowns --profile ci
     hashbrowns --size 10000 --series-count 5 --runs 5 --series-out results/csvs/series_results.csv
   hashbrowns --structures array,hashmap --output results.csv
   hashbrowns --crossover-analysis --max-size 100000
@@ -192,7 +194,7 @@ EXAMPLES:
 }
 
 int main(int argc, char* argv[]) {
-    const auto a = hashbrowns::cli::parse_args(argc, argv);
+    auto a = hashbrowns::cli::parse_args(argc, argv);
 
     const bool no_banner = a.no_banner;
     const bool quiet     = a.quiet;
@@ -224,8 +226,9 @@ int main(int argc, char* argv[]) {
     const int         opt_series_count       = a.opt_series_count;
     const auto        opt_series_out         = a.opt_series_out;
     const auto        opt_series_sizes       = a.opt_series_sizes;
+    const auto        opt_profile            = a.opt_profile;
+    const bool        opt_profile_valid      = a.opt_profile_valid;
     const int         opt_warmup             = a.opt_warmup;
-    const int         opt_bootstrap          = a.opt_bootstrap;
     const int         opt_series_runs        = a.opt_series_runs;
     const bool        opt_pin_cpu            = a.opt_pin_cpu;
     const int         opt_cpu_index          = a.opt_cpu_index;
@@ -262,6 +265,12 @@ int main(int argc, char* argv[]) {
         demonstrate_core_features();
         std::cout << "\nRun with --help to see available options.\n";
     } else {
+        if (opt_profile && !opt_profile_valid) {
+            std::cerr << "Error: unknown benchmark profile '" << *opt_profile
+                      << "'. Valid profiles: smoke, ci, series, crossover, deep\n";
+            return 2;
+        }
+
         // Validate requested structures early for user-friendly errors
         if (!opt_structures.empty()) {
             std::vector<std::string> valid    = {"array", "dynamic-array", "slist",   "list",    "singly-list",
@@ -293,27 +302,108 @@ int main(int argc, char* argv[]) {
                                                 : opt_structures;
             return hashbrowns::cli::run_op_tests(names, opt_size);
         }
+        // Apply canonical benchmark profiles before running anything.
+        if (opt_profile) {
+            const auto& profile = *opt_profile;
+            if (profile == "smoke") {
+                if (a.opt_size == 10000)
+                    a.opt_size = 4096;
+                if (a.opt_runs == 10)
+                    a.opt_runs = 5;
+                if (a.opt_structures.empty())
+                    a.opt_structures = {"array", "slist", "hashmap"};
+                if (!a.opt_output)
+                    a.opt_output = std::string("results/csvs/benchmark_results.csv");
+            } else if (profile == "ci") {
+                if (a.opt_size == 10000)
+                    a.opt_size = 20000;
+                if (a.opt_runs == 10)
+                    a.opt_runs = 10;
+                if (a.opt_structures.empty())
+                    a.opt_structures = {"array", "slist", "dlist", "hashmap"};
+                if (!a.opt_output)
+                    a.opt_output = std::string("results/csvs/benchmark_results.csv");
+                if (!a.opt_seed)
+                    a.opt_seed = 12345ULL;
+            } else if (profile == "series") {
+                if (a.opt_size == 10000)
+                    a.opt_size = 60000;
+                if (a.opt_runs == 10)
+                    a.opt_runs = 3;
+                if (a.opt_series_count == 0)
+                    a.opt_series_count = 6;
+                if (a.opt_structures.empty())
+                    a.opt_structures = {"array", "hashmap"};
+                a.opt_out_fmt = BenchmarkConfig::OutputFormat::JSON;
+                if (!a.opt_series_out)
+                    a.opt_series_out = std::string("results/csvs/series_results.json");
+            } else if (profile == "crossover") {
+                a.opt_crossover = true;
+                if (a.opt_max_size == 100000)
+                    a.opt_max_size = 100000;
+                if (a.opt_runs == 10)
+                    a.opt_runs = 4;
+                if (a.opt_series_runs < 0)
+                    a.opt_series_runs = 1;
+                if (a.opt_structures.empty())
+                    a.opt_structures = {"array", "slist", "dlist", "hashmap"};
+                a.opt_out_fmt = BenchmarkConfig::OutputFormat::JSON;
+                if (!a.opt_output)
+                    a.opt_output = std::string("results/csvs/crossover_results.json");
+            } else if (profile == "deep") {
+                if (a.opt_size == 10000)
+                    a.opt_size = 50000;
+                if (a.opt_runs == 10)
+                    a.opt_runs = 20;
+                if (a.opt_structures.empty())
+                    a.opt_structures = {"array", "slist", "dlist", "hashmap"};
+                a.opt_memory_tracking = true;
+                if (a.opt_bootstrap == 0)
+                    a.opt_bootstrap = 400;
+                a.opt_out_fmt = BenchmarkConfig::OutputFormat::JSON;
+                if (!a.opt_output)
+                    a.opt_output = std::string("results/csvs/benchmark_results.json");
+            }
+        }
+
+        // Re-read possibly profile-adjusted options.
+        const std::size_t run_size         = a.opt_size;
+        const int         run_runs         = a.opt_runs;
+        const int         run_series_count = a.opt_series_count;
+        const auto        run_series_out   = a.opt_series_out;
+        const auto        run_series_sizes = a.opt_series_sizes;
+        const int         run_bootstrap    = a.opt_bootstrap;
+        const int         run_series_runs  = a.opt_series_runs;
+        const auto        run_structures   = a.opt_structures;
+        const auto        run_output       = a.opt_output;
+        const bool        run_memory_tracking = a.opt_memory_tracking;
+        const bool        run_crossover       = a.opt_crossover;
+        const std::size_t run_max_size        = a.opt_max_size;
+        const auto        run_seed            = a.opt_seed;
+        const auto        run_out_fmt         = a.opt_out_fmt;
+
         // Run benchmarks
         BenchmarkConfig cfg;
-        cfg.size            = opt_size;
-        cfg.runs            = opt_runs;
+        cfg.size            = run_size;
+        cfg.runs            = run_runs;
         cfg.warmup_runs     = opt_warmup;
-        cfg.bootstrap_iters = opt_bootstrap;
+        cfg.bootstrap_iters = run_bootstrap;
         cfg.verbose         = false;
-        cfg.csv_output      = opt_output;
+        cfg.csv_output      = run_output;
         cfg.structures =
-            opt_structures.empty() ? std::vector<std::string>{"array", "slist", "dlist", "hashmap"} : opt_structures;
+            run_structures.empty() ? std::vector<std::string>{"array", "slist", "dlist", "hashmap"} : run_structures;
         cfg.pattern               = opt_pattern;
-        cfg.seed                  = opt_seed;
-        cfg.output_format         = opt_out_fmt;
+        cfg.seed                  = run_seed;
+        cfg.output_format         = run_out_fmt;
         cfg.hash_strategy         = opt_hash_strategy;
         cfg.hash_initial_capacity = opt_hash_capacity;
         cfg.hash_max_load_factor  = opt_hash_load;
         cfg.pin_cpu               = opt_pin_cpu;
         cfg.pin_cpu_index         = opt_cpu_index;
         cfg.disable_turbo         = opt_no_turbo;
+        cfg.profile_name          = opt_profile ? *opt_profile : std::string("custom");
 
-        if (opt_memory_tracking) {
+        if (run_memory_tracking) {
             MemoryTracker::instance().set_detailed_tracking(true);
             MemoryTracker::instance().reset();
         }
@@ -366,19 +456,19 @@ int main(int argc, char* argv[]) {
             std::cout << "[INFO] --pin-cpu/--no-turbo ignored: only supported on Linux.\n";
         }
 #endif
-        if (!opt_crossover && opt_series_count <= 1) {
+        if (!run_crossover && run_series_count <= 1) {
             auto results = suite.run(cfg);
             if (!quiet) {
-                std::cout << "\n=== Benchmark Results (avg ms over " << opt_runs << " runs, size=" << opt_size
+                std::cout << "\n=== Benchmark Results (avg ms over " << run_runs << " runs, size=" << run_size
                           << ") ===\n";
                 for (const auto& r : results) {
                     std::cout << "- " << r.structure << ": insert=" << r.insert_ms_mean
                               << ", search=" << r.search_ms_mean << ", remove=" << r.remove_ms_mean
                               << ", mem=" << r.memory_bytes << " bytes\n";
                 }
-                if (opt_output) {
-                    std::cout << "\nSaved " << (opt_out_fmt == BenchmarkConfig::OutputFormat::CSV ? "CSV" : "JSON")
-                              << " to: " << *opt_output << "\n";
+                if (run_output) {
+                    std::cout << "\nSaved " << (run_out_fmt == BenchmarkConfig::OutputFormat::CSV ? "CSV" : "JSON")
+                              << " to: " << *run_output << "\n";
                 }
             }
 
@@ -395,8 +485,8 @@ int main(int argc, char* argv[]) {
                     return 3;
                 }
                 BenchmarkData current_data;
-                if (opt_output) {
-                    current_data = load_benchmark_data_json(*opt_output);
+                if (run_output) {
+                    current_data = load_benchmark_data_json(*run_output);
                 }
                 if (current_data.results.empty()) {
                     current_data.results = results;
@@ -411,13 +501,13 @@ int main(int argc, char* argv[]) {
                     return 4;
             }
             return base_rc;
-        } else if (opt_crossover) {
+        } else if (run_crossover) {
             // Crossover analysis mode
             std::vector<std::size_t> sizes;
-            for (std::size_t s = 512; s <= opt_max_size; s *= 2)
+            for (std::size_t s = 512; s <= run_max_size; s *= 2)
                 sizes.push_back(s);
             // Reduce runs for the series to speed up sweeping large sizes
-            int series_runs = (opt_series_runs > 0) ? opt_series_runs : 1; // default to 1 for fast sweep
+            int series_runs = (run_series_runs > 0) ? run_series_runs : 1; // default to 1 for fast sweep
             cfg.runs        = series_runs;
             // Time-bounded series run
             auto                   start = std::chrono::steady_clock::now();
@@ -448,30 +538,30 @@ int main(int argc, char* argv[]) {
                     std::cout << c.operation << ": " << c.a << " vs " << c.b << " -> ~" << c.size_at_crossover
                               << " elements\n";
                 }
-                if (opt_output) {
-                    if (opt_out_fmt == BenchmarkConfig::OutputFormat::CSV)
-                        suite.write_crossover_csv(*opt_output, cx);
+                if (run_output) {
+                    if (run_out_fmt == BenchmarkConfig::OutputFormat::CSV)
+                        suite.write_crossover_csv(*run_output, cx);
                     else
-                        suite.write_crossover_json(*opt_output, cx, cfg);
+                        suite.write_crossover_json(*run_output, cx, cfg);
                     std::cout << "\nSaved crossover "
-                              << (opt_out_fmt == BenchmarkConfig::OutputFormat::CSV ? "CSV" : "JSON")
-                              << " to: " << *opt_output << "\n";
+                              << (run_out_fmt == BenchmarkConfig::OutputFormat::CSV ? "CSV" : "JSON")
+                              << " to: " << *run_output << "\n";
                 }
-            } else if (opt_output) {
-                if (opt_out_fmt == BenchmarkConfig::OutputFormat::CSV)
-                    suite.write_crossover_csv(*opt_output, cx);
+            } else if (run_output) {
+                if (run_out_fmt == BenchmarkConfig::OutputFormat::CSV)
+                    suite.write_crossover_csv(*run_output, cx);
                 else
-                    suite.write_crossover_json(*opt_output, cx, cfg);
+                    suite.write_crossover_json(*run_output, cx, cfg);
             }
             return cx.empty() ? 1 : 0;
-        } else if (opt_series_count > 1 || !opt_series_sizes.empty()) {
+        } else if (run_series_count > 1 || !run_series_sizes.empty()) {
             // Multi-size linear series benchmark
             std::vector<std::size_t> sizes;
-            if (!opt_series_sizes.empty()) {
-                sizes = opt_series_sizes;
+            if (!run_series_sizes.empty()) {
+                sizes = run_series_sizes;
             } else {
-                double step = static_cast<double>(opt_size) / opt_series_count;
-                for (int i = 1; i <= opt_series_count; ++i)
+                double step = static_cast<double>(run_size) / run_series_count;
+                for (int i = 1; i <= run_series_count; ++i)
                     sizes.push_back(static_cast<std::size_t>(std::llround(step * i)));
             }
             BenchmarkSuite::Series series;
@@ -492,23 +582,23 @@ int main(int argc, char* argv[]) {
                 std::cout << "\n=== Series Summary (sizes=";
                 for (auto s : sizes)
                     std::cout << s << ";";
-                std::cout << ") runs-per-size=" << opt_runs << " ===\n";
+                std::cout << ") runs-per-size=" << run_runs << " ===\n";
             }
             // Write series output
             std::string out_path;
-            if (opt_series_out)
-                out_path = *opt_series_out;
+            if (run_series_out)
+                out_path = *run_series_out;
             else {
-                out_path = (opt_out_fmt == BenchmarkConfig::OutputFormat::CSV ? "results/csvs/series_results.csv"
+                out_path = (run_out_fmt == BenchmarkConfig::OutputFormat::CSV ? "results/csvs/series_results.csv"
                                                                               : "results/csvs/series_results.json");
             }
-            if (opt_out_fmt == BenchmarkConfig::OutputFormat::CSV) {
+            if (run_out_fmt == BenchmarkConfig::OutputFormat::CSV) {
                 suite.write_series_csv(out_path, series);
             } else {
                 suite.write_series_json(out_path, series, cfg);
             }
             if (!quiet)
-                std::cout << "Saved series " << (opt_out_fmt == BenchmarkConfig::OutputFormat::CSV ? "CSV" : "JSON")
+                std::cout << "Saved series " << (run_out_fmt == BenchmarkConfig::OutputFormat::CSV ? "CSV" : "JSON")
                           << " to: " << out_path << "\n";
         }
     }

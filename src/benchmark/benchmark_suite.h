@@ -36,6 +36,7 @@ struct BenchmarkConfig {
     bool pin_cpu = false;            // if true attempt to pin
     int pin_cpu_index = 0;           // CPU index to pin to (default 0)
     bool disable_turbo = false;      // attempt to disable turbo boost (Linux-only, may require privileges)
+    std::string profile_name{"custom"}; // canonical named profile or "custom"
 };
 
 // Configuration for comparing current benchmark results against a stored baseline.
@@ -114,6 +115,7 @@ struct BenchmarkMeta {
     std::string                       cpp_standard{"unknown"};
     std::string                       build_type{"unknown"};
     std::string                       cpu_model{"unknown"};
+    std::string                       profile{"custom"};
     unsigned int                      cores{0};
     unsigned long long                total_ram_bytes{0};
     std::string                       kernel{"unknown"};

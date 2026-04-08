@@ -41,6 +41,8 @@ struct CliArgs {
     std::vector<std::size_t>   opt_series_sizes;
     std::vector<std::string>   opt_structures;
     std::optional<std::string> opt_output;
+    std::optional<std::string> opt_profile;
+    bool                        opt_profile_valid{true};
 
     // Hardware-affinity / reproducibility
     bool opt_pin_cpu{false};

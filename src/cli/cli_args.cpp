@@ -2,12 +2,14 @@
 
 #include <algorithm>
 #include <cctype>
+#include <unordered_set>
 
 namespace hashbrowns {
 namespace cli {
 
 CliArgs parse_args(int argc, char* argv[]) {
     CliArgs a;
+    static const std::unordered_set<std::string> kValidProfiles = {"smoke", "ci", "series", "crossover", "deep"};
 
     // --- Pre-scan for early-exit flags ---
     for (int i = 1; i < argc; ++i) {
@@ -85,6 +87,14 @@ CliArgs parse_args(int argc, char* argv[]) {
         } else if (arg == "--output" && i + 1 < argc) {
             a.opt_output = std::string(argv[++i]);
             a.demo_mode  = false;
+        } else if (arg == "--profile" && i + 1 < argc) {
+            std::string profile = argv[++i];
+            std::transform(profile.begin(), profile.end(), profile.begin(), [](unsigned char c) {
+                return static_cast<char>(std::tolower(c));
+            });
+            a.opt_profile = profile;
+            a.opt_profile_valid = (kValidProfiles.find(profile) != kValidProfiles.end());
+            a.demo_mode = false;
         } else if (arg == "--memory-tracking") {
             a.opt_memory_tracking = true;
             a.demo_mode           = false;

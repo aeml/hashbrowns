@@ -11,7 +11,7 @@ scripts/build.sh -c -t Release --test
 ## Single-size benchmark
 
 ```bash
-./build/hashbrowns --size 50000 --runs 20 --structures array,slist,hashmap --output results/csvs/benchmark_results.csv
+./build/hashbrowns --profile ci
 ```
 
 The CSV will contain mean and standard deviation for insert, search, and remove.
@@ -19,10 +19,14 @@ The CSV will contain mean and standard deviation for insert, search, and remove.
 ## Crossover analysis
 
 ```bash
-./build/hashbrowns --crossover-analysis --max-size 100000 --runs 5 --structures array,slist,hashmap --output results/csvs/crossover_results.csv
+./build/hashbrowns --profile crossover
 ```
 
 The CSV will list approximate crossover sizes by operation.
+
+## Benchmark profiles
+
+Use `--profile {smoke,ci,series,crossover,deep}` to select a canonical workflow without retyping a pile of flags. The selected profile is written into JSON metadata and treated as a hard compatibility field during baseline comparison.
 
 ## Baseline comparison
 

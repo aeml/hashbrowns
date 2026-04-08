@@ -17,6 +17,8 @@ param(
   [ValidateSet('auto','linear','mid','log')]
   [string]$YScale = 'auto',
   [int]$SeriesRuns = 1,
+  [ValidateSet('smoke','ci','series','crossover','deep')]
+  [string]$Profile,
   [string]$Seed,
   [ValidateSet('sequential','random','mixed')]
   [string]$Pattern = 'sequential',
@@ -63,6 +65,7 @@ $argsListSingle = $argsList + @('--size', $Size)
 $argsListCross = $argsList + @('--crossover-analysis', '--max-size', $MaxSize, '--series-runs', $SeriesRuns)
 
 if ($Pattern) { $argsListSingle += @('--pattern', $Pattern); $argsListCross += @('--pattern', $Pattern) }
+if ($Profile) { $argsListSingle += @('--profile', $Profile); $argsListCross += @('--profile', $Profile) }
 if ($Seed) { $argsListSingle += @('--seed', $Seed); $argsListCross += @('--seed', $Seed) }
 if ($HashStrategy) { $argsListSingle += @('--hash-strategy', $HashStrategy); $argsListCross += @('--hash-strategy', $HashStrategy) }
 if ($HashCapacity) { $argsListSingle += @('--hash-capacity', $HashCapacity); $argsListCross += @('--hash-capacity', $HashCapacity) }

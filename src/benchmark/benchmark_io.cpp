@@ -258,6 +258,7 @@ void write_results_json_impl(const std::string& path, const std::vector<Benchmar
     out << "    \"cpp_standard\": \"" << cpp_standard_str() << "\",\n";
     out << "    \"build_type\": \"" << build_type_str() << "\",\n";
     out << "    \"cpu_model\": \"" << cpu_model() << "\",\n";
+    out << "    \"profile\": \"" << config.profile_name << "\",\n";
     out << "    \"cores\": " << std::thread::hardware_concurrency() << ",\n";
     out << "    \"total_ram_bytes\": " << total_ram_bytes() << ",\n";
     out << "    \"kernel\": \"" << kernel_version() << "\",\n";
@@ -333,6 +334,7 @@ void BenchmarkSuite::write_crossover_json(const std::string& path, const std::ve
     out << "  \"meta\": {\n";
     out << "    \"schema_version\": 1,\n";
     out << "    \"runs\": " << config.runs << ",\n";
+    out << "    \"profile\": \"" << config.profile_name << "\",\n";
     out << "    \"structures\": [";
     for (std::size_t i = 0; i < config.structures.size(); ++i) {
         out << "\"" << config.structures[i] << "\"";
@@ -374,6 +376,7 @@ void BenchmarkSuite::write_series_json(const std::string& path, const Series& se
     out << "  \"meta\": {\n";
     out << "    \"schema_version\": 1,\n";
     out << "    \"runs_per_size\": " << config.runs << ",\n";
+    out << "    \"profile\": \"" << config.profile_name << "\",\n";
     out << "    \"structures\": [";
     for (std::size_t i = 0; i < config.structures.size(); ++i) {
         out << "\"" << config.structures[i] << "\"";

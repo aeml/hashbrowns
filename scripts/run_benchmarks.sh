@@ -33,6 +33,7 @@ MAX_SECONDS=${MAX_SECONDS:-}
 BASELINE=${BASELINE:-}
 BASELINE_THRESHOLD=${BASELINE_THRESHOLD:-20}
 BASELINE_NOISE=${BASELINE_NOISE:-1}
+PROFILE=${PROFILE:-}
 
 usage() {
   cat <<EOF
@@ -53,6 +54,7 @@ Options (also available via env vars):
   --plots-dir PATH   Directory to write PNG plots (default: ${PLOTS_DIR})
   --yscale MODE      Plot y-axis scale: auto|linear|log (default: ${YSCALE})
   --series-runs N    Runs per size for crossover sweep (default: ${SERIES_RUNS})
+  --profile NAME     Canonical benchmark profile: smoke|ci|series|crossover|deep
   --seed N           RNG seed for random/mixed patterns (default: random_device)
   --pattern TYPE     sequential|random|mixed (default: ${PATTERN})
   --max-seconds N    Time budget (in seconds) for crossover sweep
@@ -77,25 +79,26 @@ while [[ $# -gt 0 ]]; do
     --size) SIZE="$2"; shift 2;;
     --max-size) MAX_SIZE="$2"; shift 2;;
     --structures) STRUCTURES="$2"; shift 2;;
-  --out-format) OUT_FORMAT="$2"; shift 2;;
-  --bench-out) BENCH_OUT="$2"; shift 2;;
-  --cross-out) CROSS_OUT="$2"; shift 2;;
+    --out-format) OUT_FORMAT="$2"; shift 2;;
+    --bench-out) BENCH_OUT="$2"; shift 2;;
+    --cross-out) CROSS_OUT="$2"; shift 2;;
     --build-type) BUILD_TYPE="$2"; shift 2;;
-  --jobs) JOBS="$2"; shift 2;;
-  --no-plots) AUTO_PLOTS=0; shift 1;;
-  --plots) AUTO_PLOTS=2; shift 1;;
-  --plots-dir) PLOTS_DIR="$2"; shift 2;;
-  --yscale) YSCALE="$2"; shift 2;;
-  --series-runs) SERIES_RUNS="$2"; shift 2;;
-  --seed) SEED="$2"; shift 2;;
-  --pattern) PATTERN="$2"; shift 2;;
-  --max-seconds) MAX_SECONDS="$2"; shift 2;;
-  --hash-strategy) HASH_STRATEGY="$2"; shift 2;;
-  --hash-capacity) HASH_CAPACITY="$2"; shift 2;;
-  --hash-load) HASH_LOAD="$2"; shift 2;;
-  --baseline) BASELINE="$2"; shift 2;;
-  --baseline-threshold) BASELINE_THRESHOLD="$2"; shift 2;;
-  --baseline-noise) BASELINE_NOISE="$2"; shift 2;;
+    --jobs) JOBS="$2"; shift 2;;
+    --no-plots) AUTO_PLOTS=0; shift 1;;
+    --plots) AUTO_PLOTS=2; shift 1;;
+    --plots-dir) PLOTS_DIR="$2"; shift 2;;
+    --yscale) YSCALE="$2"; shift 2;;
+    --series-runs) SERIES_RUNS="$2"; shift 2;;
+    --profile) PROFILE="$2"; shift 2;;
+    --seed) SEED="$2"; shift 2;;
+    --pattern) PATTERN="$2"; shift 2;;
+    --max-seconds) MAX_SECONDS="$2"; shift 2;;
+    --hash-strategy) HASH_STRATEGY="$2"; shift 2;;
+    --hash-capacity) HASH_CAPACITY="$2"; shift 2;;
+    --hash-load) HASH_LOAD="$2"; shift 2;;
+    --baseline) BASELINE="$2"; shift 2;;
+    --baseline-threshold) BASELINE_THRESHOLD="$2"; shift 2;;
+    --baseline-noise) BASELINE_NOISE="$2"; shift 2;;
     -h|--help) usage; exit 0;;
     *) echo "Unknown option: $1"; usage; exit 2;;
   esac
@@ -138,6 +141,7 @@ echo "  size=${SIZE}, runs=${RUNS}, max-size=${MAX_SIZE}"
 echo "  structures=${STRUCTURES}"
 echo "  build-type=${BUILD_TYPE}, jobs=${JOBS}"
 echo "  series-runs=${SERIES_RUNS} (for crossover sweep)"
+echo "  profile=${PROFILE:-custom}"
 echo "  pattern=${PATTERN}${SEED:+, seed=${SEED}}${MAX_SECONDS:+, max-seconds=${MAX_SECONDS}}"
 echo "  out-format=${OUT_FORMAT}, bench-out=${BENCH_OUT}, cross-out=${CROSS_OUT}"
 echo "  hashmap: strategy=${HASH_STRATEGY}${HASH_CAPACITY:+, capacity=${HASH_CAPACITY}}${HASH_LOAD:+, load=${HASH_LOAD}}"
@@ -156,6 +160,7 @@ echo "[INFO] Hardware: host=${HOST}, ${UNAME}, cores=${CORES}${CPU_MODEL:+, CPU=
 # Run standard benchmark (single size) with CSV output
 echo "[INFO] Running benchmarks: size=${SIZE}, runs=${RUNS}, structures=${STRUCTURES}"
 BENCH_ARGS=(--no-banner --size "${SIZE}" --runs "${RUNS}" --structures "${STRUCTURES}" --output "${BENCH_OUT}" --pattern "${PATTERN}" --out-format "${OUT_FORMAT}")
+[[ -n "${PROFILE}" ]] && BENCH_ARGS+=(--profile "${PROFILE}")
 [[ -n "${SEED}" ]] && BENCH_ARGS+=(--seed "${SEED}")
 [[ -n "${HASH_STRATEGY}" ]] && BENCH_ARGS+=(--hash-strategy "${HASH_STRATEGY}")
 [[ -n "${HASH_CAPACITY}" ]] && BENCH_ARGS+=(--hash-capacity "${HASH_CAPACITY}")
@@ -169,6 +174,7 @@ echo "[INFO] Wrote: ${BENCH_OUT}"
 # Run crossover analysis over a size sweep and write CSV
 echo "[INFO] Running crossover analysis up to max-size=${MAX_SIZE} (series-runs=${SERIES_RUNS})"
 SWEEP_ARGS=(--no-banner --quiet --crossover-analysis --max-size "${MAX_SIZE}" --structures "${STRUCTURES}" --runs "${RUNS}" --series-runs "${SERIES_RUNS}" --pattern "${PATTERN}" --output "${CROSS_OUT}" --out-format "${OUT_FORMAT}")
+[[ -n "${PROFILE}" ]] && SWEEP_ARGS+=(--profile "${PROFILE}")
 [[ -n "${SEED}" ]] && SWEEP_ARGS+=(--seed "${SEED}")
 [[ -n "${MAX_SECONDS}" ]] && SWEEP_ARGS+=(--max-seconds "${MAX_SECONDS}")
 [[ -n "${HASH_STRATEGY}" ]] && SWEEP_ARGS+=(--hash-strategy "${HASH_STRATEGY}")

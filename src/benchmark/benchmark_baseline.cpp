@@ -300,6 +300,8 @@ BenchmarkData load_benchmark_data_json(const std::string& path) {
             meta.build_type = *v;
         if (auto v = extract_string_field(*meta_obj, "cpu_model"))
             meta.cpu_model = *v;
+        if (auto v = extract_string_field(*meta_obj, "profile"))
+            meta.profile = *v;
         if (auto v = extract_uint_field(*meta_obj, "cores"))
             meta.cores = *v;
         if (auto v = extract_ull_field(*meta_obj, "total_ram_bytes"))
@@ -415,6 +417,7 @@ BaselineMetadataReport compare_benchmark_metadata(const BenchmarkMeta& baseline,
     require_int_equal("runs", baseline.runs, current.runs);
     require_int_equal("warmup_runs", baseline.warmup_runs, current.warmup_runs);
     require_int_equal("bootstrap_iters", baseline.bootstrap_iters, current.bootstrap_iters);
+    require_string_equal("profile", baseline.profile, current.profile);
     if (baseline.structures != current.structures) {
         auto rendered = compare_string_vectors(baseline.structures, current.structures);
         report.errors.push_back("structures mismatch: baseline='" + rendered[0] + "' current='" + rendered[1] + "'");

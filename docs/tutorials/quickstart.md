@@ -14,14 +14,14 @@ This guide walks through the three common workflows:
 
 All commands assume you have run a build already (e.g. `scripts/build.sh -t Release --test`).
 
-> Tip: Add `--seed 12345` to any random or mixed pattern runs for reproducibility.
+> Tip: Prefer `--profile ci`, `--profile series`, `--profile crossover`, or `--profile deep` for repeatable named workflows, then override only the few knobs you intentionally want to change.
 
 ## 1. Single-size benchmark
 
-Run the executable directly specifying a size and number of runs:
+Run the executable directly specifying a size and number of runs, or use a canonical named profile:
 
 ```bash
-./build/hashbrowns --size 10000 --runs 5 --structures array,slist,hashmap --memory-tracking --bootstrap 200 --out-format json --output benchmark_single.json
+./build/hashbrowns --profile ci --out-format json --output benchmark_single.json
 ```
 
 You'll see a colorful banner followed by benchmark progress:
@@ -54,8 +54,7 @@ Minimal CSV example:
 Use a linear series of sizes up to a max (given by `--size`) with `--series-count`:
 
 ```bash
-./build/hashbrowns --size 60000 --series-count 6 --runs 3 \
-  --structures array,hashmap --out-format json --series-out results/csvs/series_results.json
+./build/hashbrowns --profile series
 ```
 
 This produces 6 evenly spaced sizes between a small floor and 60,000. For explicit sizes:
@@ -65,7 +64,7 @@ This produces 6 evenly spaced sizes between a small floor and 60,000. For explic
   --series-out results/csvs/series_results.csv
 ```
 
-JSON series output contains an array of per-size measurements plus a meta block including `runs_per_size` and `seed`.
+JSON series output contains an array of per-size measurements plus a meta block including `runs_per_size`, `seed`, and the selected `profile`.
 
 Wizard alternative (interactive prompts):
 ```bash
@@ -77,8 +76,7 @@ Wizard alternative (interactive prompts):
 Estimate sizes where one structure overtakes another for each operation:
 
 ```bash
-./build/hashbrowns --crossover-analysis --max-size 100000 --runs 4 \
-  --structures array,slist,hashmap --out-format json --output results/csvs/crossover_results.json
+./build/hashbrowns --profile crossover
 ```
 
 Optional time budget:

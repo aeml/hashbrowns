@@ -19,6 +19,7 @@ static void test_results_json_has_meta_and_results() {
     cfg.csv_output      = std::string("json_test_output.json");
     cfg.pattern         = BenchmarkConfig::Pattern::SEQUENTIAL;
     cfg.hash_strategy   = HashStrategy::OPEN_ADDRESSING;
+    cfg.profile_name    = "ci";
 
     BenchmarkSuite suite;
     auto           res = suite.run(cfg);
@@ -70,6 +71,10 @@ static void test_results_json_has_meta_and_results() {
         throw std::runtime_error("JSON meta missing total_ram_bytes");
     if (content.find("\"kernel\"") == std::string::npos)
         throw std::runtime_error("JSON meta missing kernel");
+    if (content.find("\"profile\"") == std::string::npos)
+        throw std::runtime_error("JSON meta missing profile");
+    if (content.find("\"profile\": \"ci\"") == std::string::npos)
+        throw std::runtime_error("JSON meta missing expected profile value");
 
     // result stats keys
     if (content.find("\"insert_ms_median\"") == std::string::npos)
@@ -128,8 +133,9 @@ static void test_series_json_has_meta_and_series() {
     BenchmarkConfig cfg;
     cfg.size       = 64;
     cfg.runs       = 2;
-    cfg.structures = {"array", "hashmap"};
-    cfg.pattern    = BenchmarkConfig::Pattern::SEQUENTIAL;
+    cfg.structures   = {"array", "hashmap"};
+    cfg.pattern      = BenchmarkConfig::Pattern::SEQUENTIAL;
+    cfg.profile_name = "series";
     BenchmarkSuite suite;
 
     // Build a simple series of two sizes
@@ -154,6 +160,8 @@ static void test_series_json_has_meta_and_series() {
         throw std::runtime_error("Series JSON meta missing schema_version");
     if (content.find("\"runs_per_size\"") == std::string::npos)
         throw std::runtime_error("Series JSON meta missing runs_per_size");
+    if (content.find("\"profile\": \"series\"") == std::string::npos)
+        throw std::runtime_error("Series JSON meta missing expected profile");
     if (content.find("\"pattern\"") == std::string::npos)
         throw std::runtime_error("Series JSON meta missing pattern");
     if (content.find("\"structures\"") == std::string::npos)

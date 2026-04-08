@@ -208,38 +208,29 @@ cmake --install build --prefix /usr/local
 
 ### Recommended profiles
 
-To make runs repeatable and easy to remember, here are five suggested "profiles" built from the existing flags:
+Hashbrowns now supports first-class named profiles via `--profile {smoke,ci,series,crossover,deep}`. Each profile applies a canonical benchmark shape and writes the selected profile into JSON metadata so runs stay automation-friendly and baseline comparisons can reject apples-to-oranges checks.
+
+To make runs repeatable and easy to remember, here are the five canonical profiles:
 
 - **P0 – Tiny sanity check** (fast, good for local smoke):
     ```bash
-    ./build/hashbrowns --size 4096 --runs 5 --structures array,slist,hashmap --output results/csvs/benchmark_results.csv
+    ./build/hashbrowns --profile smoke
     ```
 - **P1 – Small CI benchmark** (what CI should run by default):
     ```bash
-    ./build/hashbrowns --size 20000 --runs 10 \
-            --structures array,slist,hashmap \
-            --pattern sequential --seed 12345 \
-            --output results/csvs/benchmark_results.csv
+    ./build/hashbrowns --profile ci
     ```
 - **P2 – Medium series sweep** (few sizes, modest runs):
     ```bash
-    ./build/hashbrowns --size 60000 --series-count 6 --runs 3 \
-            --structures array,hashmap --out-format json \
-            --series-out results/csvs/series_results.json
+    ./build/hashbrowns --profile series
     ```
 - **P3 – Full crossover analysis** (used when you care about crossover points):
     ```bash
-    ./build/hashbrowns --crossover-analysis --max-size 100000 --runs 4 \
-            --structures array,slist,hashmap --pattern sequential --seed 12345 \
-            --out-format json --output results/csvs/crossover_results.json
+    ./build/hashbrowns --profile crossover
     ```
 - **P4 – Deep analysis with memory & CIs** (slower, most information):
     ```bash
-    ./build/hashbrowns --size 50000 --runs 20 \
-            --structures array,slist,dlist,hashmap \
-            --pattern random --seed 12345 \
-            --memory-tracking --bootstrap 400 \
-            --out-format json --output results/csvs/benchmark_results_deep.json
+    ./build/hashbrowns --profile deep
     ```
 
 ### Core CLI flags
@@ -247,6 +238,7 @@ To make runs repeatable and easy to remember, here are five suggested "profiles"
 The `hashbrowns` executable supports a rich set of flags. All flags are optional; sensible defaults are chosen for quick runs.
 
 Benchmark scope & iteration control:
+- `--profile {smoke,ci,series,crossover,deep}`  Apply a canonical benchmark preset. Explicit flags still override the preset, and the selected profile is written into JSON metadata.
 - `--size N`  Size for single benchmark mode (default: 10000). When a series is requested this is treated as the MAX size unless explicit sizes are provided.
 - `--runs N`  Repetitions per structure for single-size benchmark (default: 10). Used as "runs per size" for series unless overridden by `--series-runs`.
 - `--warmup N`  Discard first N runs (warm-up) from timing statistics (default: 0).
