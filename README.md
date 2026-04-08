@@ -5,7 +5,26 @@
 
 *A crispy C++ benchmarking suite comparing arrays, linked lists, and hash maps — cooked to perfection with real performance data.*
 
-hashbrowns is a C++17 benchmarking suite for comparing custom implementations of dynamic arrays, linked lists, and hash maps. It measures insert, search, and remove performance across configurable sizes and runs, and can export results to CSV or JSON, estimate crossover points between data structures, and compare runs against a stored performance baseline.
+hashbrowns is a C++17 benchmarking suite for comparing custom data structures with reproducible measurements, CSV/JSON export, crossover analysis, and performance baseline checks.
+
+## Why this project exists
+- Measure tradeoffs instead of guessing about them
+- Make benchmark runs reproducible enough for CI and regression tracking
+- Pair simple data-structure implementations with tooling that explains runtime behavior
+
+## Technical highlights
+- Custom dynamic array, singly/doubly linked list, and hash map implementations
+- Repeated-run benchmarking with mean/stddev/median/p95 and bootstrap confidence intervals
+- CSV/JSON output for downstream analysis and plotting
+- Crossover analysis across input-size sweeps
+- Baseline comparison mode for performance regression detection in CI
+- Optional memory tracking and hash map probe metrics
+
+## What it demonstrates
+- measurement discipline over hand-wavy performance claims
+- tooling and automation for reproducible experiments
+- data-structure implementation plus analysis
+- CI-friendly benchmarking guardrails
 
 > Documentation & Tutorials: API docs, coverage report, Quickstart, and Memory & Probes guides are published via GitHub Pages: https://aeml.github.io/hashbrowns/
 
