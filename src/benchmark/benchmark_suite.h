@@ -143,6 +143,17 @@ struct BaselineMetadataReport {
     std::vector<std::string> warnings;
 };
 
+struct BaselineReport {
+    BaselineMetadataReport metadata;
+    BaselineComparison     comparison;
+    double                 threshold_pct{0.0};
+    double                 noise_floor_pct{0.0};
+    std::string            baseline_path;
+    std::string            scope{"mean"};
+    bool                   strict_profile_intent{false};
+    int                    exit_code{0};
+};
+
 class BenchmarkSuite {
 public:
     std::vector<BenchmarkResult> run(const BenchmarkConfig& config);
@@ -182,6 +193,9 @@ void print_baseline_report(const BaselineComparison& report, double threshold_pc
 
 // Pretty-print metadata compatibility findings to stdout.
 void print_baseline_metadata_report(const BaselineMetadataReport& report);
+
+// Write a machine-readable baseline comparison report to JSON.
+void write_baseline_report_json(const std::string& path, const BaselineReport& report);
 
 } // namespace hashbrowns
 

@@ -27,6 +27,8 @@ Metadata policy:
 
 That keeps the guard honest: it refuses apples-to-oranges comparisons before reporting slowdown percentages.
 
+For CI or dashboards, prefer also writing `--baseline-report-json ...` so automation can consume a structured outcome instead of scraping console text.
+
 ## Legacy CSV baseline (optional)
 
 A CSV baseline can optionally be placed at `docs/baselines/benchmark_results.csv`

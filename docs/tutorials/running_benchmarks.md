@@ -53,7 +53,7 @@ What the checker now does before reading slowdown percentages:
 
 That split matters. A different seedless workload or different hash-map tuning is not a perf regression. It is a different experiment.
 
-On regression beyond the threshold, the process exits non-zero, which is ideal for CI.
+On regression beyond the threshold, the process exits non-zero, which is ideal for CI. If you want structured automation output instead of scraping logs, add `--baseline-report-json build/baseline_report.json`.
 
 ## Quick helper
 

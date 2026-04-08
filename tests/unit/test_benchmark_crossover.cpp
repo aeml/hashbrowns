@@ -385,6 +385,32 @@ int run_benchmark_crossover_tests() {
         print_baseline_report(comparison, base_config.threshold_pct, base_config.noise_floor_pct);
         print_baseline_metadata_report(meta_bad);
 
+        BaselineReport report_json;
+        report_json.metadata              = meta_ok;
+        report_json.comparison            = comparison;
+        report_json.threshold_pct         = base_config.threshold_pct;
+        report_json.noise_floor_pct       = base_config.noise_floor_pct;
+        report_json.baseline_path         = "perf_baselines/baseline.json";
+        report_json.scope                 = "mean";
+        report_json.strict_profile_intent = true;
+        report_json.exit_code             = 0;
+        write_baseline_report_json("baseline_report_test.json", report_json);
+        std::ifstream baseline_report_in("baseline_report_test.json");
+        if (!baseline_report_in.good()) {
+            std::cout << "❌ Baseline report JSON was not written\n";
+            ++failures;
+        } else {
+            std::string baseline_report_content((std::istreambuf_iterator<char>(baseline_report_in)), std::istreambuf_iterator<char>());
+            if (baseline_report_content.find("\"metadata\"") == std::string::npos ||
+                baseline_report_content.find("\"comparison\"") == std::string::npos ||
+                baseline_report_content.find("\"baseline_path\": \"perf_baselines/baseline.json\"") == std::string::npos ||
+                baseline_report_content.find("\"strict_profile_intent\": true") == std::string::npos ||
+                baseline_report_content.find("\"entries\"") == std::string::npos) {
+                std::cout << "❌ Baseline report JSON missing expected structure\n";
+                ++failures;
+            }
+        }
+
         // Test with empty baseline
         auto empty_comparison = compare_against_baseline({}, current, base_config);
         if (!empty_comparison.entries.empty()) {

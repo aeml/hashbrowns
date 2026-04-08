@@ -67,6 +67,7 @@ struct CliArgs {
 
     // Baseline comparison
     std::optional<std::string>  opt_baseline_path;
+    std::optional<std::string>  opt_baseline_report_json;
     double                      opt_baseline_threshold{20.0};
     double                      opt_baseline_noise{1.0};
     BaselineConfig::MetricScope opt_baseline_scope{BaselineConfig::MetricScope::MEAN};

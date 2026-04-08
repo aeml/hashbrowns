@@ -176,6 +176,8 @@ OPTIONS:
     --seed N              RNG seed used when pattern is random/mixed (default: random_device)
     --baseline-strict-profile-intent
                          Require baseline profile_manifest intent to match exactly when comparing baselines
+    --baseline-report-json FILE
+                         Write a machine-readable baseline comparison report to JSON
     --pin-cpu [IDX]      Pin process to CPU index (default 0 if IDX omitted) for reproducibility (Linux-only)
     --no-turbo           Attempt to disable CPU turbo boost (Linux-only, best-effort; may need root)
     --max-seconds N       Time budget for crossover sweep; stop early when exceeded
@@ -249,10 +251,11 @@ int main(int argc, char* argv[]) {
     const auto        opt_hash_capacity      = a.opt_hash_capacity;
     const auto        opt_hash_load          = a.opt_hash_load;
     const bool        opt_op_tests           = a.opt_op_tests;
-    const auto        opt_baseline_path                 = a.opt_baseline_path;
-    const double      opt_baseline_threshold            = a.opt_baseline_threshold;
-    const double      opt_baseline_noise                = a.opt_baseline_noise;
-    const auto        opt_baseline_scope                = a.opt_baseline_scope;
+    const auto        opt_baseline_path                  = a.opt_baseline_path;
+    const auto        opt_baseline_report_json           = a.opt_baseline_report_json;
+    const double      opt_baseline_threshold             = a.opt_baseline_threshold;
+    const double      opt_baseline_noise                 = a.opt_baseline_noise;
+    const auto        opt_baseline_scope                 = a.opt_baseline_scope;
     const bool        opt_baseline_strict_profile_intent = a.opt_baseline_strict_profile_intent;
 
     if (show_help) {
@@ -643,12 +646,35 @@ int main(int argc, char* argv[]) {
                 }
                 auto meta_report = compare_benchmark_metadata(baseline_data.meta, current_data.meta, bcfg);
                 print_baseline_metadata_report(meta_report);
-                if (!meta_report.ok)
+                BaselineReport baseline_report;
+                baseline_report.metadata              = meta_report;
+                baseline_report.threshold_pct         = bcfg.threshold_pct;
+                baseline_report.noise_floor_pct       = bcfg.noise_floor_pct;
+                baseline_report.baseline_path         = bcfg.baseline_path;
+                baseline_report.scope                 = (bcfg.scope == BaselineConfig::MetricScope::P95
+                                                             ? "p95"
+                                                             : bcfg.scope == BaselineConfig::MetricScope::CI_HIGH
+                                                                   ? "ci_high"
+                                                                   : bcfg.scope == BaselineConfig::MetricScope::ANY ? "any" : "mean");
+                baseline_report.strict_profile_intent = bcfg.strict_profile_intent;
+                if (!meta_report.ok) {
+                    baseline_report.exit_code = 5;
+                    if (opt_baseline_report_json)
+                        write_baseline_report_json(*opt_baseline_report_json, baseline_report);
                     return 5;
+                }
                 auto cmp = compare_against_baseline(baseline_data.results, results, bcfg);
+                baseline_report.comparison = cmp;
                 print_baseline_report(cmp, bcfg.threshold_pct, bcfg.noise_floor_pct);
-                if (!cmp.all_ok)
+                if (!cmp.all_ok) {
+                    baseline_report.exit_code = 4;
+                    if (opt_baseline_report_json)
+                        write_baseline_report_json(*opt_baseline_report_json, baseline_report);
                     return 4;
+                }
+                baseline_report.exit_code = 0;
+                if (opt_baseline_report_json)
+                    write_baseline_report_json(*opt_baseline_report_json, baseline_report);
             }
             return base_rc;
         } else if (run_crossover) {

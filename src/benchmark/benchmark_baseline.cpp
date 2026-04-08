@@ -575,4 +575,51 @@ void print_baseline_metadata_report(const BaselineMetadataReport& report) {
         std::cout << "[baseline-meta] Metadata mismatch invalidates comparison." << std::endl;
 }
 
+void write_baseline_report_json(const std::string& path, const BaselineReport& report) {
+    std::ofstream out(path);
+    if (!out)
+        return;
+
+    auto write_string_array = [&out](const std::vector<std::string>& values) {
+        out << "[";
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            out << "\"" << values[i] << "\"";
+            if (i + 1 < values.size())
+                out << ",";
+        }
+        out << "]";
+    };
+
+    out << "{\n";
+    out << "  \"baseline_path\": \"" << report.baseline_path << "\",\n";
+    out << "  \"scope\": \"" << report.scope << "\",\n";
+    out << "  \"threshold_pct\": " << report.threshold_pct << ",\n";
+    out << "  \"noise_floor_pct\": " << report.noise_floor_pct << ",\n";
+    out << "  \"strict_profile_intent\": " << (report.strict_profile_intent ? "true" : "false") << ",\n";
+    out << "  \"exit_code\": " << report.exit_code << ",\n";
+    out << "  \"metadata\": {\n";
+    out << "    \"ok\": " << (report.metadata.ok ? "true" : "false") << ",\n";
+    out << "    \"errors\": ";
+    write_string_array(report.metadata.errors);
+    out << ",\n";
+    out << "    \"warnings\": ";
+    write_string_array(report.metadata.warnings);
+    out << "\n  },\n";
+    out << "  \"comparison\": {\n";
+    out << "    \"all_ok\": " << (report.comparison.all_ok ? "true" : "false") << ",\n";
+    out << "    \"entries\": [\n";
+    for (std::size_t i = 0; i < report.comparison.entries.size(); ++i) {
+        const auto& e = report.comparison.entries[i];
+        out << "      {\"structure\": \"" << e.structure << "\", "
+            << "\"insert_delta_pct\": " << e.insert_delta_pct << ", "
+            << "\"search_delta_pct\": " << e.search_delta_pct << ", "
+            << "\"remove_delta_pct\": " << e.remove_delta_pct << ", "
+            << "\"insert_ok\": " << (e.insert_ok ? "true" : "false") << ", "
+            << "\"search_ok\": " << (e.search_ok ? "true" : "false") << ", "
+            << "\"remove_ok\": " << (e.remove_ok ? "true" : "false") << "}"
+            << (i + 1 < report.comparison.entries.size() ? "," : "") << "\n";
+    }
+    out << "    ]\n  }\n}\n";
+}
+
 } // namespace hashbrowns

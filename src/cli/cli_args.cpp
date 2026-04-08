@@ -152,6 +152,9 @@ CliArgs parse_args(int argc, char* argv[]) {
         } else if (arg == "--baseline" && i + 1 < argc) {
             a.opt_baseline_path = std::string(argv[++i]);
             a.demo_mode         = false;
+        } else if (arg == "--baseline-report-json" && i + 1 < argc) {
+            a.opt_baseline_report_json = std::string(argv[++i]);
+            a.demo_mode                = false;
         } else if (arg == "--baseline-threshold" && i + 1 < argc) {
             a.opt_baseline_threshold = std::stod(argv[++i]);
             a.demo_mode              = false;
