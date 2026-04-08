@@ -41,14 +41,19 @@ This document describes the JSON structures emitted by hashbrowns. A minimal `sc
 - `scope` (string): timing scope used for evaluation: `mean|p95|ci_high|any`
 - `threshold_pct` / `noise_floor_pct` (number): comparison policy used for this run
 - `strict_profile_intent` (bool): whether profile-manifest intent matching was enforced
-- `exit_code` (int): final baseline classification (`0` success, `4` regression, `5` metadata mismatch)
+- `exit_code` (int): final baseline classification (`0` success, `2` per-operation guard failure, `4` binary regression, `5` metadata mismatch)
 - `metadata` (object): machine-readable copy of compatibility findings
   - `ok` (bool)
   - `errors` (string[])
   - `warnings` (string[])
-- `comparison` (object): machine-readable copy of per-structure timing deltas
+- `comparison` (object): machine-readable copy of the binary's coarse per-structure timing deltas
   - `all_ok` (bool)
   - `entries[]` with `structure`, `insert_delta_pct`, `search_delta_pct`, `remove_delta_pct`, `insert_ok`, `search_ok`, `remove_ok`
+- `per_operation_guard` (object): final perf-guard verdict after exact insert/search/remove-specific tolerances are applied
+  - `ok` (bool)
+  - `tolerances_pct` with `insert`, `search`, `remove`
+  - `entries[]` with `structure`, and nested `insert|search|remove` objects carrying `baseline_value`, `current_value`, `delta_pct`, `threshold_pct`, `ok`
+  - `failures[]` with human-readable failure strings matching the script verdict
 
 ## Compatibility Notes
 - Benchmark/series/crossover consumers should verify `meta.schema_version` and tolerate additional fields.

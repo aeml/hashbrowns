@@ -88,31 +88,70 @@ if [[ ! -s "${REPORT_JSON}" ]]; then
   exit 3
 fi
 
-# Then enforce per-operation thresholds exactly.
-python3 - "$BASE_JSON" "$TMP_JSON" <<'PY'
-import json, sys
-base_path, curr_path = sys.argv[1], sys.argv[2]
+# Then enforce per-operation thresholds exactly and write the final structured verdict back into REPORT_JSON.
+python3 - "$BASE_JSON" "$TMP_JSON" "$REPORT_JSON" <<'PY'
+import json, sys, os
+base_path, curr_path, report_path = sys.argv[1], sys.argv[2], sys.argv[3]
 with open(base_path) as f: base = json.load(f)
 with open(curr_path) as f: curr = json.load(f)
+with open(report_path) as f: report = json.load(f)
 
 bk = {r['structure']: r for r in base['results']}
 ck = {r['structure']: r for r in curr['results']}
 
-import os
-TOLI = float(os.environ.get('TOL_PCT_INSERT','20'))/100.0
-TOLS = float(os.environ.get('TOL_PCT_SEARCH','20'))/100.0
-TOLR = float(os.environ.get('TOL_PCT_REMOVE','20'))/100.0
+TOLI_PCT = float(os.environ.get('TOL_PCT_INSERT','20'))
+TOLS_PCT = float(os.environ.get('TOL_PCT_SEARCH','20'))
+TOLR_PCT = float(os.environ.get('TOL_PCT_REMOVE','20'))
+TOLI = TOLI_PCT / 100.0
+TOLS = TOLS_PCT / 100.0
+TOLR = TOLR_PCT / 100.0
 
+def pct_delta(bv, cv):
+    if bv == 0:
+        return 0.0
+    return ((cv - bv) / bv) * 100.0
+
+entries = []
 failures = []
 for st in bk.keys():
     if st not in ck:
         failures.append(f"missing structure in current: {st}")
         continue
     b, c = bk[st], ck[st]
-    for op, tol in [('insert_ms_mean', TOLI), ('search_ms_mean', TOLS), ('remove_ms_mean', TOLR)]:
-        bv, cv = float(b[op]), float(c[op])
-        if cv > bv * (1.0 + tol):
-            failures.append(f"{st}.{op}: current {cv:.3f} > baseline {bv:.3f} * (1+{tol:.2f})")
+    per_entry = {'structure': st}
+    for op_name, key, tol in [
+        ('insert', 'insert_ms_mean', TOLI_PCT),
+        ('search', 'search_ms_mean', TOLS_PCT),
+        ('remove', 'remove_ms_mean', TOLR_PCT),
+    ]:
+        bv, cv = float(b[key]), float(c[key])
+        ok = cv <= bv * (1.0 + tol / 100.0)
+        per_entry[op_name] = {
+            'baseline_value': bv,
+            'current_value': cv,
+            'delta_pct': pct_delta(bv, cv),
+            'threshold_pct': tol,
+            'ok': ok,
+        }
+        if not ok:
+            failures.append(f"{st}.{key}: current {cv:.3f} > baseline {bv:.3f} * (1+{tol/100.0:.2f})")
+    entries.append(per_entry)
+
+report['per_operation_guard'] = {
+    'ok': len(failures) == 0,
+    'tolerances_pct': {
+        'insert': TOLI_PCT,
+        'search': TOLS_PCT,
+        'remove': TOLR_PCT,
+    },
+    'entries': entries,
+    'failures': failures,
+}
+if failures:
+    report['exit_code'] = 2
+with open(report_path, 'w', encoding='utf-8') as f:
+    json.dump(report, f, indent=2)
+    f.write('\n')
 
 if failures:
     print("[PERF GUARD] Regressions detected:")

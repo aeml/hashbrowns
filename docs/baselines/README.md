@@ -27,7 +27,7 @@ Metadata policy:
 
 That keeps the guard honest: it refuses apples-to-oranges comparisons before reporting slowdown percentages.
 
-The canonical guard scripts now write `build/perf_guard_report.json` automatically so CI or dashboards can consume a structured outcome instead of scraping console text.
+The canonical guard scripts now write `build/perf_guard_report.json` automatically so CI or dashboards can consume a structured outcome instead of scraping console text. That report now reflects both the binary's coarse comparison and the script's final per-operation insert/search/remove tolerances.
 
 ## Legacy CSV baseline (optional)
 

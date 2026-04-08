@@ -11,7 +11,8 @@
     "strict_profile_intent",
     "exit_code",
     "metadata",
-    "comparison"
+    "comparison",
+    "per_operation_guard"
   ],
   "properties": {
     "baseline_path": {"type": "string"},
@@ -19,7 +20,7 @@
     "threshold_pct": {"type": "number"},
     "noise_floor_pct": {"type": "number"},
     "strict_profile_intent": {"type": "boolean"},
-    "exit_code": {"type": "integer", "enum": [0, 4, 5]},
+    "exit_code": {"type": "integer", "enum": [0, 2, 4, 5]},
     "metadata": {
       "type": "object",
       "required": ["ok", "errors", "warnings"],
@@ -59,6 +60,75 @@
             },
             "additionalProperties": false
           }
+        }
+      },
+      "additionalProperties": false
+    },
+    "per_operation_guard": {
+      "type": "object",
+      "required": ["ok", "tolerances_pct", "entries", "failures"],
+      "properties": {
+        "ok": {"type": "boolean"},
+        "tolerances_pct": {
+          "type": "object",
+          "required": ["insert", "search", "remove"],
+          "properties": {
+            "insert": {"type": "number"},
+            "search": {"type": "number"},
+            "remove": {"type": "number"}
+          },
+          "additionalProperties": false
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["structure", "insert", "search", "remove"],
+            "properties": {
+              "structure": {"type": "string"},
+              "insert": {
+                "type": "object",
+                "required": ["baseline_value", "current_value", "delta_pct", "threshold_pct", "ok"],
+                "properties": {
+                  "baseline_value": {"type": "number"},
+                  "current_value": {"type": "number"},
+                  "delta_pct": {"type": "number"},
+                  "threshold_pct": {"type": "number"},
+                  "ok": {"type": "boolean"}
+                },
+                "additionalProperties": false
+              },
+              "search": {
+                "type": "object",
+                "required": ["baseline_value", "current_value", "delta_pct", "threshold_pct", "ok"],
+                "properties": {
+                  "baseline_value": {"type": "number"},
+                  "current_value": {"type": "number"},
+                  "delta_pct": {"type": "number"},
+                  "threshold_pct": {"type": "number"},
+                  "ok": {"type": "boolean"}
+                },
+                "additionalProperties": false
+              },
+              "remove": {
+                "type": "object",
+                "required": ["baseline_value", "current_value", "delta_pct", "threshold_pct", "ok"],
+                "properties": {
+                  "baseline_value": {"type": "number"},
+                  "current_value": {"type": "number"},
+                  "delta_pct": {"type": "number"},
+                  "threshold_pct": {"type": "number"},
+                  "ok": {"type": "boolean"}
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "failures": {
+          "type": "array",
+          "items": {"type": "string"}
         }
       },
       "additionalProperties": false
