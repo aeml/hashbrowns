@@ -11,6 +11,7 @@ BIN="${ROOT_DIR}/build/hashbrowns"
 BASE_DIR="${ROOT_DIR}/perf_baselines"
 BASE_JSON="${BASE_DIR}/baseline.json"
 TMP_JSON="${ROOT_DIR}/build/perf_guard_current.json"
+REPORT_JSON="${ROOT_DIR}/build/perf_guard_report.json"
 TOL_PCT_INSERT=${TOL_PCT_INSERT:-20}
 TOL_PCT_SEARCH=${TOL_PCT_SEARCH:-20}
 TOL_PCT_REMOVE=${TOL_PCT_REMOVE:-20}
@@ -23,6 +24,10 @@ STRUCTURES=${STRUCTURES:-array,slist,dlist,hashmap}
 usage(){
   cat <<EOF
 Usage: $(basename "$0") [--update]
+
+Artifacts:
+  build/perf_guard_current.json   current benchmark run used for comparison
+  build/perf_guard_report.json    machine-readable baseline comparison report
 
 Environment overrides:
   SIZE, RUNS, SEED, STRUCTURES
@@ -47,6 +52,7 @@ mkdir -p "${BASE_DIR}"
 "${BIN}" --no-banner --profile ci --size "${SIZE}" --runs "${RUNS}" \
   --structures "${STRUCTURES}" --seed "${SEED}" \
   --output "${TMP_JSON}" --out-format json >/dev/null || true
+rm -f "${REPORT_JSON}"
 
 if [[ ${UPDATE} -eq 1 ]]; then
   cp -f "${TMP_JSON}" "${BASE_JSON}"
@@ -75,7 +81,14 @@ PY
   --baseline "${BASE_JSON}" \
   --baseline-threshold "${MAX_TOL}" \
   --baseline-noise 1 \
-  --baseline-scope "${BASELINE_SCOPE}"
+  --baseline-scope "${BASELINE_SCOPE}" \
+  --baseline-report-json "${REPORT_JSON}"
+
+if [[ ! -s "${REPORT_JSON}" ]]; then
+  echo "[ERROR] Expected perf guard report was not written: ${REPORT_JSON}" >&2
+  echo "[ERROR] Rebuild hashbrowns so the current binary supports --baseline-report-json." >&2
+  exit 3
+fi
 
 # Then enforce per-operation thresholds exactly.
 python3 - "$BASE_JSON" "$TMP_JSON" <<'PY'
@@ -109,6 +122,7 @@ if failures:
         print(" - ", f)
     sys.exit(2)
 print("[PERF GUARD] OK: metadata compatible and within per-op tolerances.")
+print(f"[PERF GUARD] Report: {os.path.join(os.path.dirname(curr_path), 'perf_guard_report.json')}")
 PY
 
 exit $?

@@ -27,7 +27,7 @@ Metadata policy:
 
 That keeps the guard honest: it refuses apples-to-oranges comparisons before reporting slowdown percentages.
 
-For CI or dashboards, prefer also writing `--baseline-report-json ...` so automation can consume a structured outcome instead of scraping console text.
+The canonical guard scripts now write `build/perf_guard_report.json` automatically so CI or dashboards can consume a structured outcome instead of scraping console text.
 
 ## Legacy CSV baseline (optional)
 

@@ -19,6 +19,7 @@ if (-not (Test-Path $Bin)) { $Bin = Join-Path (Join-Path $BuildDir $BuildType) '
 $BaselineDir = Join-Path $Root 'perf_baselines'
 $BaselineJson = Join-Path $BaselineDir 'baseline.json'
 $TmpJson = Join-Path $BuildDir 'perf_guard_current.json'
+$ReportJson = Join-Path $BuildDir 'perf_guard_report.json'
 
 if (-not (Test-Path $Bin)) {
   Write-Host "[INFO] Building project ($BuildType)..." -ForegroundColor Cyan
@@ -46,10 +47,15 @@ if (-not (Test-Path $BaselineJson)) {
 
 # Delegate comparison to the native baseline mode in the executable.
 Write-Host "[INFO] Comparing against baseline via built-in checker..." -ForegroundColor Cyan
-& $Bin --size $Size --runs $Runs --structures $Structures --pattern sequential --seed $Seed --out-format json --output $TmpJson --baseline $BaselineJson --baseline-threshold $TolInsertPct --baseline-noise 1.0 --baseline-scope mean | Write-Output
+if (Test-Path $ReportJson) { Remove-Item -Force $ReportJson }
+& $Bin --size $Size --runs $Runs --structures $Structures --pattern sequential --seed $Seed --out-format json --output $TmpJson --baseline $BaselineJson --baseline-threshold $TolInsertPct --baseline-noise 1.0 --baseline-scope mean --baseline-report-json $ReportJson | Write-Output
 if ($LASTEXITCODE -ne 0) {
-  Write-Error "Performance regression detected (exit code $LASTEXITCODE)"
+  Write-Error "Performance regression detected (exit code $LASTEXITCODE). See $ReportJson"
   exit 2
 }
-Write-Host "All metrics within tolerance" -ForegroundColor Green
+if (-not (Test-Path $ReportJson)) {
+  Write-Error "Expected perf guard report was not written: $ReportJson. Rebuild hashbrowns so the current binary supports --baseline-report-json."
+  exit 3
+}
+Write-Host "All metrics within tolerance. Report: $ReportJson" -ForegroundColor Green
 exit 0

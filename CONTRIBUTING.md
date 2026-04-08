@@ -119,6 +119,7 @@ The `scripts/perf_guard.sh` script:
 - Verifies that the new run is still the same experiment before comparing timings: size, runs, warmup, bootstrap, structures, pattern, seed, hash-map tuning, CPU pinning, and turbo state must match the baseline metadata.
 - Compares key operations against a stored baseline (`perf_baselines/baseline.json`) with configurable tolerances.
 - Emits environment-drift warnings (CPU/compiler/kernel/governor/RAM/core-count) and fails on significant regressions (>threshold % slowdown).
+- Always writes `build/perf_guard_report.json` so CI and dashboards can consume structured comparison output.
 - CI runs this conditionally when a PR has the 'perf' label.
 
 Usage:
