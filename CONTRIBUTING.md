@@ -136,6 +136,7 @@ Contributors changing hot paths should:
 - Provide before/after JSON plus rationale in PR if intentional performance changes.
 - Update baseline only with team approval.
 - If you refresh the checked-in baseline, use `scripts/perf_guard.sh --update`, then run `scripts/perf_guard.sh` and keep the resulting `build/perf_guard_report.json` as evidence that the refreshed baseline is internally consistent. Expect the manifest to stay canonical for workload-shaping fields; the fixed perf-guard output path may still appear as an explicit `output` override.
+- If you touch `scripts/perf_guard_report.py`, run `python3 scripts/test_perf_guard_report.py` before pushing so helper-level regressions are caught without relying only on full benchmark runs.
 
 ## 7. Memory Tracking & Probe Metrics
 Enable detailed memory deltas: `--memory-tracking`.
