@@ -31,6 +31,16 @@ hashbrowns is a C++17 benchmarking suite for comparing custom data structures wi
 - Screenshot of JSON/CSV output plus plotted results
 - Simple diagram showing benchmark runner, structures, output artifacts, and regression guard flow
 
+## Vision and media
+- Final vision: [final_vision.md](final_vision.md)
+- Planned media folder: [`docs/media/`](docs/media/)
+
+## Preview placeholders
+![Hashbrowns benchmark chart placeholder](docs/media/benchmark-chart.svg)
+![Hashbrowns results output placeholder](docs/media/results-output.svg)
+
+> Replace the placeholder SVG files in `docs/media/` with a real benchmark chart and output capture. Add richer analysis visuals as the reporting pipeline improves.
+
 ## System architecture
 
 ```mermaid

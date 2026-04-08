@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#1c1917"/>
+  <rect x="50" y="50" width="1180" height="620" rx="18" fill="#292524" stroke="#f97316" stroke-width="3" stroke-dasharray="12 10"/>
+  <text x="640" y="210" text-anchor="middle" fill="#fff7ed" font-size="42" font-family="Arial, sans-serif">Hashbrowns README Placeholder</text>
+  <text x="640" y="280" text-anchor="middle" fill="#fdba74" font-size="28" font-family="Arial, sans-serif">Replace with real benchmark chart</text>
+  <text x="640" y="330" text-anchor="middle" fill="#fdba74" font-size="28" font-family="Arial, sans-serif">Show structure tradeoffs across insert/search/remove workloads</text>
+  <text x="640" y="600" text-anchor="middle" fill="#fed7aa" font-size="24" font-family="Arial, sans-serif">docs/media/benchmark-chart.svg → replace with real chart export</text>
+</svg>

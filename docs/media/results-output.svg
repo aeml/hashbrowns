@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#172026"/>
+  <rect x="50" y="50" width="1180" height="620" rx="18" fill="#1f2937" stroke="#22d3ee" stroke-width="3" stroke-dasharray="12 10"/>
+  <text x="640" y="210" text-anchor="middle" fill="#ecfeff" font-size="42" font-family="Arial, sans-serif">Hashbrowns README Placeholder</text>
+  <text x="640" y="280" text-anchor="middle" fill="#67e8f9" font-size="28" font-family="Arial, sans-serif">Replace with real output capture</text>
+  <text x="640" y="330" text-anchor="middle" fill="#67e8f9" font-size="28" font-family="Arial, sans-serif">Show console, JSON, or CSV results from repeatable benchmark runs</text>
+  <text x="640" y="600" text-anchor="middle" fill="#a5f3fc" font-size="24" font-family="Arial, sans-serif">docs/media/results-output.svg → replace with real capture</text>
+</svg>
