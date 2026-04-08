@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aeml.github.io/hashbrowns/schemas/baseline_report.schema.json",
+  "title": "hashbrowns baseline comparison report",
+  "type": "object",
+  "required": [
+    "baseline_path",
+    "scope",
+    "threshold_pct",
+    "noise_floor_pct",
+    "strict_profile_intent",
+    "exit_code",
+    "metadata",
+    "comparison"
+  ],
+  "properties": {
+    "baseline_path": {"type": "string"},
+    "scope": {"type": "string", "enum": ["mean", "p95", "ci_high", "any"]},
+    "threshold_pct": {"type": "number"},
+    "noise_floor_pct": {"type": "number"},
+    "strict_profile_intent": {"type": "boolean"},
+    "exit_code": {"type": "integer", "enum": [0, 4, 5]},
+    "metadata": {
+      "type": "object",
+      "required": ["ok", "errors", "warnings"],
+      "properties": {
+        "ok": {"type": "boolean"},
+        "errors": {"type": "array", "items": {"type": "string"}},
+        "warnings": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "comparison": {
+      "type": "object",
+      "required": ["all_ok", "entries"],
+      "properties": {
+        "all_ok": {"type": "boolean"},
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "structure",
+              "insert_delta_pct",
+              "search_delta_pct",
+              "remove_delta_pct",
+              "insert_ok",
+              "search_ok",
+              "remove_ok"
+            ],
+            "properties": {
+              "structure": {"type": "string"},
+              "insert_delta_pct": {"type": "number"},
+              "search_delta_pct": {"type": "number"},
+              "remove_delta_pct": {"type": "number"},
+              "insert_ok": {"type": "boolean"},
+              "search_ok": {"type": "boolean"},
+              "remove_ok": {"type": "boolean"}
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

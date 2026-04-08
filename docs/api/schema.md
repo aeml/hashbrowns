@@ -35,6 +35,22 @@ This document describes the JSON structures emitted by hashbrowns. A minimal `sc
 - `meta.runs_per_size` (int)
 - `series` (array): entries with `size`, `structure`, `insert_ms`, `search_ms`, `remove_ms`
 
+## baseline_report.json
+- Top-level report emitted by `--baseline-report-json`
+- `baseline_path` (string): path of the baseline file used for comparison
+- `scope` (string): timing scope used for evaluation: `mean|p95|ci_high|any`
+- `threshold_pct` / `noise_floor_pct` (number): comparison policy used for this run
+- `strict_profile_intent` (bool): whether profile-manifest intent matching was enforced
+- `exit_code` (int): final baseline classification (`0` success, `4` regression, `5` metadata mismatch)
+- `metadata` (object): machine-readable copy of compatibility findings
+  - `ok` (bool)
+  - `errors` (string[])
+  - `warnings` (string[])
+- `comparison` (object): machine-readable copy of per-structure timing deltas
+  - `all_ok` (bool)
+  - `entries[]` with `structure`, `insert_delta_pct`, `search_delta_pct`, `remove_delta_pct`, `insert_ok`, `search_ok`, `remove_ok`
+
 ## Compatibility Notes
-- Consumers should verify `meta.schema_version` and tolerate additional fields.
+- Benchmark/series/crossover consumers should verify `meta.schema_version` and tolerate additional fields.
+- Baseline report consumers should treat `exit_code` plus `metadata.ok`/`comparison.all_ok` as the truthful classification surface instead of scraping console logs.
 - Newer versions may add keys but won’t remove or change types without bumping the schema version.

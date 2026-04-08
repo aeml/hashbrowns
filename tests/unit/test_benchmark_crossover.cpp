@@ -404,6 +404,8 @@ int run_benchmark_crossover_tests() {
             if (baseline_report_content.find("\"metadata\"") == std::string::npos ||
                 baseline_report_content.find("\"comparison\"") == std::string::npos ||
                 baseline_report_content.find("\"baseline_path\": \"perf_baselines/baseline.json\"") == std::string::npos ||
+                baseline_report_content.find("\"scope\": \"mean\"") == std::string::npos ||
+                baseline_report_content.find("\"exit_code\": 0") == std::string::npos ||
                 baseline_report_content.find("\"strict_profile_intent\": true") == std::string::npos ||
                 baseline_report_content.find("\"entries\"") == std::string::npos) {
                 std::cout << "❌ Baseline report JSON missing expected structure\n";

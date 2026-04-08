@@ -18,14 +18,16 @@ def load(path: str):
 
 
 def detect_schema(obj: Dict[str, object]) -> str:
-    # Heuristic: keys decide which schema to apply
+    # Heuristic: top-level keys decide which schema to apply
     if 'results' in obj:
         return 'benchmark_results.schema.json'
     if 'series' in obj:
         return 'series_results.schema.json'
     if 'crossovers' in obj:
         return 'crossover_results.schema.json'
-    raise ValueError('Unrecognized JSON structure (missing results/series/crossovers)')
+    if 'metadata' in obj and 'comparison' in obj and 'baseline_path' in obj:
+        return 'baseline_report.schema.json'
+    raise ValueError('Unrecognized JSON structure (missing results/series/crossovers or baseline report fields)')
 
 
 def main():
