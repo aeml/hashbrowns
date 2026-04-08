@@ -16,10 +16,10 @@ TOL_PCT_INSERT=${TOL_PCT_INSERT:-20}
 TOL_PCT_SEARCH=${TOL_PCT_SEARCH:-20}
 TOL_PCT_REMOVE=${TOL_PCT_REMOVE:-20}
 BASELINE_SCOPE=${BASELINE_SCOPE:-mean}
-SIZE=${SIZE:-20000}
-RUNS=${RUNS:-5}
-SEED=${SEED:-12345}
-STRUCTURES=${STRUCTURES:-array,slist,dlist,hashmap}
+SIZE=${SIZE:-}
+RUNS=${RUNS:-}
+SEED=${SEED:-}
+STRUCTURES=${STRUCTURES:-}
 
 usage(){
   cat <<EOF
@@ -30,7 +30,7 @@ Artifacts:
   build/perf_guard_report.json    machine-readable baseline comparison report
 
 Environment overrides:
-  SIZE, RUNS, SEED, STRUCTURES
+  SIZE, RUNS, SEED, STRUCTURES   override the ci profile defaults when set
   TOL_PCT_INSERT, TOL_PCT_SEARCH, TOL_PCT_REMOVE
   BASELINE_SCOPE=mean|p95|ci_high|any
 EOF
@@ -48,10 +48,14 @@ fi
 
 mkdir -p "${BASE_DIR}"
 
+RUN_ARGS=(--no-banner --profile ci --output "${TMP_JSON}" --out-format json)
+if [[ -n "${SIZE:-}" ]]; then RUN_ARGS+=(--size "${SIZE}"); fi
+if [[ -n "${RUNS:-}" ]]; then RUN_ARGS+=(--runs "${RUNS}"); fi
+if [[ -n "${STRUCTURES:-}" ]]; then RUN_ARGS+=(--structures "${STRUCTURES}"); fi
+if [[ -n "${SEED:-}" ]]; then RUN_ARGS+=(--seed "${SEED}"); fi
+
 # Run a small benchmark and capture JSON
-"${BIN}" --no-banner --profile ci --size "${SIZE}" --runs "${RUNS}" \
-  --structures "${STRUCTURES}" --seed "${SEED}" \
-  --output "${TMP_JSON}" --out-format json >/dev/null || true
+"${BIN}" "${RUN_ARGS[@]}" >/dev/null || true
 rm -f "${REPORT_JSON}"
 
 if [[ ${UPDATE} -eq 1 ]]; then
@@ -75,14 +79,8 @@ print(max(vals))
 PY
 )
 
-"${BIN}" --no-banner --profile ci --size "${SIZE}" --runs "${RUNS}" \
-  --structures "${STRUCTURES}" --seed "${SEED}" \
-  --output "${TMP_JSON}" --out-format json \
-  --baseline "${BASE_JSON}" \
-  --baseline-threshold "${MAX_TOL}" \
-  --baseline-noise 1 \
-  --baseline-scope "${BASELINE_SCOPE}" \
-  --baseline-report-json "${REPORT_JSON}"
+COMPARE_ARGS=("${RUN_ARGS[@]}" --baseline "${BASE_JSON}" --baseline-threshold "${MAX_TOL}" --baseline-noise 1 --baseline-scope "${BASELINE_SCOPE}" --baseline-report-json "${REPORT_JSON}")
+"${BIN}" "${COMPARE_ARGS[@]}"
 
 if [[ ! -s "${REPORT_JSON}" ]]; then
   echo "[ERROR] Expected perf guard report was not written: ${REPORT_JSON}" >&2

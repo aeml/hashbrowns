@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "schema_version": 1,
+    "size": 20000,
+    "runs": 10,
+    "warmup_runs": 0,
+    "bootstrap_iters": 0,
+    "structures": ["array","slist","dlist","hashmap"],
+    "pattern": "sequential",
+    "seed": 0,
+    "timestamp": "2026-04-08T21:20:31Z",
+    "cpu_governor": "powersave",
+    "git_commit": "28a4edd",
+    "compiler": "GCC 13.3.0",
+    "cpp_standard": "C++17",
+    "build_type": "Unknown",
+    "cpu_model": "AMD Ryzen 7 5700G with Radeon Graphics",
+    "profile": "ci",
+    "cores": 16,
+    "total_ram_bytes": 32979116032,
+    "kernel": "Linux 6.8.0-107-generic",
+    "hash_strategy": "open",
+    "pinned_cpu": -1,
+    "turbo_disabled": 0,
+    "profile_manifest": {
+      "selected_profile": "ci",
+      "applied_defaults": ["size","runs","structures","seed"],
+      "explicit_overrides": ["output"]
+    }
+  },
+  "results": [
+    {"structure": "array","insert_ms_mean": 2931.66,"insert_ms_stddev": 48.0964,"insert_ms_median": 2933.26,"insert_ms_p95": 3005.83,"insert_ci_low": 2931.66,"insert_ci_high": 2931.66,"search_ms_mean": 929922,"search_ms_stddev": 3696.85,"search_ms_median": 928871,"search_ms_p95": 936531,"search_ci_low": 929922,"search_ci_high": 929922,"remove_ms_mean": 2.08213e+06,"remove_ms_stddev": 98879.3,"remove_ms_median": 2.08467e+06,"remove_ms_p95": 2.23663e+06,"remove_ci_low": 2.08213e+06,"remove_ci_high": 2.08213e+06,"memory_bytes": 1310776,"memory_insert_mean": 1.31072e+06,"memory_insert_stddev": 0,"memory_search_mean": 0,"memory_search_stddev": 0,"memory_remove_mean": 0,"memory_remove_stddev": 0,"insert_probes_mean": 0,"insert_probes_stddev": 0,"search_probes_mean": 0,"search_probes_stddev": 0,"remove_probes_mean": 0,"remove_probes_stddev": 0},
+    {"structure": "slist","insert_ms_mean": 2172.46,"insert_ms_stddev": 179.473,"insert_ms_median": 2087.56,"insert_ms_p95": 2519.12,"insert_ci_low": 2172.46,"insert_ci_high": 2172.46,"search_ms_mean": 267158,"search_ms_stddev": 1890.1,"search_ms_median": 267107,"search_ms_p95": 269827,"search_ci_low": 267158,"search_ci_high": 267158,"remove_ms_mean": 901.78,"remove_ms_stddev": 42.7285,"remove_ms_median": 894.234,"remove_ms_p95": 970.718,"remove_ci_low": 901.78,"remove_ci_high": 901.78,"memory_bytes": 960104,"memory_insert_mean": 933888,"memory_insert_stddev": 0,"memory_search_mean": 0,"memory_search_stddev": 0,"memory_remove_mean": 0,"memory_remove_stddev": 0,"insert_probes_mean": 0,"insert_probes_stddev": 0,"search_probes_mean": 0,"search_probes_stddev": 0,"remove_probes_mean": 0,"remove_probes_stddev": 0},
+    {"structure": "dlist","insert_ms_mean": 2193.62,"insert_ms_stddev": 82.7219,"insert_ms_median": 2163.8,"insert_ms_p95": 2334.79,"insert_ci_low": 2193.62,"insert_ci_high": 2193.62,"search_ms_mean": 272278,"search_ms_stddev": 2763.83,"search_ms_median": 272070,"search_ms_p95": 275926,"search_ci_low": 272278,"search_ci_high": 272278,"remove_ms_mean": 909.162,"remove_ms_stddev": 27.7535,"remove_ms_median": 908.667,"remove_ms_p95": 948.61,"remove_ci_low": 909.162,"remove_ci_high": 909.162,"memory_bytes": 1120104,"memory_insert_mean": 1.08954e+06,"memory_insert_stddev": 0,"memory_search_mean": 0,"memory_search_stddev": 0,"memory_remove_mean": 0,"memory_remove_stddev": 0,"insert_probes_mean": 0,"insert_probes_stddev": 0,"search_probes_mean": 0,"search_probes_stddev": 0,"remove_probes_mean": 0,"remove_probes_stddev": 0},
+    {"structure": "hashmap","insert_ms_mean": 4613.32,"insert_ms_stddev": 368.804,"insert_ms_median": 4496.09,"insert_ms_p95": 5240.11,"insert_ci_low": 4613.32,"insert_ci_high": 4613.32,"search_ms_mean": 1018.02,"search_ms_stddev": 108.527,"search_ms_median": 950.596,"search_ms_p95": 1203.01,"search_ci_low": 1018.02,"search_ci_high": 1018.02,"remove_ms_mean": 947.8,"remove_ms_stddev": 78.5395,"remove_ms_median": 897.355,"remove_ms_p95": 1078.86,"remove_ci_low": 947.8,"remove_ci_high": 947.8,"memory_bytes": 1573096,"memory_insert_mean": 1.57286e+06,"memory_insert_stddev": 0,"memory_search_mean": 0,"memory_search_stddev": 0,"memory_remove_mean": 0,"memory_remove_stddev": 0,"insert_probes_mean": 2.78135,"insert_probes_stddev": 0,"search_probes_mean": 1.79345,"search_probes_stddev": 0,"remove_probes_mean": 1.79345,"remove_probes_stddev": 0}
+  ]
+}

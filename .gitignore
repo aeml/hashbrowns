@@ -100,8 +100,10 @@ coverage_report/
 /test_benchmark_export.csv
 /test_results.csv
 
-# Legacy perf baselines directory (superseded by docs/baselines/)
-perf_baselines/
+# Perf baseline artifacts
+perf_baselines/*
+!perf_baselines/.gitkeep
+!perf_baselines/baseline.json
 
 # Temporary files
 *.tmp

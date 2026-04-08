@@ -14,7 +14,7 @@ scripts/perf_guard.sh --update
 scripts/perf_guard.sh
 ```
 
-The JSON baseline captures both timing summaries and benchmark metadata for a fixed workload. Tolerances default to 20 % and can be overridden with environment variables:
+The JSON baseline captures both timing summaries and benchmark metadata for a fixed workload. By default the guard preserves the canonical `ci` profile defaults; setting `SIZE`, `RUNS`, `SEED`, or `STRUCTURES` turns those into explicit overrides. Tolerances default to 20 % and can be overridden with environment variables:
 
 ```bash
 TOL_PCT_INSERT=10 TOL_PCT_SEARCH=10 TOL_PCT_REMOVE=10 scripts/perf_guard.sh
@@ -45,5 +45,6 @@ secondary; prefer the JSON baseline for day-to-day performance guarding.
 ## Notes
 
 - Baselines are hardware-dependent. Keep sizes small and thresholds loose for CI.
-- Update the baseline only when you intentionally accept a performance change.
+- The checked-in `perf_baselines/baseline.json` should be regenerated with the current canonical `scripts/perf_guard.sh --update` workflow so its metadata matches the `ci` profile and emitted profile manifest. In the current design, the fixed `build/perf_guard_current.json` output path shows up as an explicit `output` override, which is acceptable because the workload shape remains canonical.
+- Update the baseline only when you intentionally accept a performance change, and only after `scripts/perf_guard.sh` passes against the refreshed artifact and `build/perf_guard_report.json` validates.
 - The `perf-guard` CI job gates merges only when a PR carries the `perf` label.

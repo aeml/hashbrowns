@@ -1,9 +1,9 @@
 param(
   [switch]$Update,
-  [int]$Size = 20000,
-  [int]$Runs = 5,
-  [string]$Seed = '12345',
-  [string]$Structures = 'array,slist,dlist,hashmap',
+  [Nullable[int]]$Size = $null,
+  [Nullable[int]]$Runs = $null,
+  [string]$Seed = $null,
+  [string]$Structures = $null,
   [int]$TolInsertPct = 20,
   [int]$TolSearchPct = 20,
   [int]$TolRemovePct = 20,
@@ -20,6 +20,11 @@ $BaselineDir = Join-Path $Root 'perf_baselines'
 $BaselineJson = Join-Path $BaselineDir 'baseline.json'
 $TmpJson = Join-Path $BuildDir 'perf_guard_current.json'
 $ReportJson = Join-Path $BuildDir 'perf_guard_report.json'
+$RunArgs = @('--no-banner', '--profile', 'ci', '--output', $TmpJson, '--out-format', 'json')
+if ($PSBoundParameters.ContainsKey('Size')) { $RunArgs += @('--size', $Size) }
+if ($PSBoundParameters.ContainsKey('Runs')) { $RunArgs += @('--runs', $Runs) }
+if ($PSBoundParameters.ContainsKey('Structures')) { $RunArgs += @('--structures', $Structures) }
+if ($PSBoundParameters.ContainsKey('Seed')) { $RunArgs += @('--seed', $Seed) }
 
 if (-not (Test-Path $Bin)) {
   Write-Host "[INFO] Building project ($BuildType)..." -ForegroundColor Cyan
@@ -31,7 +36,7 @@ if (-not (Test-Path $Bin)) {
 # write the reference baseline; otherwise, use the built-in baseline
 # comparison mode in the hashbrowns binary.
 Write-Host "[INFO] Running benchmark for perf guard..." -ForegroundColor Cyan
-& $Bin --size $Size --runs $Runs --structures $Structures --pattern sequential --seed $Seed --out-format json --output $TmpJson | Write-Output
+& $Bin @RunArgs | Write-Output
 
 if ($Update) {
   New-Item -ItemType Directory -Force -Path $BaselineDir | Out-Null
@@ -48,7 +53,8 @@ if (-not (Test-Path $BaselineJson)) {
 # Delegate comparison to the native baseline mode in the executable.
 Write-Host "[INFO] Comparing against baseline via built-in checker..." -ForegroundColor Cyan
 if (Test-Path $ReportJson) { Remove-Item -Force $ReportJson }
-& $Bin --size $Size --runs $Runs --structures $Structures --pattern sequential --seed $Seed --out-format json --output $TmpJson --baseline $BaselineJson --baseline-threshold $TolInsertPct --baseline-noise 1.0 --baseline-scope mean --baseline-report-json $ReportJson | Write-Output
+$CompareArgs = $RunArgs + @('--baseline', $BaselineJson, '--baseline-threshold', $TolInsertPct, '--baseline-noise', '1.0', '--baseline-scope', 'mean', '--baseline-report-json', $ReportJson)
+& $Bin @CompareArgs | Write-Output
 if ($LASTEXITCODE -ne 0) {
   Write-Error "Performance regression detected (exit code $LASTEXITCODE). See $ReportJson"
   exit 2
