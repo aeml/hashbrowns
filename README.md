@@ -26,6 +26,26 @@ hashbrowns is a C++17 benchmarking suite for comparing custom data structures wi
 - data-structure implementation plus analysis
 - CI-friendly benchmarking guardrails
 
+## Recommended visuals to add
+- Benchmark chart comparing structures across insert/search/remove workloads
+- Screenshot of JSON/CSV output plus plotted results
+- Simple diagram showing benchmark runner, structures, output artifacts, and regression guard flow
+
+## System architecture
+
+```mermaid
+graph LR
+    CLI[CLI / Benchmark Profiles] --> Runner[Benchmark Runner]
+    Runner --> Array[Dynamic Array]
+    Runner --> SList[Singly Linked List]
+    Runner --> DList[Doubly Linked List]
+    Runner --> HashMap[Hash Map]
+    Runner --> Stats[Stats / Bootstrap / Percentiles]
+    Stats --> Export[CSV / JSON Export]
+    Export --> Analysis[Plots / Analysis Scripts]
+    Export --> Guard[Baseline Regression Checks]
+```
+
 > Documentation & Tutorials: API docs, coverage report, Quickstart, and Memory & Probes guides are published via GitHub Pages: https://aeml.github.io/hashbrowns/
 
 ---
