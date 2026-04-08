@@ -48,6 +48,7 @@ Then compare new runs against it:
 What the checker now does before reading slowdown percentages:
 
 - Fails the comparison if workload-shaping metadata changed: size, runs, warmup, bootstrap iters, structures, pattern, seed, hash strategy/capacity/load, CPU pinning, or turbo setting.
+- With `--baseline-strict-profile-intent`, also fails if `profile_manifest` intent drifted even when the coarse profile name still matches.
 - Warns if environment context changed: CPU model, compiler, kernel, governor, RAM, or core count.
 
 That split matters. A different seedless workload or different hash-map tuning is not a perf regression. It is a different experiment.

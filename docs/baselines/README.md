@@ -22,6 +22,7 @@ TOL_PCT_INSERT=10 TOL_PCT_SEARCH=10 TOL_PCT_REMOVE=10 scripts/perf_guard.sh
 
 Metadata policy:
 - Hard fail if benchmark-shaping inputs changed: size, runs, warmup, bootstrap iters, structures, pattern, seed, hash strategy/capacity/load, CPU pinning, or turbo state.
+- Optional stricter fail mode with `--baseline-strict-profile-intent`: if `profile_manifest` exists, selected profile and manifest override/default intent must match too.
 - Warning only if machine/compiler context changed: CPU model, compiler, governor, kernel, RAM, or core count.
 
 That keeps the guard honest: it refuses apples-to-oranges comparisons before reporting slowdown percentages.

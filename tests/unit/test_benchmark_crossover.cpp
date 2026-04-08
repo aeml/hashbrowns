@@ -283,9 +283,10 @@ int run_benchmark_crossover_tests() {
         current.push_back(br2);
 
         BaselineConfig base_config;
-        base_config.threshold_pct   = 10.0;
-        base_config.noise_floor_pct = 2.0;
-        base_config.scope           = BaselineConfig::MetricScope::MEAN;
+        base_config.threshold_pct          = 10.0;
+        base_config.noise_floor_pct        = 2.0;
+        base_config.scope                  = BaselineConfig::MetricScope::MEAN;
+        base_config.strict_profile_intent  = true;
 
         auto comparison = compare_against_baseline(baseline, current, base_config);
         if (comparison.entries.empty()) {
@@ -315,6 +316,9 @@ int run_benchmark_crossover_tests() {
         baseline_meta.turbo_disabled  = true;
         baseline_meta.cpu_model       = "Baseline CPU";
         baseline_meta.compiler        = "GCC 13";
+        baseline_meta.profile_selected = "ci";
+        baseline_meta.profile_applied_defaults = {"size", "runs", "structures", "seed"};
+        baseline_meta.profile_explicit_overrides = {"output"};
 
         BenchmarkMeta current_meta = baseline_meta;
         auto          meta_ok      = compare_benchmark_metadata(baseline_meta, current_meta, base_config);
@@ -362,6 +366,21 @@ int run_benchmark_crossover_tests() {
             std::cout << "✅ Environment drift produces warnings without invalidating comparison\n";
         }
 
+        current_meta = baseline_meta;
+        current_meta.profile_explicit_overrides = {"runs", "output", "seed"};
+        auto meta_manifest_bad = compare_benchmark_metadata(baseline_meta, current_meta, base_config);
+        bool saw_profile_manifest_mismatch = false;
+        for (const auto& msg : meta_manifest_bad.errors) {
+            if (msg.find("profile_explicit_overrides") != std::string::npos)
+                saw_profile_manifest_mismatch = true;
+        }
+        if (meta_manifest_bad.ok || !saw_profile_manifest_mismatch) {
+            std::cout << "❌ Strict baseline intent should fail when profile overrides drift\n";
+            ++failures;
+        } else {
+            std::cout << "✅ Strict baseline intent rejects profile override drift\n";
+        }
+
         // Test print helpers
         print_baseline_report(comparison, base_config.threshold_pct, base_config.noise_floor_pct);
         print_baseline_metadata_report(meta_bad);
@@ -397,6 +416,12 @@ int run_benchmark_crossover_tests() {
         out << "    \"cpp_standard\": \"C++17\",\n";
         out << "    \"build_type\": \"Release\",\n";
         out << "    \"cpu_model\": \"Unit Test CPU\",\n";
+        out << "    \"profile\": \"ci\",\n";
+        out << "    \"profile_manifest\": {\n";
+        out << "      \"selected_profile\": \"ci\",\n";
+        out << "      \"applied_defaults\": [\"size\",\"runs\",\"structures\",\"seed\"],\n";
+        out << "      \"explicit_overrides\": [\"output\"]\n";
+        out << "    },\n";
         out << "    \"cores\": 8,\n";
         out << "    \"total_ram_bytes\": 17179869184,\n";
         out << "    \"kernel\": \"Linux 6.x\",\n";
@@ -435,7 +460,8 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Loaded incorrect insert_ms_mean\n";
             ++failures;
         } else if (loaded_data.meta.pattern != "random" || !loaded_data.meta.seed.has_value() ||
-                   *loaded_data.meta.seed != 12345ULL || loaded_data.meta.hash_strategy != "open") {
+                   *loaded_data.meta.seed != 12345ULL || loaded_data.meta.hash_strategy != "open" ||
+                   loaded_data.meta.profile_selected != "ci" || loaded_data.meta.profile_explicit_overrides != std::vector<std::string>{"output"}) {
             std::cout << "❌ Loaded incorrect benchmark metadata\n";
             ++failures;
         } else {

@@ -174,6 +174,8 @@ OPTIONS:
         --series-runs N       Runs per size during crossover analysis (default: 1)
     --pattern TYPE        Data pattern for keys: sequential, random, mixed (default: sequential)
     --seed N              RNG seed used when pattern is random/mixed (default: random_device)
+    --baseline-strict-profile-intent
+                         Require baseline profile_manifest intent to match exactly when comparing baselines
     --pin-cpu [IDX]      Pin process to CPU index (default 0 if IDX omitted) for reproducibility (Linux-only)
     --no-turbo           Attempt to disable CPU turbo boost (Linux-only, best-effort; may need root)
     --max-seconds N       Time budget for crossover sweep; stop early when exceeded
@@ -247,10 +249,11 @@ int main(int argc, char* argv[]) {
     const auto        opt_hash_capacity      = a.opt_hash_capacity;
     const auto        opt_hash_load          = a.opt_hash_load;
     const bool        opt_op_tests           = a.opt_op_tests;
-    const auto        opt_baseline_path      = a.opt_baseline_path;
-    const double      opt_baseline_threshold = a.opt_baseline_threshold;
-    const double      opt_baseline_noise     = a.opt_baseline_noise;
-    const auto        opt_baseline_scope     = a.opt_baseline_scope;
+    const auto        opt_baseline_path                 = a.opt_baseline_path;
+    const double      opt_baseline_threshold            = a.opt_baseline_threshold;
+    const double      opt_baseline_noise                = a.opt_baseline_noise;
+    const auto        opt_baseline_scope                = a.opt_baseline_scope;
+    const bool        opt_baseline_strict_profile_intent = a.opt_baseline_strict_profile_intent;
 
     if (show_help) {
         show_usage();
@@ -506,10 +509,6 @@ int main(int argc, char* argv[]) {
             mark_override_if(profile_explicit_overrides, "hash_strategy", a.opt_hash_strategy != HashStrategy::OPEN_ADDRESSING);
             mark_override_if(profile_explicit_overrides, "hash_capacity", a.opt_hash_capacity.has_value());
             mark_override_if(profile_explicit_overrides, "hash_load", a.opt_hash_load.has_value());
-            mark_override_if(profile_explicit_overrides, "baseline", a.opt_baseline_path.has_value());
-            mark_override_if(profile_explicit_overrides, "baseline_threshold", a.opt_baseline_threshold != 20.0);
-            mark_override_if(profile_explicit_overrides, "baseline_noise", a.opt_baseline_noise != 1.0);
-            mark_override_if(profile_explicit_overrides, "baseline_scope", a.opt_baseline_scope != BaselineConfig::MetricScope::MEAN);
             mark_override_if(profile_explicit_overrides, "max_seconds", a.opt_max_seconds.has_value());
             mark_override_if(profile_explicit_overrides, "series_sizes", !a.opt_series_sizes.empty());
         }
@@ -625,10 +624,11 @@ int main(int argc, char* argv[]) {
             int base_rc = results.empty() ? 1 : 0;
             if (opt_baseline_path) {
                 BaselineConfig bcfg;
-                bcfg.baseline_path   = *opt_baseline_path;
-                bcfg.threshold_pct   = opt_baseline_threshold;
-                bcfg.noise_floor_pct = opt_baseline_noise;
-                bcfg.scope           = opt_baseline_scope;
+                bcfg.baseline_path          = *opt_baseline_path;
+                bcfg.threshold_pct          = opt_baseline_threshold;
+                bcfg.noise_floor_pct        = opt_baseline_noise;
+                bcfg.scope                  = opt_baseline_scope;
+                bcfg.strict_profile_intent  = opt_baseline_strict_profile_intent;
                 auto baseline_data = load_benchmark_data_json(bcfg.baseline_path);
                 if (baseline_data.results.empty()) {
                     std::cerr << "[baseline] Failed to load baseline from " << bcfg.baseline_path << "\n";

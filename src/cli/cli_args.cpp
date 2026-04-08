@@ -169,6 +169,9 @@ CliArgs parse_args(int argc, char* argv[]) {
             else if (s == "any")
                 a.opt_baseline_scope = BaselineConfig::MetricScope::ANY;
             a.demo_mode = false;
+        } else if (arg == "--baseline-strict-profile-intent") {
+            a.opt_baseline_strict_profile_intent = true;
+            a.demo_mode                          = false;
         } else if (arg == "--op-tests") {
             a.opt_op_tests = true;
             a.demo_mode    = false;

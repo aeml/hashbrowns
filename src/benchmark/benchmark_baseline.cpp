@@ -217,6 +217,14 @@ static std::vector<std::string> extract_string_array_field(const std::string& ob
     return out;
 }
 
+static bool optional_string_equal(const std::optional<std::string>& a, const std::optional<std::string>& b) {
+    if (a.has_value() != b.has_value())
+        return false;
+    if (!a.has_value())
+        return true;
+    return *a == *b;
+}
+
 static std::vector<std::string> compare_string_vectors(const std::vector<std::string>& a, const std::vector<std::string>& b) {
     if (a == b)
         return {};
@@ -302,6 +310,12 @@ BenchmarkData load_benchmark_data_json(const std::string& path) {
             meta.cpu_model = *v;
         if (auto v = extract_string_field(*meta_obj, "profile"))
             meta.profile = *v;
+        if (auto profile_manifest = extract_object_by_key(*meta_obj, "profile_manifest")) {
+            if (auto v = extract_string_field(*profile_manifest, "selected_profile"))
+                meta.profile_selected = *v;
+            meta.profile_applied_defaults   = extract_string_array_field(*profile_manifest, "applied_defaults");
+            meta.profile_explicit_overrides = extract_string_array_field(*profile_manifest, "explicit_overrides");
+        }
         if (auto v = extract_uint_field(*meta_obj, "cores"))
             meta.cores = *v;
         if (auto v = extract_ull_field(*meta_obj, "total_ram_bytes"))
@@ -369,7 +383,7 @@ std::vector<BenchmarkResult> load_benchmark_results_json(const std::string& path
 }
 
 BaselineMetadataReport compare_benchmark_metadata(const BenchmarkMeta& baseline, const BenchmarkMeta& current,
-                                                  const BaselineConfig&) {
+                                                  const BaselineConfig& cfg) {
     BaselineMetadataReport report;
 
     auto require_string_equal = [&report](const std::string& field, const std::string& a, const std::string& b) {
@@ -430,6 +444,28 @@ BaselineMetadataReport compare_benchmark_metadata(const BenchmarkMeta& baseline,
     require_optional_double_equal("hash_load", baseline.hash_load, current.hash_load);
     require_int_equal("pinned_cpu", baseline.pinned_cpu, current.pinned_cpu);
     require_int_equal("turbo_disabled", baseline.turbo_disabled ? 1 : 0, current.turbo_disabled ? 1 : 0);
+
+    if (cfg.strict_profile_intent) {
+        auto manifest_present = [](const BenchmarkMeta& meta) {
+            return !meta.profile_applied_defaults.empty() || !meta.profile_explicit_overrides.empty() || meta.profile_selected != "custom";
+        };
+        const bool baseline_has_manifest = manifest_present(baseline);
+        const bool current_has_manifest  = manifest_present(current);
+        if (baseline_has_manifest != current_has_manifest) {
+            report.errors.push_back("profile_manifest mismatch: baseline='" + std::string(baseline_has_manifest ? "present" : "missing") +
+                                    "' current='" + std::string(current_has_manifest ? "present" : "missing") + "'");
+        } else if (baseline_has_manifest && current_has_manifest) {
+            require_string_equal("profile_selected", baseline.profile_selected, current.profile_selected);
+            if (baseline.profile_applied_defaults != current.profile_applied_defaults) {
+                auto rendered = compare_string_vectors(baseline.profile_applied_defaults, current.profile_applied_defaults);
+                report.errors.push_back("profile_applied_defaults mismatch: baseline='" + rendered[0] + "' current='" + rendered[1] + "'");
+            }
+            if (baseline.profile_explicit_overrides != current.profile_explicit_overrides) {
+                auto rendered = compare_string_vectors(baseline.profile_explicit_overrides, current.profile_explicit_overrides);
+                report.errors.push_back("profile_explicit_overrides mismatch: baseline='" + rendered[0] + "' current='" + rendered[1] + "'");
+            }
+        }
+    }
 
     warn_string_equal("cpu_model", baseline.cpu_model, current.cpu_model);
     warn_string_equal("compiler", baseline.compiler, current.compiler);

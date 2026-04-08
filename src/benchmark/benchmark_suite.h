@@ -49,6 +49,7 @@ struct BaselineConfig {
     // Which metrics to consider when evaluating regressions.
     enum class MetricScope { MEAN, P95, CI_HIGH, ANY };
     MetricScope scope = MetricScope::MEAN;
+    bool strict_profile_intent{false};   // require matching profile manifest intent, not just matching coarse metadata
 };
 
 struct BaselineComparison {
@@ -118,6 +119,9 @@ struct BenchmarkMeta {
     std::string                       build_type{"unknown"};
     std::string                       cpu_model{"unknown"};
     std::string                       profile{"custom"};
+    std::string                       profile_selected{"custom"};
+    std::vector<std::string>          profile_applied_defaults;
+    std::vector<std::string>          profile_explicit_overrides;
     unsigned int                      cores{0};
     unsigned long long                total_ram_bytes{0};
     std::string                       kernel{"unknown"};

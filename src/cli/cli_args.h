@@ -70,6 +70,7 @@ struct CliArgs {
     double                      opt_baseline_threshold{20.0};
     double                      opt_baseline_noise{1.0};
     BaselineConfig::MetricScope opt_baseline_scope{BaselineConfig::MetricScope::MEAN};
+    bool                        opt_baseline_strict_profile_intent{false};
 };
 
 /**

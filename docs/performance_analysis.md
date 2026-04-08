@@ -33,6 +33,7 @@ CSV columns (crossover mode):
 - Fix the CPU governor if possible and close background applications
 - Run more repetitions for tighter confidence intervals (e.g., `--runs 30`)
 - Treat baseline comparisons as valid only when workload-shaping metadata matches: size, runs, warmup, bootstrap iters, structures, pattern, seed, hash strategy/capacity/load, CPU pinning, and turbo state
+- When you care about canonical workflow drift, use `--baseline-strict-profile-intent` so profile manifest intent must match too
 - Treat hardware/software environment fields (`cpu_model`, `compiler`, `kernel`, `cpu_governor`, RAM/core count) as warning signals, not proof of regression by themselves
 
 ## Baseline methodology
