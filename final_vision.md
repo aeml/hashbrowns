@@ -59,6 +59,53 @@ When in doubt, optimize for:
 
 More knobs are not better if they make the results less trustworthy.
 
+## Milestones to final vision
+
+### Milestone 1: Reproducible benchmark foundation
+Goal:
+Make repeatable runs the default, not an afterthought.
+
+Success looks like:
+- benchmark profiles are clean and practical for smoke, CI, crossover, and deep analysis
+- run metadata is captured consistently enough to explain results later
+- baseline/regression workflows are reliable under automation
+
+### Milestone 2: Stronger analysis and reporting
+Goal:
+Make results easy to interpret without extra glue work.
+
+Success looks like:
+- exported artifacts feed plotting and reporting cleanly
+- charts explain real tradeoffs quickly
+- crossover and memory/probe views add clarity instead of noise
+
+### Milestone 3: Tooling and workflow polish
+Goal:
+Make the project feel reusable, not one-off.
+
+Success looks like:
+- CLI workflows are easy to remember and automate
+- quickstarts and tutorials make common workflows obvious
+- adding a structure or a new experiment path is straightforward
+
+### Milestone 4: Credible performance guardrails
+Goal:
+Make the repo useful for catching regressions, not just describing them.
+
+Success looks like:
+- perf baseline updates and checks are easy to run in CI and locally
+- methodology and caveats are documented right next to the workflows
+- results remain honest about hardware sensitivity and measurement limits
+
+### Milestone 5: Portfolio-grade performance lab
+Goal:
+Make hashbrowns feel like a serious measurement project.
+
+Success looks like:
+- the project demonstrates benchmarking judgment, not just implementation effort
+- charts, docs, and outputs make claims feel earned
+- a reviewer would trust the analysis style even before agreeing with every result
+
 ## The north star
 The north star is:
 
