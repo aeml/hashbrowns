@@ -11,7 +11,7 @@
         "schema_version","size","runs","warmup_runs","bootstrap_iters",
         "structures","pattern","timestamp","git_commit","compiler",
         "cpp_standard","build_type","cpu_model","profile","cores","total_ram_bytes",
-        "kernel","hash_strategy","pinned_cpu","turbo_disabled","seed"
+        "kernel","profile_manifest","hash_strategy","pinned_cpu","turbo_disabled","seed"
       ],
       "properties": {
         "schema_version": {"type": "integer"},
@@ -33,6 +33,16 @@
         "cores": {"type": "integer", "minimum": 1},
         "total_ram_bytes": {"type": "integer", "minimum": 0},
         "kernel": {"type": "string"},
+        "profile_manifest": {
+          "type": "object",
+          "required": ["selected_profile", "applied_defaults", "explicit_overrides"],
+          "properties": {
+            "selected_profile": {"type": "string", "enum": ["custom","smoke","ci","series","crossover","deep"]},
+            "applied_defaults": {"type": "array", "items": {"type": "string"}},
+            "explicit_overrides": {"type": "array", "items": {"type": "string"}}
+          },
+          "additionalProperties": false
+        },
         "hash_strategy": {"type": "string", "enum": ["open","chain"]},
         "hash_capacity": {"type": "integer", "minimum": 0},
         "hash_load": {"type": "number", "minimum": 0},

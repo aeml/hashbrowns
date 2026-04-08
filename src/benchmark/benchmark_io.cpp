@@ -26,6 +26,31 @@
 
 namespace hashbrowns {
 
+namespace {
+
+void write_string_array(std::ofstream& out, const std::vector<std::string>& values) {
+    out << "[";
+    for (std::size_t i = 0; i < values.size(); ++i) {
+        out << "\"" << values[i] << "\"";
+        if (i + 1 < values.size())
+            out << ",";
+    }
+    out << "]";
+}
+
+void write_profile_manifest(std::ofstream& out, const BenchmarkConfig& config) {
+    out << "    \"profile_manifest\": {\n";
+    out << "      \"selected_profile\": \"" << config.profile_name << "\",\n";
+    out << "      \"applied_defaults\": ";
+    write_string_array(out, config.profile_applied_defaults);
+    out << ",\n";
+    out << "      \"explicit_overrides\": ";
+    write_string_array(out, config.profile_explicit_overrides);
+    out << "\n    }";
+}
+
+} // namespace
+
 // ---------------------------------------------------------------------------
 // Environment metadata helpers (file-local)
 // ---------------------------------------------------------------------------
@@ -268,7 +293,8 @@ void write_results_json_impl(const std::string& path, const std::vector<Benchmar
     if (config.hash_max_load_factor)
         out << ",\n    \"hash_load\": " << *config.hash_max_load_factor;
     out << ",\n    \"pinned_cpu\": " << (config.pin_cpu ? config.pin_cpu_index : -1);
-    out << ",\n    \"turbo_disabled\": " << (config.disable_turbo ? 1 : 0);
+    out << ",\n    \"turbo_disabled\": " << (config.disable_turbo ? 1 : 0) << ",\n";
+    write_profile_manifest(out, config);
     out << "\n  },\n";
     out << "  \"results\": [\n";
     for (std::size_t i = 0; i < results.size(); ++i) {
@@ -345,6 +371,8 @@ void BenchmarkSuite::write_crossover_json(const std::string& path, const std::ve
     out << "    \"pattern\": \"" << to_string(config.pattern) << "\"";
     if (config.seed.has_value())
         out << ",\n    \"seed\": " << *config.seed;
+    out << ",\n";
+    write_profile_manifest(out, config);
     out << "\n  },\n";
     out << "  \"crossovers\": [\n";
     for (std::size_t i = 0; i < info.size(); ++i) {
@@ -387,6 +415,8 @@ void BenchmarkSuite::write_series_json(const std::string& path, const Series& se
     out << "    \"pattern\": \"" << to_string(config.pattern) << "\"";
     if (config.seed.has_value())
         out << ",\n    \"seed\": " << *config.seed;
+    out << ",\n";
+    write_profile_manifest(out, config);
     out << "\n  },\n";
     out << "  \"series\": [\n";
     for (std::size_t i = 0; i < series.size(); ++i) {

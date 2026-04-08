@@ -8,6 +8,10 @@ This document describes the JSON structures emitted by hashbrowns. A minimal `sc
 - `meta.pattern` (string): `sequential|random|mixed`
 - `meta.seed` (uint64, optional): RNG seed if provided
 - Environment snapshot fields (when present): `timestamp`, `cpu_governor`, `git_commit`, `compiler`, `cpp_standard`, `build_type`, `cpu_model`, `profile`, `cores`, `total_ram_bytes`, `kernel`, and HashMap tuning `hash_strategy`, `hash_capacity?`, `hash_load?`, reproducibility `pinned_cpu`, `turbo_disabled`.
+- `meta.profile_manifest` (object): resolved profile intent emitted for automation and auditability.
+  - `selected_profile` (string): canonical profile name or `custom`
+  - `applied_defaults` (string[]): fields the selected profile supplied because the caller left them at profile-default detection values
+  - `explicit_overrides` (string[]): fields the caller set explicitly, diverging from the bare named profile
 - Baseline comparisons treat `size`, `runs`, `warmup_runs`, `bootstrap_iters`, `profile`, `structures`, `pattern`, `seed`, `hash_strategy`, `hash_capacity`, `hash_load`, `pinned_cpu`, and `turbo_disabled` as hard compatibility requirements.
 - Baseline comparisons treat `cpu_model`, `compiler`, `cpp_standard`, `cpu_governor`, `cores`, `total_ram_bytes`, and `kernel` as warning-only context fields.
 

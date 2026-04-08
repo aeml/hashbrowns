@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <algorithm>
 #ifdef __linux__
 #include <sched.h>
 #endif
@@ -302,68 +303,215 @@ int main(int argc, char* argv[]) {
                                                 : opt_structures;
             return hashbrowns::cli::run_op_tests(names, opt_size);
         }
+
+        auto contains_field = [](const std::vector<std::string>& fields, const std::string& field) {
+            return std::find(fields.begin(), fields.end(), field) != fields.end();
+        };
+        auto add_field_once = [&](std::vector<std::string>& fields, const std::string& field) {
+            if (!contains_field(fields, field))
+                fields.push_back(field);
+        };
+        auto mark_override_if = [&](std::vector<std::string>& overrides, const std::string& field, bool condition) {
+            if (condition)
+                add_field_once(overrides, field);
+        };
+
+        std::vector<std::string> profile_applied_defaults;
+        std::vector<std::string> profile_explicit_overrides;
         // Apply canonical benchmark profiles before running anything.
         if (opt_profile) {
             const auto& profile = *opt_profile;
             if (profile == "smoke") {
-                if (a.opt_size == 10000)
+                if (a.opt_size == 10000) {
                     a.opt_size = 4096;
-                if (a.opt_runs == 10)
+                    add_field_once(profile_applied_defaults, "size");
+                } else {
+                    add_field_once(profile_explicit_overrides, "size");
+                }
+                if (a.opt_runs == 10) {
                     a.opt_runs = 5;
-                if (a.opt_structures.empty())
+                    add_field_once(profile_applied_defaults, "runs");
+                } else {
+                    add_field_once(profile_explicit_overrides, "runs");
+                }
+                if (a.opt_structures.empty()) {
                     a.opt_structures = {"array", "slist", "hashmap"};
-                if (!a.opt_output)
+                    add_field_once(profile_applied_defaults, "structures");
+                } else {
+                    add_field_once(profile_explicit_overrides, "structures");
+                }
+                if (!a.opt_output) {
                     a.opt_output = std::string("results/csvs/benchmark_results.csv");
+                    add_field_once(profile_applied_defaults, "output");
+                } else {
+                    add_field_once(profile_explicit_overrides, "output");
+                }
             } else if (profile == "ci") {
-                if (a.opt_size == 10000)
+                if (a.opt_size == 10000) {
                     a.opt_size = 20000;
-                if (a.opt_runs == 10)
-                    a.opt_runs = 10;
-                if (a.opt_structures.empty())
+                    add_field_once(profile_applied_defaults, "size");
+                } else {
+                    add_field_once(profile_explicit_overrides, "size");
+                }
+                if (a.opt_runs == 10) {
+                    add_field_once(profile_applied_defaults, "runs");
+                } else {
+                    add_field_once(profile_explicit_overrides, "runs");
+                }
+                if (a.opt_structures.empty()) {
                     a.opt_structures = {"array", "slist", "dlist", "hashmap"};
-                if (!a.opt_output)
+                    add_field_once(profile_applied_defaults, "structures");
+                } else {
+                    add_field_once(profile_explicit_overrides, "structures");
+                }
+                if (!a.opt_output) {
                     a.opt_output = std::string("results/csvs/benchmark_results.csv");
-                if (!a.opt_seed)
+                    add_field_once(profile_applied_defaults, "output");
+                } else {
+                    add_field_once(profile_explicit_overrides, "output");
+                }
+                if (!a.opt_seed) {
                     a.opt_seed = 12345ULL;
+                    add_field_once(profile_applied_defaults, "seed");
+                } else {
+                    add_field_once(profile_explicit_overrides, "seed");
+                }
             } else if (profile == "series") {
-                if (a.opt_size == 10000)
+                if (a.opt_size == 10000) {
                     a.opt_size = 60000;
-                if (a.opt_runs == 10)
+                    add_field_once(profile_applied_defaults, "size");
+                } else {
+                    add_field_once(profile_explicit_overrides, "size");
+                }
+                if (a.opt_runs == 10) {
                     a.opt_runs = 3;
-                if (a.opt_series_count == 0)
+                    add_field_once(profile_applied_defaults, "runs");
+                } else {
+                    add_field_once(profile_explicit_overrides, "runs");
+                }
+                if (a.opt_series_count == 0) {
                     a.opt_series_count = 6;
-                if (a.opt_structures.empty())
+                    add_field_once(profile_applied_defaults, "series_count");
+                } else {
+                    add_field_once(profile_explicit_overrides, "series_count");
+                }
+                if (a.opt_structures.empty()) {
                     a.opt_structures = {"array", "hashmap"};
-                a.opt_out_fmt = BenchmarkConfig::OutputFormat::JSON;
-                if (!a.opt_series_out)
+                    add_field_once(profile_applied_defaults, "structures");
+                } else {
+                    add_field_once(profile_explicit_overrides, "structures");
+                }
+                if (a.opt_out_fmt == BenchmarkConfig::OutputFormat::CSV) {
+                    a.opt_out_fmt = BenchmarkConfig::OutputFormat::JSON;
+                    add_field_once(profile_applied_defaults, "out_format");
+                } else {
+                    add_field_once(profile_explicit_overrides, "out_format");
+                }
+                if (!a.opt_series_out) {
                     a.opt_series_out = std::string("results/csvs/series_results.json");
+                    add_field_once(profile_applied_defaults, "series_out");
+                } else {
+                    add_field_once(profile_explicit_overrides, "series_out");
+                }
             } else if (profile == "crossover") {
-                a.opt_crossover = true;
-                if (a.opt_max_size == 100000)
-                    a.opt_max_size = 100000;
-                if (a.opt_runs == 10)
+                if (!a.opt_crossover) {
+                    a.opt_crossover = true;
+                    add_field_once(profile_applied_defaults, "crossover_analysis");
+                }
+                if (a.opt_max_size == 100000) {
+                    add_field_once(profile_applied_defaults, "max_size");
+                } else {
+                    add_field_once(profile_explicit_overrides, "max_size");
+                }
+                if (a.opt_runs == 10) {
                     a.opt_runs = 4;
-                if (a.opt_series_runs < 0)
+                    add_field_once(profile_applied_defaults, "runs");
+                } else {
+                    add_field_once(profile_explicit_overrides, "runs");
+                }
+                if (a.opt_series_runs < 0) {
                     a.opt_series_runs = 1;
-                if (a.opt_structures.empty())
+                    add_field_once(profile_applied_defaults, "series_runs");
+                } else {
+                    add_field_once(profile_explicit_overrides, "series_runs");
+                }
+                if (a.opt_structures.empty()) {
                     a.opt_structures = {"array", "slist", "dlist", "hashmap"};
-                a.opt_out_fmt = BenchmarkConfig::OutputFormat::JSON;
-                if (!a.opt_output)
+                    add_field_once(profile_applied_defaults, "structures");
+                } else {
+                    add_field_once(profile_explicit_overrides, "structures");
+                }
+                if (a.opt_out_fmt == BenchmarkConfig::OutputFormat::CSV) {
+                    a.opt_out_fmt = BenchmarkConfig::OutputFormat::JSON;
+                    add_field_once(profile_applied_defaults, "out_format");
+                } else {
+                    add_field_once(profile_explicit_overrides, "out_format");
+                }
+                if (!a.opt_output) {
                     a.opt_output = std::string("results/csvs/crossover_results.json");
+                    add_field_once(profile_applied_defaults, "output");
+                } else {
+                    add_field_once(profile_explicit_overrides, "output");
+                }
             } else if (profile == "deep") {
-                if (a.opt_size == 10000)
+                if (a.opt_size == 10000) {
                     a.opt_size = 50000;
-                if (a.opt_runs == 10)
+                    add_field_once(profile_applied_defaults, "size");
+                } else {
+                    add_field_once(profile_explicit_overrides, "size");
+                }
+                if (a.opt_runs == 10) {
                     a.opt_runs = 20;
-                if (a.opt_structures.empty())
+                    add_field_once(profile_applied_defaults, "runs");
+                } else {
+                    add_field_once(profile_explicit_overrides, "runs");
+                }
+                if (a.opt_structures.empty()) {
                     a.opt_structures = {"array", "slist", "dlist", "hashmap"};
-                a.opt_memory_tracking = true;
-                if (a.opt_bootstrap == 0)
+                    add_field_once(profile_applied_defaults, "structures");
+                } else {
+                    add_field_once(profile_explicit_overrides, "structures");
+                }
+                if (!a.opt_memory_tracking) {
+                    a.opt_memory_tracking = true;
+                    add_field_once(profile_applied_defaults, "memory_tracking");
+                } else {
+                    add_field_once(profile_explicit_overrides, "memory_tracking");
+                }
+                if (a.opt_bootstrap == 0) {
                     a.opt_bootstrap = 400;
-                a.opt_out_fmt = BenchmarkConfig::OutputFormat::JSON;
-                if (!a.opt_output)
+                    add_field_once(profile_applied_defaults, "bootstrap");
+                } else {
+                    add_field_once(profile_explicit_overrides, "bootstrap");
+                }
+                if (a.opt_out_fmt == BenchmarkConfig::OutputFormat::CSV) {
+                    a.opt_out_fmt = BenchmarkConfig::OutputFormat::JSON;
+                    add_field_once(profile_applied_defaults, "out_format");
+                } else {
+                    add_field_once(profile_explicit_overrides, "out_format");
+                }
+                if (!a.opt_output) {
                     a.opt_output = std::string("results/csvs/benchmark_results.json");
+                    add_field_once(profile_applied_defaults, "output");
+                } else {
+                    add_field_once(profile_explicit_overrides, "output");
+                }
             }
+
+            mark_override_if(profile_explicit_overrides, "warmup", a.opt_warmup != 0);
+            mark_override_if(profile_explicit_overrides, "pattern", a.opt_pattern != BenchmarkConfig::Pattern::SEQUENTIAL);
+            mark_override_if(profile_explicit_overrides, "pin_cpu", a.opt_pin_cpu);
+            mark_override_if(profile_explicit_overrides, "cpu_index", a.opt_cpu_index != 0);
+            mark_override_if(profile_explicit_overrides, "no_turbo", a.opt_no_turbo);
+            mark_override_if(profile_explicit_overrides, "hash_strategy", a.opt_hash_strategy != HashStrategy::OPEN_ADDRESSING);
+            mark_override_if(profile_explicit_overrides, "hash_capacity", a.opt_hash_capacity.has_value());
+            mark_override_if(profile_explicit_overrides, "hash_load", a.opt_hash_load.has_value());
+            mark_override_if(profile_explicit_overrides, "baseline", a.opt_baseline_path.has_value());
+            mark_override_if(profile_explicit_overrides, "baseline_threshold", a.opt_baseline_threshold != 20.0);
+            mark_override_if(profile_explicit_overrides, "baseline_noise", a.opt_baseline_noise != 1.0);
+            mark_override_if(profile_explicit_overrides, "baseline_scope", a.opt_baseline_scope != BaselineConfig::MetricScope::MEAN);
+            mark_override_if(profile_explicit_overrides, "max_seconds", a.opt_max_seconds.has_value());
+            mark_override_if(profile_explicit_overrides, "series_sizes", !a.opt_series_sizes.empty());
         }
 
         // Re-read possibly profile-adjusted options.
@@ -398,10 +546,12 @@ int main(int argc, char* argv[]) {
         cfg.hash_strategy         = opt_hash_strategy;
         cfg.hash_initial_capacity = opt_hash_capacity;
         cfg.hash_max_load_factor  = opt_hash_load;
-        cfg.pin_cpu               = opt_pin_cpu;
-        cfg.pin_cpu_index         = opt_cpu_index;
-        cfg.disable_turbo         = opt_no_turbo;
-        cfg.profile_name          = opt_profile ? *opt_profile : std::string("custom");
+        cfg.pin_cpu                   = opt_pin_cpu;
+        cfg.pin_cpu_index             = opt_cpu_index;
+        cfg.disable_turbo             = opt_no_turbo;
+        cfg.profile_name              = opt_profile ? *opt_profile : std::string("custom");
+        cfg.profile_applied_defaults  = profile_applied_defaults;
+        cfg.profile_explicit_overrides = profile_explicit_overrides;
 
         if (run_memory_tracking) {
             MemoryTracker::instance().set_detailed_tracking(true);

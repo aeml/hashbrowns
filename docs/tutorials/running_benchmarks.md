@@ -26,7 +26,7 @@ The CSV will list approximate crossover sizes by operation.
 
 ## Benchmark profiles
 
-Use `--profile {smoke,ci,series,crossover,deep}` to select a canonical workflow without retyping a pile of flags. The selected profile is written into JSON metadata and treated as a hard compatibility field during baseline comparison.
+Use `--profile {smoke,ci,series,crossover,deep}` to select a canonical workflow without retyping a pile of flags. The selected profile is written into JSON metadata, and `meta.profile_manifest` records which fields came from the profile versus explicit CLI overrides. Baseline comparison still treats the profile itself as a hard compatibility field.
 
 ## Baseline comparison
 

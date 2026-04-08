@@ -208,7 +208,7 @@ cmake --install build --prefix /usr/local
 
 ### Recommended profiles
 
-Hashbrowns now supports first-class named profiles via `--profile {smoke,ci,series,crossover,deep}`. Each profile applies a canonical benchmark shape and writes the selected profile into JSON metadata so runs stay automation-friendly and baseline comparisons can reject apples-to-oranges checks.
+Hashbrowns now supports first-class named profiles via `--profile {smoke,ci,series,crossover,deep}`. Each profile applies a canonical benchmark shape, writes the selected profile into JSON metadata, and emits a `profile_manifest` showing which knobs came from the profile versus explicit caller overrides. That keeps runs automation-friendly and makes it obvious when someone drifted from the canonical experiment.
 
 To make runs repeatable and easy to remember, here are the five canonical profiles:
 

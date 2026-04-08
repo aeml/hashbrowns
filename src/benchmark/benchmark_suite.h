@@ -37,6 +37,8 @@ struct BenchmarkConfig {
     int pin_cpu_index = 0;           // CPU index to pin to (default 0)
     bool disable_turbo = false;      // attempt to disable turbo boost (Linux-only, may require privileges)
     std::string profile_name{"custom"}; // canonical named profile or "custom"
+    std::vector<std::string> profile_applied_defaults;  // knobs supplied by the selected profile
+    std::vector<std::string> profile_explicit_overrides; // knobs the caller overrode explicitly
 };
 
 // Configuration for comparing current benchmark results against a stored baseline.

@@ -88,6 +88,10 @@ int run_benchmark_crossover_tests() {
             } else if (content.find("\"profile\": \"crossover\"") == std::string::npos) {
                 std::cout << "❌ Crossover JSON missing expected profile\n";
                 ++failures;
+            } else if (content.find("\"profile_manifest\"") == std::string::npos ||
+                       content.find("\"selected_profile\": \"crossover\"") == std::string::npos) {
+                std::cout << "❌ Crossover JSON missing profile manifest\n";
+                ++failures;
             }
         }
     }

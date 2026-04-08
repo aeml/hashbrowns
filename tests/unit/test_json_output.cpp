@@ -75,6 +75,14 @@ static void test_results_json_has_meta_and_results() {
         throw std::runtime_error("JSON meta missing profile");
     if (content.find("\"profile\": \"ci\"") == std::string::npos)
         throw std::runtime_error("JSON meta missing expected profile value");
+    if (content.find("\"profile_manifest\"") == std::string::npos)
+        throw std::runtime_error("JSON meta missing profile_manifest");
+    if (content.find("\"selected_profile\": \"ci\"") == std::string::npos)
+        throw std::runtime_error("JSON meta missing expected selected_profile");
+    if (content.find("\"applied_defaults\"") == std::string::npos)
+        throw std::runtime_error("JSON meta missing applied_defaults");
+    if (content.find("\"explicit_overrides\"") == std::string::npos)
+        throw std::runtime_error("JSON meta missing explicit_overrides");
 
     // result stats keys
     if (content.find("\"insert_ms_median\"") == std::string::npos)
@@ -162,6 +170,10 @@ static void test_series_json_has_meta_and_series() {
         throw std::runtime_error("Series JSON meta missing runs_per_size");
     if (content.find("\"profile\": \"series\"") == std::string::npos)
         throw std::runtime_error("Series JSON meta missing expected profile");
+    if (content.find("\"profile_manifest\"") == std::string::npos)
+        throw std::runtime_error("Series JSON meta missing profile_manifest");
+    if (content.find("\"selected_profile\": \"series\"") == std::string::npos)
+        throw std::runtime_error("Series JSON meta missing expected selected_profile");
     if (content.find("\"pattern\"") == std::string::npos)
         throw std::runtime_error("Series JSON meta missing pattern");
     if (content.find("\"structures\"") == std::string::npos)
