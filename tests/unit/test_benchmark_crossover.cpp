@@ -276,8 +276,68 @@ int run_benchmark_crossover_tests() {
             std::cout << "✅ Baseline comparison completed successfully\n";
         }
 
-        // Test print_baseline_report
+        BenchmarkMeta baseline_meta;
+        baseline_meta.size            = 20000;
+        baseline_meta.runs            = 5;
+        baseline_meta.warmup_runs     = 1;
+        baseline_meta.bootstrap_iters = 200;
+        baseline_meta.structures      = {"array", "hashmap"};
+        baseline_meta.pattern         = "random";
+        baseline_meta.seed            = 12345ULL;
+        baseline_meta.build_type      = "Release";
+        baseline_meta.hash_strategy   = "open";
+        baseline_meta.hash_capacity   = 1024;
+        baseline_meta.hash_load       = 0.7;
+        baseline_meta.pinned_cpu      = 0;
+        baseline_meta.turbo_disabled  = true;
+        baseline_meta.cpu_model       = "Baseline CPU";
+        baseline_meta.compiler        = "GCC 13";
+
+        BenchmarkMeta current_meta = baseline_meta;
+        auto          meta_ok      = compare_benchmark_metadata(baseline_meta, current_meta, base_config);
+        if (!meta_ok.ok || !meta_ok.errors.empty() || !meta_ok.warnings.empty()) {
+            std::cout << "❌ Matching metadata should not produce errors or warnings\n";
+            ++failures;
+        } else {
+            std::cout << "✅ Matching baseline metadata accepted\n";
+        }
+
+        current_meta.pattern = "sequential";
+        current_meta.seed    = std::nullopt;
+        auto meta_bad        = compare_benchmark_metadata(baseline_meta, current_meta, base_config);
+        if (meta_bad.ok) {
+            std::cout << "❌ Metadata mismatch should fail guardrails\n";
+            ++failures;
+        }
+        bool saw_pattern_mismatch = false;
+        bool saw_seed_mismatch    = false;
+        for (const auto& msg : meta_bad.errors) {
+            if (msg.find("pattern") != std::string::npos)
+                saw_pattern_mismatch = true;
+            if (msg.find("seed") != std::string::npos)
+                saw_seed_mismatch = true;
+        }
+        if (!saw_pattern_mismatch || !saw_seed_mismatch) {
+            std::cout << "❌ Metadata mismatch errors should mention pattern and seed\n";
+            ++failures;
+        } else {
+            std::cout << "✅ Metadata guardrails catch invalid workload changes\n";
+        }
+
+        current_meta = baseline_meta;
+        current_meta.cpu_model = "Different CPU";
+        current_meta.compiler  = "Clang 18";
+        auto meta_warn         = compare_benchmark_metadata(baseline_meta, current_meta, base_config);
+        if (!meta_warn.ok || meta_warn.warnings.size() < 2) {
+            std::cout << "❌ Environment drift should warn without failing when workload matches\n";
+            ++failures;
+        } else {
+            std::cout << "✅ Environment drift produces warnings without invalidating comparison\n";
+        }
+
+        // Test print helpers
         print_baseline_report(comparison, base_config.threshold_pct, base_config.noise_floor_pct);
+        print_baseline_metadata_report(meta_bad);
 
         // Test with empty baseline
         auto empty_comparison = compare_against_baseline({}, current, base_config);
@@ -287,14 +347,38 @@ int run_benchmark_crossover_tests() {
         }
     }
 
-    // Test load_benchmark_results_json
+    // Test load_benchmark_results_json / load_benchmark_data_json
     {
         std::cout << "\nTesting load_benchmark_results_json:\n";
 
         // Create a minimal JSON file
         std::ofstream out("test_baseline.json");
         out << "{\n";
-        out << "  \"meta\": { \"schema_version\": 1 },\n";
+        out << "  \"meta\": {\n";
+        out << "    \"schema_version\": 1,\n";
+        out << "    \"size\": 4096,\n";
+        out << "    \"runs\": 5,\n";
+        out << "    \"warmup_runs\": 1,\n";
+        out << "    \"bootstrap_iters\": 200,\n";
+        out << "    \"structures\": [\"array\"],\n";
+        out << "    \"pattern\": \"random\",\n";
+        out << "    \"seed\": 12345,\n";
+        out << "    \"timestamp\": \"2026-04-08T00:00:00Z\",\n";
+        out << "    \"cpu_governor\": \"performance\",\n";
+        out << "    \"git_commit\": \"abc123\",\n";
+        out << "    \"compiler\": \"GCC 13\",\n";
+        out << "    \"cpp_standard\": \"C++17\",\n";
+        out << "    \"build_type\": \"Release\",\n";
+        out << "    \"cpu_model\": \"Unit Test CPU\",\n";
+        out << "    \"cores\": 8,\n";
+        out << "    \"total_ram_bytes\": 17179869184,\n";
+        out << "    \"kernel\": \"Linux 6.x\",\n";
+        out << "    \"hash_strategy\": \"open\",\n";
+        out << "    \"hash_capacity\": 1024,\n";
+        out << "    \"hash_load\": 0.7,\n";
+        out << "    \"pinned_cpu\": 0,\n";
+        out << "    \"turbo_disabled\": 1\n";
+        out << "  },\n";
         out << "  \"results\": [\n";
         out << "    {\n";
         out << "      \"structure\": \"array\",\n";
@@ -313,24 +397,39 @@ int run_benchmark_crossover_tests() {
         out << "}\n";
         out.close();
 
-        auto loaded = load_benchmark_results_json("test_baseline.json");
-        if (loaded.empty()) {
+        auto loaded_data = load_benchmark_data_json("test_baseline.json");
+        if (loaded_data.results.empty()) {
             std::cout << "❌ Failed to load benchmark results from JSON\n";
             ++failures;
-        } else if (loaded[0].structure != "array") {
+        } else if (loaded_data.results[0].structure != "array") {
             std::cout << "❌ Loaded incorrect structure name\n";
             ++failures;
-        } else if (loaded[0].insert_ms_mean != 1.5) {
+        } else if (loaded_data.results[0].insert_ms_mean != 1.5) {
             std::cout << "❌ Loaded incorrect insert_ms_mean\n";
             ++failures;
+        } else if (loaded_data.meta.pattern != "random" || !loaded_data.meta.seed.has_value() ||
+                   *loaded_data.meta.seed != 12345ULL || loaded_data.meta.hash_strategy != "open") {
+            std::cout << "❌ Loaded incorrect benchmark metadata\n";
+            ++failures;
         } else {
-            std::cout << "✅ Successfully loaded benchmark results from JSON\n";
+            std::cout << "✅ Successfully loaded benchmark results and metadata from JSON\n";
+        }
+
+        auto loaded = load_benchmark_results_json("test_baseline.json");
+        if (loaded.size() != 1 || loaded[0].structure != "array") {
+            std::cout << "❌ Backward-compatible result loader regressed\n";
+            ++failures;
         }
 
         // Test loading non-existent file
         auto empty_load = load_benchmark_results_json("nonexistent.json");
         if (!empty_load.empty()) {
             std::cout << "❌ Loading non-existent file should return empty vector\n";
+            ++failures;
+        }
+        auto empty_data = load_benchmark_data_json("nonexistent.json");
+        if (!empty_data.results.empty()) {
+            std::cout << "❌ Loading non-existent file should return empty benchmark data\n";
             ++failures;
         }
     }

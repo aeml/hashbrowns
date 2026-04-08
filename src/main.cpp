@@ -389,12 +389,23 @@ int main(int argc, char* argv[]) {
                 bcfg.threshold_pct   = opt_baseline_threshold;
                 bcfg.noise_floor_pct = opt_baseline_noise;
                 bcfg.scope           = opt_baseline_scope;
-                auto baseline        = load_benchmark_results_json(bcfg.baseline_path);
-                if (baseline.empty()) {
+                auto baseline_data = load_benchmark_data_json(bcfg.baseline_path);
+                if (baseline_data.results.empty()) {
                     std::cerr << "[baseline] Failed to load baseline from " << bcfg.baseline_path << "\n";
                     return 3;
                 }
-                auto cmp = compare_against_baseline(baseline, results, bcfg);
+                BenchmarkData current_data;
+                if (opt_output) {
+                    current_data = load_benchmark_data_json(*opt_output);
+                }
+                if (current_data.results.empty()) {
+                    current_data.results = results;
+                }
+                auto meta_report = compare_benchmark_metadata(baseline_data.meta, current_data.meta, bcfg);
+                print_baseline_metadata_report(meta_report);
+                if (!meta_report.ok)
+                    return 5;
+                auto cmp = compare_against_baseline(baseline_data.results, results, bcfg);
                 print_baseline_report(cmp, bcfg.threshold_pct, bcfg.noise_floor_pct);
                 if (!cmp.all_ok)
                     return 4;

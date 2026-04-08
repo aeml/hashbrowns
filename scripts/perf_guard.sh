@@ -14,13 +14,21 @@ TMP_JSON="${ROOT_DIR}/build/perf_guard_current.json"
 TOL_PCT_INSERT=${TOL_PCT_INSERT:-20}
 TOL_PCT_SEARCH=${TOL_PCT_SEARCH:-20}
 TOL_PCT_REMOVE=${TOL_PCT_REMOVE:-20}
+BASELINE_SCOPE=${BASELINE_SCOPE:-mean}
 SIZE=${SIZE:-20000}
 RUNS=${RUNS:-5}
 SEED=${SEED:-12345}
 STRUCTURES=${STRUCTURES:-array,slist,dlist,hashmap}
 
 usage(){
-  echo "Usage: $(basename "$0") [--update]";
+  cat <<EOF
+Usage: $(basename "$0") [--update]
+
+Environment overrides:
+  SIZE, RUNS, SEED, STRUCTURES
+  TOL_PCT_INSERT, TOL_PCT_SEARCH, TOL_PCT_REMOVE
+  BASELINE_SCOPE=mean|p95|ci_high|any
+EOF
 }
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then usage; exit 0; fi
@@ -51,18 +59,34 @@ if [[ ! -s "${BASE_JSON}" ]]; then
   exit 1
 fi
 
-# Compare current results to baseline using Python (safer JSON parsing)
+# First let the built-in checker validate metadata compatibility and perform
+# a coarse timing check. Use the loosest op threshold here; the fine-grained
+# per-op thresholds are enforced below to preserve the script contract.
+MAX_TOL=$(python3 - <<'PY'
+import os
+vals = [float(os.environ.get('TOL_PCT_INSERT', '20')), float(os.environ.get('TOL_PCT_SEARCH', '20')), float(os.environ.get('TOL_PCT_REMOVE', '20'))]
+print(max(vals))
+PY
+)
+
+"${BIN}" --no-banner --size "${SIZE}" --runs "${RUNS}" \
+  --structures "${STRUCTURES}" --seed "${SEED}" \
+  --output "${TMP_JSON}" --out-format json \
+  --baseline "${BASE_JSON}" \
+  --baseline-threshold "${MAX_TOL}" \
+  --baseline-noise 1 \
+  --baseline-scope "${BASELINE_SCOPE}"
+
+# Then enforce per-operation thresholds exactly.
 python3 - "$BASE_JSON" "$TMP_JSON" <<'PY'
 import json, sys
 base_path, curr_path = sys.argv[1], sys.argv[2]
 with open(base_path) as f: base = json.load(f)
 with open(curr_path) as f: curr = json.load(f)
 
-# Build dict: structure -> metrics
 bk = {r['structure']: r for r in base['results']}
 ck = {r['structure']: r for r in curr['results']}
 
-# Tolerances from environment
 import os
 TOLI = float(os.environ.get('TOL_PCT_INSERT','20'))/100.0
 TOLS = float(os.environ.get('TOL_PCT_SEARCH','20'))/100.0
@@ -76,7 +100,6 @@ for st in bk.keys():
     b, c = bk[st], ck[st]
     for op, tol in [('insert_ms_mean', TOLI), ('search_ms_mean', TOLS), ('remove_ms_mean', TOLR)]:
         bv, cv = float(b[op]), float(c[op])
-        # Allow improvements; only flag regressions beyond tolerance
         if cv > bv * (1.0 + tol):
             failures.append(f"{st}.{op}: current {cv:.3f} > baseline {bv:.3f} * (1+{tol:.2f})")
 
@@ -85,9 +108,7 @@ if failures:
     for f in failures:
         print(" - ", f)
     sys.exit(2)
-else:
-    print("[PERF GUARD] OK: within tolerances or improved.")
-    sys.exit(0)
+print("[PERF GUARD] OK: metadata compatible and within per-op tolerances.")
 PY
 
 exit $?

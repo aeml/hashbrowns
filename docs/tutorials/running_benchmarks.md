@@ -29,17 +29,24 @@ The CSV will list approximate crossover sizes by operation.
 To guard against regressions, first record a baseline JSON:
 
 ```bash
-./build/hashbrowns --size 20000 --runs 5 --structures array,slist,dlist,hashmap \ 
-	--pattern sequential --seed 12345 --out-format json --output perf_baselines/baseline.json
+./build/hashbrowns --size 20000 --runs 5 --structures array,slist,dlist,hashmap \
+  --pattern sequential --seed 12345 --out-format json --output perf_baselines/baseline.json
 ```
 
 Then compare new runs against it:
 
 ```bash
-./build/hashbrowns --size 20000 --runs 5 --structures array,slist,dlist,hashmap \ 
-	--pattern sequential --seed 12345 --out-format json --output build/benchmark_results.json \ 
-	--baseline perf_baselines/baseline.json --baseline-threshold 20 --baseline-noise 1
+./build/hashbrowns --size 20000 --runs 5 --structures array,slist,dlist,hashmap \
+  --pattern sequential --seed 12345 --out-format json --output build/benchmark_results.json \
+  --baseline perf_baselines/baseline.json --baseline-threshold 20 --baseline-noise 1
 ```
+
+What the checker now does before reading slowdown percentages:
+
+- Fails the comparison if workload-shaping metadata changed: size, runs, warmup, bootstrap iters, structures, pattern, seed, hash strategy/capacity/load, CPU pinning, or turbo setting.
+- Warns if environment context changed: CPU model, compiler, kernel, governor, RAM, or core count.
+
+That split matters. A different seedless workload or different hash-map tuning is not a perf regression. It is a different experiment.
 
 On regression beyond the threshold, the process exits non-zero, which is ideal for CI.
 

@@ -14,13 +14,17 @@ scripts/perf_guard.sh --update
 scripts/perf_guard.sh
 ```
 
-The JSON baseline captures per-structure `insert_ms_mean`, `search_ms_mean`,
-and `remove_ms_mean` for a fixed seed and size. Tolerances default to 20 %
-and can be overridden with environment variables:
+The JSON baseline captures both timing summaries and benchmark metadata for a fixed workload. Tolerances default to 20 % and can be overridden with environment variables:
 
 ```bash
 TOL_PCT_INSERT=10 TOL_PCT_SEARCH=10 TOL_PCT_REMOVE=10 scripts/perf_guard.sh
 ```
+
+Metadata policy:
+- Hard fail if benchmark-shaping inputs changed: size, runs, warmup, bootstrap iters, structures, pattern, seed, hash strategy/capacity/load, CPU pinning, or turbo state.
+- Warning only if machine/compiler context changed: CPU model, compiler, governor, kernel, RAM, or core count.
+
+That keeps the guard honest: it refuses apples-to-oranges comparisons before reporting slowdown percentages.
 
 ## Legacy CSV baseline (optional)
 

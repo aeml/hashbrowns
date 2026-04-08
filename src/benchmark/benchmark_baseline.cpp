@@ -7,20 +7,21 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace hashbrowns {
 
-// ---------------------------------------------------------------------------
-// Internal helpers (file-local)
-// ---------------------------------------------------------------------------
+namespace {
 
 static std::string trim_ws(const std::string& s) {
-    std::size_t start = 0, end = s.size();
+    std::size_t start = 0;
+    std::size_t end   = s.size();
     while (start < end && std::isspace(static_cast<unsigned char>(s[start])))
         ++start;
     while (end > start && std::isspace(static_cast<unsigned char>(s[end - 1])))
@@ -34,114 +35,410 @@ static double pct_delta(double baseline, double current) {
     return (current - baseline) * 100.0 / baseline;
 }
 
-// ---------------------------------------------------------------------------
-// load_benchmark_results_json
-// ---------------------------------------------------------------------------
-
-// Very small, schema-aware JSON reader tailored to benchmark_results.json.
-// It assumes the existing write_results_json layout and extracts only fields
-// needed for baseline comparison.
-
-std::vector<BenchmarkResult> load_benchmark_results_json(const std::string& path) {
-    std::ifstream in(path);
-    if (!in)
-        return {};
-    std::string                  json((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    std::vector<BenchmarkResult> out;
-
-    std::size_t pos = json.find("\"results\"");
+static std::optional<std::size_t> find_key_value_start(const std::string& text, const std::string& key) {
+    const std::string pattern = std::string("\"") + key + "\"";
+    auto              pos     = text.find(pattern);
     if (pos == std::string::npos)
-        return {};
-    pos = json.find('[', pos);
+        return std::nullopt;
+    pos = text.find(':', pos + pattern.size());
     if (pos == std::string::npos)
-        return {};
+        return std::nullopt;
     ++pos;
+    while (pos < text.size() && std::isspace(static_cast<unsigned char>(text[pos])))
+        ++pos;
+    return pos;
+}
 
-    while (pos < json.size()) {
-        pos = json.find('{', pos);
-        if (pos == std::string::npos)
-            break;
-        auto end = json.find('}', pos);
-        if (end == std::string::npos)
-            break;
-        std::string obj = json.substr(pos + 1, end - pos - 1);
-        pos             = end + 1;
-
-        BenchmarkResult r;
-
-        auto extract_double = [&obj](const char* key, double& target) {
-            std::string pattern = std::string("\"") + key + "\"";
-            auto        kpos    = obj.find(pattern);
-            if (kpos == std::string::npos)
-                return;
-            kpos = obj.find(':', kpos);
-            if (kpos == std::string::npos)
-                return;
-            ++kpos;
-            std::size_t endv = obj.find_first_of(",}\n", kpos);
-            std::string val  = trim_ws(obj.substr(kpos, endv - kpos));
-            try {
-                target = std::stod(val);
-            } catch (...) {
+static std::optional<std::size_t> find_matching_delim(const std::string& text, std::size_t start, char open, char close) {
+    if (start >= text.size() || text[start] != open)
+        return std::nullopt;
+    int  depth     = 0;
+    bool in_string = false;
+    bool escaped   = false;
+    for (std::size_t i = start; i < text.size(); ++i) {
+        char ch = text[i];
+        if (in_string) {
+            if (escaped) {
+                escaped = false;
+            } else if (ch == '\\') {
+                escaped = true;
+            } else if (ch == '"') {
+                in_string = false;
             }
-        };
-
-        auto extract_size_t = [&obj](const char* key, std::size_t& target) {
-            std::string pattern = std::string("\"") + key + "\"";
-            auto        kpos    = obj.find(pattern);
-            if (kpos == std::string::npos)
-                return;
-            kpos = obj.find(':', kpos);
-            if (kpos == std::string::npos)
-                return;
-            ++kpos;
-            std::size_t endv = obj.find_first_of(",}\n", kpos);
-            std::string val  = trim_ws(obj.substr(kpos, endv - kpos));
-            try {
-                target = static_cast<std::size_t>(std::stoull(val));
-            } catch (...) {
-            }
-        };
-
-        // structure name
-        {
-            std::string pattern = "\"structure\"";
-            auto        kpos    = obj.find(pattern);
-            if (kpos != std::string::npos) {
-                kpos = obj.find(':', kpos);
-                if (kpos != std::string::npos) {
-                    kpos = obj.find('"', kpos);
-                    if (kpos != std::string::npos) {
-                        auto endv = obj.find('"', kpos + 1);
-                        if (endv != std::string::npos) {
-                            r.structure = obj.substr(kpos + 1, endv - kpos - 1);
-                        }
-                    }
-                }
-            }
+            continue;
         }
-
-        extract_double("insert_ms_mean", r.insert_ms_mean);
-        extract_double("search_ms_mean", r.search_ms_mean);
-        extract_double("remove_ms_mean", r.remove_ms_mean);
-        extract_double("insert_ms_p95", r.insert_ms_p95);
-        extract_double("search_ms_p95", r.search_ms_p95);
-        extract_double("remove_ms_p95", r.remove_ms_p95);
-        extract_double("insert_ci_high", r.insert_ci_high);
-        extract_double("search_ci_high", r.search_ci_high);
-        extract_double("remove_ci_high", r.remove_ci_high);
-        extract_size_t("memory_bytes", r.memory_bytes);
-
-        if (!r.structure.empty()) {
-            out.push_back(r);
+        if (ch == '"') {
+            in_string = true;
+            continue;
         }
+        if (ch == open) {
+            ++depth;
+        } else if (ch == close) {
+            --depth;
+            if (depth == 0)
+                return i;
+        }
+    }
+    return std::nullopt;
+}
+
+static std::optional<std::string> extract_object_by_key(const std::string& text, const std::string& key) {
+    auto start = find_key_value_start(text, key);
+    if (!start || *start >= text.size() || text[*start] != '{')
+        return std::nullopt;
+    auto end = find_matching_delim(text, *start, '{', '}');
+    if (!end)
+        return std::nullopt;
+    return text.substr(*start + 1, *end - *start - 1);
+}
+
+static std::optional<std::string> extract_array_by_key(const std::string& text, const std::string& key) {
+    auto start = find_key_value_start(text, key);
+    if (!start || *start >= text.size() || text[*start] != '[')
+        return std::nullopt;
+    auto end = find_matching_delim(text, *start, '[', ']');
+    if (!end)
+        return std::nullopt;
+    return text.substr(*start + 1, *end - *start - 1);
+}
+
+static std::optional<std::string> extract_string_field(const std::string& obj, const std::string& key) {
+    auto start = find_key_value_start(obj, key);
+    if (!start || *start >= obj.size() || obj[*start] != '"')
+        return std::nullopt;
+    std::string out;
+    bool        escaped = false;
+    for (std::size_t i = *start + 1; i < obj.size(); ++i) {
+        char ch = obj[i];
+        if (escaped) {
+            out.push_back(ch);
+            escaped = false;
+            continue;
+        }
+        if (ch == '\\') {
+            escaped = true;
+            continue;
+        }
+        if (ch == '"')
+            return out;
+        out.push_back(ch);
+    }
+    return std::nullopt;
+}
+
+static std::optional<std::string> extract_scalar_field(const std::string& obj, const std::string& key) {
+    auto start = find_key_value_start(obj, key);
+    if (!start)
+        return std::nullopt;
+    std::size_t end = *start;
+    while (end < obj.size() && obj[end] != ',' && obj[end] != '}' && obj[end] != ']' && obj[end] != '\n')
+        ++end;
+    auto value = trim_ws(obj.substr(*start, end - *start));
+    if (value.empty())
+        return std::nullopt;
+    return value;
+}
+
+static std::optional<int> extract_int_field(const std::string& obj, const std::string& key) {
+    auto value = extract_scalar_field(obj, key);
+    if (!value)
+        return std::nullopt;
+    try {
+        return std::stoi(*value);
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
+static std::optional<unsigned int> extract_uint_field(const std::string& obj, const std::string& key) {
+    auto value = extract_scalar_field(obj, key);
+    if (!value)
+        return std::nullopt;
+    try {
+        return static_cast<unsigned int>(std::stoul(*value));
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
+static std::optional<std::size_t> extract_size_t_field(const std::string& obj, const std::string& key) {
+    auto value = extract_scalar_field(obj, key);
+    if (!value)
+        return std::nullopt;
+    try {
+        return static_cast<std::size_t>(std::stoull(*value));
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
+static std::optional<unsigned long long> extract_ull_field(const std::string& obj, const std::string& key) {
+    auto value = extract_scalar_field(obj, key);
+    if (!value)
+        return std::nullopt;
+    try {
+        return static_cast<unsigned long long>(std::stoull(*value));
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
+static std::optional<double> extract_double_field(const std::string& obj, const std::string& key) {
+    auto value = extract_scalar_field(obj, key);
+    if (!value)
+        return std::nullopt;
+    try {
+        return std::stod(*value);
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
+static std::vector<std::string> extract_string_array_field(const std::string& obj, const std::string& key) {
+    std::vector<std::string> out;
+    auto                     start = find_key_value_start(obj, key);
+    if (!start || *start >= obj.size() || obj[*start] != '[')
+        return out;
+    auto end = find_matching_delim(obj, *start, '[', ']');
+    if (!end)
+        return out;
+    std::string array_body = obj.substr(*start + 1, *end - *start - 1);
+    std::size_t pos        = 0;
+    while (pos < array_body.size()) {
+        auto quote = array_body.find('"', pos);
+        if (quote == std::string::npos)
+            break;
+        auto close = array_body.find('"', quote + 1);
+        if (close == std::string::npos)
+            break;
+        out.push_back(array_body.substr(quote + 1, close - quote - 1));
+        pos = close + 1;
     }
     return out;
 }
 
-// ---------------------------------------------------------------------------
-// compare_against_baseline
-// ---------------------------------------------------------------------------
+static std::vector<std::string> compare_string_vectors(const std::vector<std::string>& a, const std::vector<std::string>& b) {
+    if (a == b)
+        return {};
+    std::vector<std::string> rendered;
+    auto                     render = [](const std::vector<std::string>& values) {
+        std::string out = "[";
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            out += values[i];
+            if (i + 1 < values.size())
+                out += ",";
+        }
+        out += "]";
+        return out;
+    };
+    rendered.push_back(render(a));
+    rendered.push_back(render(b));
+    return rendered;
+}
+
+static bool optional_size_t_equal(const std::optional<std::size_t>& a, const std::optional<std::size_t>& b) {
+    if (a.has_value() != b.has_value())
+        return false;
+    if (!a.has_value())
+        return true;
+    return *a == *b;
+}
+
+static bool optional_ull_equal(const std::optional<unsigned long long>& a, const std::optional<unsigned long long>& b) {
+    if (a.has_value() != b.has_value())
+        return false;
+    if (!a.has_value())
+        return true;
+    return *a == *b;
+}
+
+static bool optional_double_equal(const std::optional<double>& a, const std::optional<double>& b) {
+    if (a.has_value() != b.has_value())
+        return false;
+    if (!a.has_value())
+        return true;
+    return std::fabs(*a - *b) < 1e-9;
+}
+
+} // namespace
+
+BenchmarkData load_benchmark_data_json(const std::string& path) {
+    std::ifstream in(path);
+    if (!in)
+        return {};
+
+    std::string json((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    BenchmarkData data;
+
+    if (auto meta_obj = extract_object_by_key(json, "meta")) {
+        auto& meta = data.meta;
+        if (auto v = extract_int_field(*meta_obj, "schema_version"))
+            meta.schema_version = *v;
+        if (auto v = extract_size_t_field(*meta_obj, "size"))
+            meta.size = *v;
+        if (auto v = extract_int_field(*meta_obj, "runs"))
+            meta.runs = *v;
+        if (auto v = extract_int_field(*meta_obj, "warmup_runs"))
+            meta.warmup_runs = *v;
+        if (auto v = extract_int_field(*meta_obj, "bootstrap_iters"))
+            meta.bootstrap_iters = *v;
+        meta.structures = extract_string_array_field(*meta_obj, "structures");
+        if (auto v = extract_string_field(*meta_obj, "pattern"))
+            meta.pattern = *v;
+        meta.seed = extract_ull_field(*meta_obj, "seed");
+        if (auto v = extract_string_field(*meta_obj, "timestamp"))
+            meta.timestamp = *v;
+        if (auto v = extract_string_field(*meta_obj, "cpu_governor"))
+            meta.cpu_governor = *v;
+        if (auto v = extract_string_field(*meta_obj, "git_commit"))
+            meta.git_commit = *v;
+        if (auto v = extract_string_field(*meta_obj, "compiler"))
+            meta.compiler = *v;
+        if (auto v = extract_string_field(*meta_obj, "cpp_standard"))
+            meta.cpp_standard = *v;
+        if (auto v = extract_string_field(*meta_obj, "build_type"))
+            meta.build_type = *v;
+        if (auto v = extract_string_field(*meta_obj, "cpu_model"))
+            meta.cpu_model = *v;
+        if (auto v = extract_uint_field(*meta_obj, "cores"))
+            meta.cores = *v;
+        if (auto v = extract_ull_field(*meta_obj, "total_ram_bytes"))
+            meta.total_ram_bytes = *v;
+        if (auto v = extract_string_field(*meta_obj, "kernel"))
+            meta.kernel = *v;
+        if (auto v = extract_string_field(*meta_obj, "hash_strategy"))
+            meta.hash_strategy = *v;
+        meta.hash_capacity = extract_size_t_field(*meta_obj, "hash_capacity");
+        meta.hash_load     = extract_double_field(*meta_obj, "hash_load");
+        if (auto v = extract_int_field(*meta_obj, "pinned_cpu"))
+            meta.pinned_cpu = *v;
+        if (auto v = extract_int_field(*meta_obj, "turbo_disabled"))
+            meta.turbo_disabled = (*v != 0);
+    }
+
+    auto results_array = extract_array_by_key(json, "results");
+    if (!results_array)
+        return data;
+
+    std::size_t pos = 0;
+    while (pos < results_array->size()) {
+        auto obj_start = results_array->find('{', pos);
+        if (obj_start == std::string::npos)
+            break;
+        auto obj_end = find_matching_delim(*results_array, obj_start, '{', '}');
+        if (!obj_end)
+            break;
+        std::string obj = results_array->substr(obj_start + 1, *obj_end - obj_start - 1);
+        pos             = *obj_end + 1;
+
+        BenchmarkResult r;
+        if (auto v = extract_string_field(obj, "structure"))
+            r.structure = *v;
+        if (auto v = extract_double_field(obj, "insert_ms_mean"))
+            r.insert_ms_mean = *v;
+        if (auto v = extract_double_field(obj, "search_ms_mean"))
+            r.search_ms_mean = *v;
+        if (auto v = extract_double_field(obj, "remove_ms_mean"))
+            r.remove_ms_mean = *v;
+        if (auto v = extract_double_field(obj, "insert_ms_p95"))
+            r.insert_ms_p95 = *v;
+        if (auto v = extract_double_field(obj, "search_ms_p95"))
+            r.search_ms_p95 = *v;
+        if (auto v = extract_double_field(obj, "remove_ms_p95"))
+            r.remove_ms_p95 = *v;
+        if (auto v = extract_double_field(obj, "insert_ci_high"))
+            r.insert_ci_high = *v;
+        if (auto v = extract_double_field(obj, "search_ci_high"))
+            r.search_ci_high = *v;
+        if (auto v = extract_double_field(obj, "remove_ci_high"))
+            r.remove_ci_high = *v;
+        if (auto v = extract_size_t_field(obj, "memory_bytes"))
+            r.memory_bytes = *v;
+
+        if (!r.structure.empty())
+            data.results.push_back(r);
+    }
+
+    return data;
+}
+
+std::vector<BenchmarkResult> load_benchmark_results_json(const std::string& path) {
+    return load_benchmark_data_json(path).results;
+}
+
+BaselineMetadataReport compare_benchmark_metadata(const BenchmarkMeta& baseline, const BenchmarkMeta& current,
+                                                  const BaselineConfig&) {
+    BaselineMetadataReport report;
+
+    auto require_string_equal = [&report](const std::string& field, const std::string& a, const std::string& b) {
+        if (a != b)
+            report.errors.push_back(field + " mismatch: baseline='" + a + "' current='" + b + "'");
+    };
+    auto require_int_equal = [&report](const std::string& field, auto a, auto b) {
+        if (a != b)
+            report.errors.push_back(field + " mismatch: baseline='" + std::to_string(a) + "' current='" +
+                                    std::to_string(b) + "'");
+    };
+    auto require_optional_ull_equal = [&report](const std::string& field, const std::optional<unsigned long long>& a,
+                                                const std::optional<unsigned long long>& b) {
+        if (!optional_ull_equal(a, b)) {
+            report.errors.push_back(field + " mismatch: baseline='" + (a ? std::to_string(*a) : std::string("unset")) +
+                                    "' current='" + (b ? std::to_string(*b) : std::string("unset")) + "'");
+        }
+    };
+    auto require_optional_size_t_equal = [&report](const std::string& field, const std::optional<std::size_t>& a,
+                                                   const std::optional<std::size_t>& b) {
+        if (!optional_size_t_equal(a, b)) {
+            report.errors.push_back(field + " mismatch: baseline='" + (a ? std::to_string(*a) : std::string("unset")) +
+                                    "' current='" + (b ? std::to_string(*b) : std::string("unset")) + "'");
+        }
+    };
+    auto require_optional_double_equal = [&report](const std::string& field, const std::optional<double>& a,
+                                                   const std::optional<double>& b) {
+        if (!optional_double_equal(a, b)) {
+            report.errors.push_back(field + " mismatch: baseline='" + (a ? std::to_string(*a) : std::string("unset")) +
+                                    "' current='" + (b ? std::to_string(*b) : std::string("unset")) + "'");
+        }
+    };
+    auto warn_string_equal = [&report](const std::string& field, const std::string& a, const std::string& b) {
+        if (a != b)
+            report.warnings.push_back(field + " changed: baseline='" + a + "' current='" + b + "'");
+    };
+    auto warn_int_equal = [&report](const std::string& field, auto a, auto b) {
+        if (a != b)
+            report.warnings.push_back(field + " changed: baseline='" + std::to_string(a) + "' current='" +
+                                      std::to_string(b) + "'");
+    };
+
+    require_int_equal("schema_version", baseline.schema_version, current.schema_version);
+    require_int_equal("size", baseline.size, current.size);
+    require_int_equal("runs", baseline.runs, current.runs);
+    require_int_equal("warmup_runs", baseline.warmup_runs, current.warmup_runs);
+    require_int_equal("bootstrap_iters", baseline.bootstrap_iters, current.bootstrap_iters);
+    if (baseline.structures != current.structures) {
+        auto rendered = compare_string_vectors(baseline.structures, current.structures);
+        report.errors.push_back("structures mismatch: baseline='" + rendered[0] + "' current='" + rendered[1] + "'");
+    }
+    require_string_equal("pattern", baseline.pattern, current.pattern);
+    require_optional_ull_equal("seed", baseline.seed, current.seed);
+    require_string_equal("build_type", baseline.build_type, current.build_type);
+    require_string_equal("hash_strategy", baseline.hash_strategy, current.hash_strategy);
+    require_optional_size_t_equal("hash_capacity", baseline.hash_capacity, current.hash_capacity);
+    require_optional_double_equal("hash_load", baseline.hash_load, current.hash_load);
+    require_int_equal("pinned_cpu", baseline.pinned_cpu, current.pinned_cpu);
+    require_int_equal("turbo_disabled", baseline.turbo_disabled ? 1 : 0, current.turbo_disabled ? 1 : 0);
+
+    warn_string_equal("cpu_model", baseline.cpu_model, current.cpu_model);
+    warn_string_equal("compiler", baseline.compiler, current.compiler);
+    warn_string_equal("cpp_standard", baseline.cpp_standard, current.cpp_standard);
+    warn_string_equal("cpu_governor", baseline.cpu_governor, current.cpu_governor);
+    warn_int_equal("cores", baseline.cores, current.cores);
+    warn_int_equal("total_ram_bytes", baseline.total_ram_bytes, current.total_ram_bytes);
+    warn_string_equal("kernel", baseline.kernel, current.kernel);
+
+    report.ok = report.errors.empty();
+    return report;
+}
 
 BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& baseline,
                                             const std::vector<BenchmarkResult>& current, const BaselineConfig& cfg) {
@@ -204,10 +501,6 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
     return out;
 }
 
-// ---------------------------------------------------------------------------
-// print_baseline_report
-// ---------------------------------------------------------------------------
-
 void print_baseline_report(const BaselineComparison& report, double threshold_pct, double noise_floor_pct) {
     if (report.entries.empty()) {
         std::cout << "[baseline] No comparable structures between baseline and current results.\n";
@@ -226,6 +519,21 @@ void print_baseline_report(const BaselineComparison& report, double threshold_pc
     } else {
         std::cout << "[baseline] Performance regression detected." << std::endl;
     }
+}
+
+void print_baseline_metadata_report(const BaselineMetadataReport& report) {
+    if (report.errors.empty() && report.warnings.empty()) {
+        std::cout << "[baseline-meta] Benchmark metadata is compatible." << std::endl;
+        return;
+    }
+    for (const auto& warning : report.warnings)
+        std::cout << "[baseline-meta] WARN  " << warning << std::endl;
+    for (const auto& error : report.errors)
+        std::cout << "[baseline-meta] ERROR " << error << std::endl;
+    if (report.ok)
+        std::cout << "[baseline-meta] Metadata is comparable with warnings." << std::endl;
+    else
+        std::cout << "[baseline-meta] Metadata mismatch invalidates comparison." << std::endl;
 }
 
 } // namespace hashbrowns

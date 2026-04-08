@@ -98,6 +98,43 @@ struct BenchmarkResult {
     double remove_probes_stddev{0.0};
 };
 
+struct BenchmarkMeta {
+    int                               schema_version{0};
+    std::size_t                       size{0};
+    int                               runs{0};
+    int                               warmup_runs{0};
+    int                               bootstrap_iters{0};
+    std::vector<std::string>          structures;
+    std::string                       pattern{"unknown"};
+    std::optional<unsigned long long> seed;
+    std::string                       timestamp{"unknown"};
+    std::string                       cpu_governor{"unknown"};
+    std::string                       git_commit{"unknown"};
+    std::string                       compiler{"unknown"};
+    std::string                       cpp_standard{"unknown"};
+    std::string                       build_type{"unknown"};
+    std::string                       cpu_model{"unknown"};
+    unsigned int                      cores{0};
+    unsigned long long                total_ram_bytes{0};
+    std::string                       kernel{"unknown"};
+    std::string                       hash_strategy{"unknown"};
+    std::optional<std::size_t>        hash_capacity;
+    std::optional<double>             hash_load;
+    int                               pinned_cpu{-1};
+    bool                              turbo_disabled{false};
+};
+
+struct BenchmarkData {
+    BenchmarkMeta                meta;
+    std::vector<BenchmarkResult> results;
+};
+
+struct BaselineMetadataReport {
+    bool                     ok{true};
+    std::vector<std::string> errors;
+    std::vector<std::string> warnings;
+};
+
 class BenchmarkSuite {
 public:
     std::vector<BenchmarkResult> run(const BenchmarkConfig& config);
@@ -116,9 +153,16 @@ public:
     void write_series_json(const std::string& path, const Series& series, const BenchmarkConfig& config);
 };
 
-// Load a benchmark_results.json file and extract the per-structure results.
-// Returns empty vector on error.
+// Load a benchmark_results.json file and extract metadata plus per-structure results.
+// Returns default-initialized BenchmarkData on error.
+BenchmarkData load_benchmark_data_json(const std::string& path);
+
+// Backward-compatible helper returning only per-structure results.
 std::vector<BenchmarkResult> load_benchmark_results_json(const std::string& path);
+
+// Compare baseline vs current benchmark metadata for reproducibility guardrails.
+BaselineMetadataReport compare_benchmark_metadata(const BenchmarkMeta& baseline, const BenchmarkMeta& current,
+                                                  const BaselineConfig& cfg);
 
 // Compare current results against a baseline using the provided configuration.
 BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& baseline,
@@ -127,6 +171,9 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
 
 // Pretty-print a comparison summary to stdout.
 void print_baseline_report(const BaselineComparison& report, double threshold_pct, double noise_floor_pct);
+
+// Pretty-print metadata compatibility findings to stdout.
+void print_baseline_metadata_report(const BaselineMetadataReport& report);
 
 } // namespace hashbrowns
 

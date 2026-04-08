@@ -32,6 +32,22 @@ CSV columns (crossover mode):
 - Use a Release build for stable numbers: `scripts/build.sh -t Release`
 - Fix the CPU governor if possible and close background applications
 - Run more repetitions for tighter confidence intervals (e.g., `--runs 30`)
+- Treat baseline comparisons as valid only when workload-shaping metadata matches: size, runs, warmup, bootstrap iters, structures, pattern, seed, hash strategy/capacity/load, CPU pinning, and turbo state
+- Treat hardware/software environment fields (`cpu_model`, `compiler`, `kernel`, `cpu_governor`, RAM/core count) as warning signals, not proof of regression by themselves
+
+## Baseline methodology
+
+A baseline check is only trustworthy when it answers the same question twice.
+
+hashbrowns now separates baseline metadata into two buckets:
+
+- Hard comparison requirements: run shape and benchmark knobs that directly change the workload. If these drift, the comparison is rejected before timing deltas are interpreted.
+- Soft environment warnings: machine/compiler context that can explain noise or drift. These do not fail the check by themselves, but they are printed so the result is not oversold.
+
+Practical consequence:
+
+- Changing `--pattern random` to `--pattern sequential`, dropping `--seed`, changing `--runs`, or retuning HashMap load factor is not a regression. It is a different experiment.
+- Running the same workload on a different CPU or compiler can still be compared, but the tool warns that the environment moved and the claim should stay modest.
 
 ## Caveats
 
