@@ -498,6 +498,7 @@ Schemas for all JSON outputs live under `docs/api/schemas/`. Validate files with
 
 ```bash
 python3 scripts/validate_json.py results/csvs/benchmark_results.json
+python3 scripts/test_validate_json.py
 ```
 
 This uses `jsonschema` (installed via `requirements.txt`). CI also validates sample JSON outputs.
