@@ -365,6 +365,33 @@ int run_benchmark_crossover_tests() {
             }
         }
 
+        auto coverage_baseline = baseline;
+        auto coverage_current  = current;
+        BenchmarkResult coverage_baseline_only;
+        coverage_baseline_only.structure      = "hashmap";
+        coverage_baseline_only.insert_ms_mean = 0.9;
+        coverage_baseline_only.search_ms_mean = 0.4;
+        coverage_baseline_only.remove_ms_mean = 0.7;
+        coverage_baseline_only.insert_ms_p95  = 1.0;
+        coverage_baseline_only.search_ms_p95  = 0.5;
+        coverage_baseline_only.remove_ms_p95  = 0.8;
+        coverage_baseline_only.insert_ci_high = 1.1;
+        coverage_baseline_only.search_ci_high = 0.6;
+        coverage_baseline_only.remove_ci_high = 0.9;
+        coverage_baseline.push_back(coverage_baseline_only);
+        BenchmarkResult coverage_current_only = coverage_baseline_only;
+        coverage_current_only.structure = "linked_list";
+        coverage_current.push_back(coverage_current_only);
+        auto coverage_comparison = compare_against_baseline(coverage_baseline, coverage_current, base_config);
+        if (coverage_comparison.coverage.baseline_structure_count != 2 ||
+            coverage_comparison.coverage.current_structure_count != 2 ||
+            coverage_comparison.coverage.comparable_structure_count != 1 ||
+            coverage_comparison.coverage.baseline_only_structures.size() != 1 ||
+            coverage_comparison.coverage.current_only_structures.size() != 1) {
+            std::cout << "❌ Baseline comparison should report comparable and missing structures honestly\n";
+            ++failures;
+        }
+
         BenchmarkMeta baseline_meta;
         baseline_meta.size            = 20000;
         baseline_meta.runs            = 5;
@@ -478,6 +505,9 @@ int run_benchmark_crossover_tests() {
                 baseline_report_content.find("\"insert_ci_high_delta_pct\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_mean_ok\"") == std::string::npos ||
                 baseline_report_content.find("\"failures\"") == std::string::npos ||
+                baseline_report_content.find("\"coverage\"") == std::string::npos ||
+                baseline_report_content.find("\"baseline_structure_count\"") == std::string::npos ||
+                baseline_report_content.find("\"comparable_structure_count\"") == std::string::npos ||
                 baseline_report_content.find("\"exit_code\": 0") == std::string::npos ||
                 baseline_report_content.find("\"strict_profile_intent\": true") == std::string::npos ||
                 baseline_report_content.find("\"entries\"") == std::string::npos) {

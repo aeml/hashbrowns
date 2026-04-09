@@ -12,6 +12,7 @@
 #include <iostream>
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -505,6 +506,17 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
     for (const auto& b : baseline)
         base_map[b.structure] = b;
 
+    std::set<std::string> current_names;
+    for (const auto& cur : current)
+        current_names.insert(cur.structure);
+
+    out.coverage.baseline_structure_count = base_map.size();
+    out.coverage.current_structure_count  = current_names.size();
+    for (const auto& [name, _] : base_map) {
+        if (current_names.find(name) == current_names.end())
+            out.coverage.baseline_only_structures.push_back(name);
+    }
+
     auto within = [&cfg](double delta) {
         double absd = std::fabs(delta);
         if (absd <= cfg.noise_floor_pct)
@@ -553,8 +565,14 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
 
     for (const auto& cur : current) {
         auto it = base_map.find(cur.structure);
-        if (it == base_map.end())
+        if (it == base_map.end()) {
+            if (std::find(out.coverage.current_only_structures.begin(), out.coverage.current_only_structures.end(), cur.structure) ==
+                out.coverage.current_only_structures.end()) {
+                out.coverage.current_only_structures.push_back(cur.structure);
+            }
             continue;
+        }
+        ++out.coverage.comparable_structure_count;
         const auto&               b = it->second;
         BaselineComparison::Entry e;
         e.structure = cur.structure;
@@ -702,6 +720,16 @@ void write_baseline_report_json(const std::string& path, const BaselineReport& r
     out << "  \"comparison\": {\n";
     out << "    \"all_ok\": " << (report.comparison.all_ok ? "true" : "false") << ",\n";
     out << "    \"decision_basis\": \"" << report.comparison.scope << "\",\n";
+    out << "    \"coverage\": {\n";
+    out << "      \"baseline_structure_count\": " << report.comparison.coverage.baseline_structure_count << ",\n";
+    out << "      \"current_structure_count\": " << report.comparison.coverage.current_structure_count << ",\n";
+    out << "      \"comparable_structure_count\": " << report.comparison.coverage.comparable_structure_count << ",\n";
+    out << "      \"baseline_only_structures\": ";
+    write_string_array(report.comparison.coverage.baseline_only_structures);
+    out << ",\n";
+    out << "      \"current_only_structures\": ";
+    write_string_array(report.comparison.coverage.current_only_structures);
+    out << "\n    },\n";
     out << "    \"failures\": [\n";
     for (std::size_t i = 0; i < report.comparison.failures.size(); ++i) {
         const auto& f = report.comparison.failures[i];

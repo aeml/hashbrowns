@@ -91,8 +91,16 @@ struct BaselineComparison {
         double                   threshold_pct{0.0};
         std::vector<std::string> failed_metric_families;
     };
+    struct Coverage {
+        std::size_t              baseline_structure_count{0};
+        std::size_t              current_structure_count{0};
+        std::size_t              comparable_structure_count{0};
+        std::vector<std::string> baseline_only_structures;
+        std::vector<std::string> current_only_structures;
+    };
     std::vector<Entry> entries;
     std::vector<Failure> failures;
+    Coverage coverage;
     bool all_ok{true};
     std::string scope{"mean"};
 };
