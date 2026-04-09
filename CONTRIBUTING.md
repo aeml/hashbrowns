@@ -137,6 +137,7 @@ Contributors changing hot paths should:
 - Update baseline only with team approval.
 - If you refresh the checked-in baseline, use `scripts/perf_guard.sh --update`, then run `scripts/perf_guard.sh` and keep the resulting `build/perf_guard_report.json` as evidence that the refreshed baseline is internally consistent. Expect the manifest to stay canonical for workload-shaping fields; the fixed perf-guard output path may still appear as an explicit `output` override.
 - If you touch `scripts/perf_guard_report.py`, run `python3 scripts/test_perf_guard_report.py` before pushing so helper-level regressions are caught without relying only on full benchmark runs.
+- If you touch `scripts/perf_guard.sh`, run `python3 scripts/test_perf_guard_wrapper_manifest.py` so canonical wrapper manifest semantics stay honest even when artifact paths are redirected in tests.
 - If you touch `scripts/validate_json.py` or any schema under `docs/api/schemas/`, run `python3 scripts/test_validate_json.py` so schema detection/regression paths stay honest.
 
 ## 7. Memory Tracking & Probe Metrics

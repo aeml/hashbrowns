@@ -336,6 +336,7 @@ Notes:
 - `--baseline-strict-profile-intent` raises the bar further: if the JSON contains `profile_manifest`, the baseline and current run must agree on selected profile plus applied-defaults/explicit-overrides intent.
 - `--baseline-report-json FILE` writes a machine-readable JSON summary of metadata compatibility, per-structure deltas, threshold/noise settings, strictness mode, and final exit classification.
 - The canonical checked-in baseline should be refreshed with `scripts/perf_guard.sh --update`, not ad hoc flag bundles, so the stored artifact matches the current `ci` profile contract. Because perf guard writes to `build/perf_guard_current.json`, that output path is recorded as an explicit override in the emitted profile manifest.
+- `scripts/test_perf_guard_wrapper_manifest.py` regression-tests that wrapper behavior so artifact-path redirection in tests does not silently corrupt the canonical `ci` manifest contract.
 - Before comparing timings, hashbrowns now validates that the benchmark workload still matches the baseline: size, runs, warmup, bootstrap, structures, pattern, seed, hash-map tuning, CPU pinning, and turbo state must agree.
 - Environment drift such as CPU model, compiler, governor, kernel, RAM, or core-count changes is reported as a warning so the result stays interpretable without pretending those runs were identical.
 

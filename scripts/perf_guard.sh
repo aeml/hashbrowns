@@ -7,11 +7,11 @@ set -euo pipefail
 #   --update   Recompute baseline from current build and overwrite baseline JSON.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
-BIN="${ROOT_DIR}/build/hashbrowns"
-BASE_DIR="${ROOT_DIR}/perf_baselines"
-BASE_JSON="${BASE_DIR}/baseline.json"
-TMP_JSON="${ROOT_DIR}/build/perf_guard_current.json"
-REPORT_JSON="${ROOT_DIR}/build/perf_guard_report.json"
+BIN="${PERF_GUARD_BIN:-${ROOT_DIR}/build/hashbrowns}"
+BASE_DIR="${PERF_GUARD_BASE_DIR:-${ROOT_DIR}/perf_baselines}"
+BASE_JSON="${PERF_GUARD_BASE_JSON:-${BASE_DIR}/baseline.json}"
+TMP_JSON="${PERF_GUARD_TMP_JSON:-${ROOT_DIR}/build/perf_guard_current.json}"
+REPORT_JSON="${PERF_GUARD_REPORT_JSON:-${ROOT_DIR}/build/perf_guard_report.json}"
 TOL_PCT_INSERT=${TOL_PCT_INSERT:-20}
 TOL_PCT_SEARCH=${TOL_PCT_SEARCH:-20}
 TOL_PCT_REMOVE=${TOL_PCT_REMOVE:-20}
@@ -47,6 +47,8 @@ if [[ ! -x "${BIN}" ]]; then
 fi
 
 mkdir -p "${BASE_DIR}"
+mkdir -p "$(dirname "${TMP_JSON}")"
+mkdir -p "$(dirname "${REPORT_JSON}")"
 
 RUN_ARGS=(--no-banner --profile ci --output "${TMP_JSON}" --out-format json)
 if [[ -n "${SIZE:-}" ]]; then RUN_ARGS+=(--size "${SIZE}"); fi
