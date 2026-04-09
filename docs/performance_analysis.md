@@ -33,7 +33,7 @@ CSV columns (crossover mode):
 - Fix the CPU governor if possible and close background applications
 - Run more repetitions for tighter confidence intervals (e.g., `--runs 30`)
 - Treat baseline comparisons as valid only when workload-shaping metadata matches: size, runs, warmup, bootstrap iters, structures, pattern, seed, hash strategy/capacity/load, CPU pinning, and turbo state
-- When exporting baseline reports, inspect `comparison.decision_basis`, `comparison.coverage`, `comparison.failures[]`, per-entry `*_basis` fields, and the exact `*_mean_delta_pct|*_p95_delta_pct|*_ci_high_delta_pct` fields so reviewers can see exactly which metric family drove the regression verdict and which structures were not actually compared
+- When exporting baseline reports, inspect `comparison.decision_basis`, `comparison.coverage`, `comparison.failures[]`, per-entry `*_basis` fields, and the exact `*_mean_delta_pct|*_p95_delta_pct|*_ci_high_delta_pct` fields so reviewers can see exactly which metric family drove the regression verdict, which structures were not actually compared, and whether either input silently contained duplicate structure rows
 - When you care about canonical workflow drift, use `--baseline-strict-profile-intent` so profile manifest intent must match too
 - Treat hardware/software environment fields (`cpu_model`, `compiler`, `kernel`, `cpu_governor`, RAM/core count) as warning signals, not proof of regression by themselves
 

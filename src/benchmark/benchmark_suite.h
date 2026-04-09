@@ -97,6 +97,8 @@ struct BaselineComparison {
         std::size_t              comparable_structure_count{0};
         std::vector<std::string> baseline_only_structures;
         std::vector<std::string> current_only_structures;
+        std::vector<std::string> duplicate_baseline_structures;
+        std::vector<std::string> duplicate_current_structures;
     };
     std::vector<Entry> entries;
     std::vector<Failure> failures;

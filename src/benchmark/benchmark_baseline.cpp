@@ -503,15 +503,25 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
         return out;
 
     std::map<std::string, BenchmarkResult> base_map;
-    for (const auto& b : baseline)
+    std::set<std::string> duplicate_baseline_names;
+    for (const auto& b : baseline) {
+        if (base_map.find(b.structure) != base_map.end())
+            duplicate_baseline_names.insert(b.structure);
         base_map[b.structure] = b;
+    }
 
     std::set<std::string> current_names;
-    for (const auto& cur : current)
+    std::set<std::string> duplicate_current_names;
+    for (const auto& cur : current) {
+        if (current_names.find(cur.structure) != current_names.end())
+            duplicate_current_names.insert(cur.structure);
         current_names.insert(cur.structure);
+    }
 
     out.coverage.baseline_structure_count = base_map.size();
     out.coverage.current_structure_count  = current_names.size();
+    out.coverage.duplicate_baseline_structures.assign(duplicate_baseline_names.begin(), duplicate_baseline_names.end());
+    out.coverage.duplicate_current_structures.assign(duplicate_current_names.begin(), duplicate_current_names.end());
     for (const auto& [name, _] : base_map) {
         if (current_names.find(name) == current_names.end())
             out.coverage.baseline_only_structures.push_back(name);
@@ -729,6 +739,12 @@ void write_baseline_report_json(const std::string& path, const BaselineReport& r
     out << ",\n";
     out << "      \"current_only_structures\": ";
     write_string_array(report.comparison.coverage.current_only_structures);
+    out << ",\n";
+    out << "      \"duplicate_baseline_structures\": ";
+    write_string_array(report.comparison.coverage.duplicate_baseline_structures);
+    out << ",\n";
+    out << "      \"duplicate_current_structures\": ";
+    write_string_array(report.comparison.coverage.duplicate_current_structures);
     out << "\n    },\n";
     out << "    \"failures\": [\n";
     for (std::size_t i = 0; i < report.comparison.failures.size(); ++i) {

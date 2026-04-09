@@ -392,6 +392,17 @@ int run_benchmark_crossover_tests() {
             ++failures;
         }
 
+        auto duplicate_baseline = baseline;
+        duplicate_baseline.push_back(br1);
+        auto duplicate_current = current;
+        duplicate_current.push_back(br2);
+        auto duplicate_comparison = compare_against_baseline(duplicate_baseline, duplicate_current, base_config);
+        if (duplicate_comparison.coverage.duplicate_baseline_structures.size() != 1 ||
+            duplicate_comparison.coverage.duplicate_current_structures.size() != 1) {
+            std::cout << "❌ Baseline comparison should report duplicate structures instead of silently collapsing them\n";
+            ++failures;
+        }
+
         BenchmarkMeta baseline_meta;
         baseline_meta.size            = 20000;
         baseline_meta.runs            = 5;
@@ -508,6 +519,8 @@ int run_benchmark_crossover_tests() {
                 baseline_report_content.find("\"coverage\"") == std::string::npos ||
                 baseline_report_content.find("\"baseline_structure_count\"") == std::string::npos ||
                 baseline_report_content.find("\"comparable_structure_count\"") == std::string::npos ||
+                baseline_report_content.find("\"duplicate_baseline_structures\"") == std::string::npos ||
+                baseline_report_content.find("\"duplicate_current_structures\"") == std::string::npos ||
                 baseline_report_content.find("\"exit_code\": 0") == std::string::npos ||
                 baseline_report_content.find("\"strict_profile_intent\": true") == std::string::npos ||
                 baseline_report_content.find("\"entries\"") == std::string::npos) {

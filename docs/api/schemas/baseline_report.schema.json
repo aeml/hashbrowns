@@ -39,7 +39,7 @@
         "decision_basis": {"type": "string", "enum": ["mean", "p95", "ci_high", "any"]},
         "coverage": {
           "type": "object",
-          "required": ["baseline_structure_count", "current_structure_count", "comparable_structure_count", "baseline_only_structures", "current_only_structures"],
+          "required": ["baseline_structure_count", "current_structure_count", "comparable_structure_count", "baseline_only_structures", "current_only_structures", "duplicate_baseline_structures", "duplicate_current_structures"],
           "properties": {
             "baseline_structure_count": {"type": "integer", "minimum": 0},
             "current_structure_count": {"type": "integer", "minimum": 0},
@@ -49,6 +49,14 @@
               "items": {"type": "string"}
             },
             "current_only_structures": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "duplicate_baseline_structures": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "duplicate_current_structures": {
               "type": "array",
               "items": {"type": "string"}
             }
