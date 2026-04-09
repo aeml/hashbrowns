@@ -39,7 +39,7 @@ def test_wrapper_update_writes_temp_baseline_location_and_honest_manifest():
         manifest = obj['meta']['profile_manifest']
         assert manifest['selected_profile'] == 'ci', manifest
         assert manifest['applied_defaults'] == ['size', 'runs', 'structures', 'seed'], manifest
-        assert manifest['explicit_overrides'] == ['output'], manifest
+        assert manifest['explicit_overrides'] == ['output', 'out_format'], manifest
 
 
 def test_wrapper_check_writes_report_and_preserves_manifest_honesty():
@@ -57,7 +57,7 @@ def test_wrapper_check_writes_report_and_preserves_manifest_honesty():
         manifest = current_obj['meta']['profile_manifest']
         assert manifest['selected_profile'] == 'ci', manifest
         assert manifest['applied_defaults'] == ['size', 'runs', 'structures', 'seed'], manifest
-        assert manifest['explicit_overrides'] == ['output'], manifest
+        assert manifest['explicit_overrides'] == ['output', 'out_format'], manifest
         report_obj = load_json(report)
         assert report_obj['exit_code'] == 0, report_obj
         assert report_obj['per_operation_guard']['ok'] is True, report_obj['per_operation_guard']

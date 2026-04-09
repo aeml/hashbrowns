@@ -208,7 +208,7 @@ cmake --install build --prefix /usr/local
 
 ### Recommended profiles
 
-Hashbrowns now supports first-class named profiles via `--profile {smoke,ci,series,crossover,deep}`. Each profile applies a canonical benchmark shape, writes the selected profile into JSON metadata, and emits a `profile_manifest` showing which knobs came from the profile versus explicit caller overrides. That keeps runs automation-friendly and makes it obvious when someone drifted from the canonical experiment.
+Hashbrowns now supports first-class named profiles via `--profile {smoke,ci,series,crossover,deep}`. Each profile applies a canonical benchmark shape, writes the selected profile into JSON metadata, and emits a `profile_manifest` showing which knobs came from the profile versus explicit caller overrides. That keeps runs automation-friendly and makes it obvious when someone drifted from the canonical experiment. The machine-readable profile contract lives in `docs/api/profiles.json` and is schema-validated by `docs/api/schemas/profiles.schema.json`.
 
 To make runs repeatable and easy to remember, here are the five canonical profiles:
 
@@ -335,7 +335,7 @@ Notes:
 - The comparison uses mean timings by default; advanced scopes are supported via `--baseline-scope {mean,p95,ci_high,any}`.
 - `--baseline-strict-profile-intent` raises the bar further: if the JSON contains `profile_manifest`, the baseline and current run must agree on selected profile plus applied-defaults/explicit-overrides intent.
 - `--baseline-report-json FILE` writes a machine-readable JSON summary of metadata compatibility, per-structure deltas, threshold/noise settings, strictness mode, and final exit classification.
-- The canonical checked-in baseline should be refreshed with `scripts/perf_guard.sh --update`, not ad hoc flag bundles, so the stored artifact matches the current `ci` profile contract. Because perf guard writes to `build/perf_guard_current.json`, that output path is recorded as an explicit override in the emitted profile manifest.
+- The canonical checked-in baseline should be refreshed with `scripts/perf_guard.sh --update`, not ad hoc flag bundles, so the stored artifact matches the current `ci` profile contract. Because perf guard writes to `build/perf_guard_current.json` and forces JSON artifacts, those `output` and `out_format` choices are recorded as explicit overrides in the emitted profile manifest.
 - `scripts/test_perf_guard_wrapper_manifest.py` regression-tests that wrapper behavior so artifact-path redirection in tests does not silently corrupt the canonical `ci` manifest contract.
 - Before comparing timings, hashbrowns now validates that the benchmark workload still matches the baseline: size, runs, warmup, bootstrap, structures, pattern, seed, hash-map tuning, CPU pinning, and turbo state must agree.
 - Environment drift such as CPU model, compiler, governor, kernel, RAM, or core-count changes is reported as a warning so the result stays interpretable without pretending those runs were identical.

@@ -153,6 +153,24 @@ def test_detects_baseline_report_schema():
         assert 'baseline_report.schema.json' in proc.stdout, proc.stdout
 
 
+def test_detects_profile_contract_schema():
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / 'profiles.json'
+        write_json(path, {
+            'schema_version': 1,
+            'profiles': {
+                'smoke': {'description': 'smoke', 'artifact_kind': 'benchmark_results', 'applied_defaults': ['size'], 'expected_explicit_overrides': ['output']},
+                'ci': {'description': 'ci', 'artifact_kind': 'benchmark_results', 'applied_defaults': ['size'], 'expected_explicit_overrides': ['output']},
+                'series': {'description': 'series', 'artifact_kind': 'series_results', 'applied_defaults': ['size'], 'expected_explicit_overrides': ['series_out']},
+                'crossover': {'description': 'crossover', 'artifact_kind': 'crossover_results', 'applied_defaults': ['runs'], 'expected_explicit_overrides': ['output']},
+                'deep': {'description': 'deep', 'artifact_kind': 'benchmark_results', 'applied_defaults': ['bootstrap'], 'expected_explicit_overrides': ['output']}
+            }
+        })
+        proc = run_validator(path)
+        assert proc.returncode == 0, proc.stderr + proc.stdout
+        assert 'profiles.schema.json' in proc.stdout, proc.stdout
+
+
 def test_rejects_unrecognized_json():
     with tempfile.TemporaryDirectory() as td:
         path = Path(td) / 'unknown.json'
@@ -167,6 +185,7 @@ def main():
     test_detects_series_schema()
     test_detects_crossover_schema()
     test_detects_baseline_report_schema()
+    test_detects_profile_contract_schema()
     test_rejects_unrecognized_json()
     print('validate_json.py tests passed')
 

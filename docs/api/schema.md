@@ -59,4 +59,5 @@ This document describes the JSON structures emitted by hashbrowns. A minimal `sc
 - Benchmark/series/crossover consumers should verify `meta.schema_version` and tolerate additional fields.
 - Baseline report consumers should treat `exit_code` plus `metadata.ok`/`comparison.all_ok`/`per_operation_guard.ok` as the truthful classification surface instead of scraping console logs.
 - Newer versions may add keys but won’t remove or change types without bumping the schema version.
-- `scripts/test_validate_json.py` provides focused regression coverage for schema detection and rejection behavior across benchmark, series, crossover, and baseline-report artifacts.
+- `scripts/test_validate_json.py` provides focused regression coverage for schema detection and rejection behavior across benchmark, series, crossover, baseline-report, and profile-contract artifacts.
+- `docs/api/profiles.json` is the machine-readable contract for canonical named profiles; validate it against `docs/api/schemas/profiles.schema.json` and runtime behavior with `scripts/test_profile_contract.py`.

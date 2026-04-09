@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aeml.github.io/hashbrowns/schemas/profiles.schema.json",
+  "title": "hashbrowns profile contract",
+  "type": "object",
+  "required": ["schema_version", "profiles"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "profiles": {
+      "type": "object",
+      "required": ["smoke", "ci", "series", "crossover", "deep"],
+      "additionalProperties": false,
+      "properties": {
+        "smoke": {"$ref": "#/$defs/profileContract"},
+        "ci": {"$ref": "#/$defs/profileContract"},
+        "series": {"$ref": "#/$defs/profileContract"},
+        "crossover": {"$ref": "#/$defs/profileContract"},
+        "deep": {"$ref": "#/$defs/profileContract"}
+      }
+    }
+  },
+  "$defs": {
+    "profileContract": {
+      "type": "object",
+      "required": ["description", "artifact_kind", "applied_defaults", "expected_explicit_overrides"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {"type": "string", "minLength": 1},
+        "artifact_kind": {"type": "string", "enum": ["benchmark_results", "series_results", "crossover_results"]},
+        "applied_defaults": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "expected_explicit_overrides": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}
