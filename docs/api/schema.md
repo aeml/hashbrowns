@@ -49,6 +49,7 @@ This document describes the JSON structures emitted by hashbrowns. A minimal `sc
 - `comparison` (object): machine-readable copy of the binary's coarse per-structure timing deltas
   - `all_ok` (bool)
   - `decision_basis` (string): scope semantics that drove the binary comparison verdict: `mean|p95|ci_high|any`
+  - `health` (string): compact summary of comparison hygiene: `clean|partial_coverage|duplicate_inputs|partial_coverage_with_duplicates`
   - `coverage` (object): honest accounting of what was actually compared and whether either side was malformed
     - `baseline_structure_count`
     - `current_structure_count`

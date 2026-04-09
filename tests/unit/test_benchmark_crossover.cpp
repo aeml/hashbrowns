@@ -315,6 +315,10 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Baseline comparison should record selected scope\n";
             ++failures;
         }
+        if (comparison.health != "clean") {
+            std::cout << "❌ Fully comparable non-duplicated baseline comparison should be classified as clean\n";
+            ++failures;
+        }
         if (comparison.entries.front().insert_basis != "mean" ||
             comparison.entries.front().search_basis != "mean" ||
             comparison.entries.front().remove_basis != "mean") {
@@ -391,6 +395,10 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Baseline comparison should report comparable and missing structures honestly\n";
             ++failures;
         }
+        if (coverage_comparison.health != "partial_coverage") {
+            std::cout << "❌ Missing structures should classify comparison health as partial_coverage\n";
+            ++failures;
+        }
 
         auto duplicate_baseline = baseline;
         duplicate_baseline.push_back(br1);
@@ -400,6 +408,10 @@ int run_benchmark_crossover_tests() {
         if (duplicate_comparison.coverage.duplicate_baseline_structures.size() != 1 ||
             duplicate_comparison.coverage.duplicate_current_structures.size() != 1) {
             std::cout << "❌ Baseline comparison should report duplicate structures instead of silently collapsing them\n";
+            ++failures;
+        }
+        if (duplicate_comparison.health != "duplicate_inputs") {
+            std::cout << "❌ Duplicate structures without coverage drift should classify comparison health as duplicate_inputs\n";
             ++failures;
         }
 
@@ -489,9 +501,19 @@ int run_benchmark_crossover_tests() {
         print_baseline_report(comparison, base_config.threshold_pct, base_config.noise_floor_pct);
         print_baseline_metadata_report(meta_bad);
 
+        auto duplicate_partial_baseline = coverage_baseline;
+        duplicate_partial_baseline.push_back(coverage_baseline_only);
+        auto duplicate_partial_current = coverage_current;
+        duplicate_partial_current.push_back(coverage_current_only);
+        auto duplicate_partial_comparison = compare_against_baseline(duplicate_partial_baseline, duplicate_partial_current, base_config);
+        if (duplicate_partial_comparison.health != "partial_coverage_with_duplicates") {
+            std::cout << "❌ Partial coverage plus duplicates should classify comparison health as partial_coverage_with_duplicates\n";
+            ++failures;
+        }
+
         BaselineReport report_json;
         report_json.metadata              = meta_ok;
-        report_json.comparison            = comparison;
+        report_json.comparison            = duplicate_partial_comparison;
         report_json.threshold_pct         = base_config.threshold_pct;
         report_json.noise_floor_pct       = base_config.noise_floor_pct;
         report_json.baseline_path         = "perf_baselines/baseline.json";
@@ -510,6 +532,7 @@ int run_benchmark_crossover_tests() {
                 baseline_report_content.find("\"baseline_path\": \"perf_baselines/baseline.json\"") == std::string::npos ||
                 baseline_report_content.find("\"scope\": \"mean\"") == std::string::npos ||
                 baseline_report_content.find("\"decision_basis\": \"mean\"") == std::string::npos ||
+                baseline_report_content.find("\"health\": \"partial_coverage_with_duplicates\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_basis\": \"mean\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_mean_delta_pct\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_p95_delta_pct\"") == std::string::npos ||

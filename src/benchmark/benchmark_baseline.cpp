@@ -659,6 +659,18 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
             out.all_ok = false;
         out.entries.push_back(e);
     }
+
+    const bool has_partial_coverage = !out.coverage.baseline_only_structures.empty() || !out.coverage.current_only_structures.empty();
+    const bool has_duplicates = !out.coverage.duplicate_baseline_structures.empty() || !out.coverage.duplicate_current_structures.empty();
+    if (has_partial_coverage && has_duplicates)
+        out.health = "partial_coverage_with_duplicates";
+    else if (has_partial_coverage)
+        out.health = "partial_coverage";
+    else if (has_duplicates)
+        out.health = "duplicate_inputs";
+    else
+        out.health = "clean";
+
     return out;
 }
 
@@ -730,6 +742,7 @@ void write_baseline_report_json(const std::string& path, const BaselineReport& r
     out << "  \"comparison\": {\n";
     out << "    \"all_ok\": " << (report.comparison.all_ok ? "true" : "false") << ",\n";
     out << "    \"decision_basis\": \"" << report.comparison.scope << "\",\n";
+    out << "    \"health\": \"" << report.comparison.health << "\",\n";
     out << "    \"coverage\": {\n";
     out << "      \"baseline_structure_count\": " << report.comparison.coverage.baseline_structure_count << ",\n";
     out << "      \"current_structure_count\": " << report.comparison.coverage.current_structure_count << ",\n";

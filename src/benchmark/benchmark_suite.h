@@ -105,6 +105,7 @@ struct BaselineComparison {
     Coverage coverage;
     bool all_ok{true};
     std::string scope{"mean"};
+    std::string health{"clean"};
 };
 
 struct BenchmarkResult {
