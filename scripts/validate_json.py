@@ -29,7 +29,9 @@ def detect_schema(obj: Dict[str, object]) -> str:
         return 'baseline_report.schema.json'
     if 'schema_version' in obj and 'profiles' in obj:
         return 'profiles.schema.json'
-    raise ValueError('Unrecognized JSON structure (missing results/series/crossovers, baseline report fields, or profile contract fields)')
+    if 'schema_version' in obj and 'wrapper' in obj and 'report' in obj:
+        return 'perf_guard_contract.schema.json'
+    raise ValueError('Unrecognized JSON structure (missing results/series/crossovers, baseline report fields, profile contract fields, or perf guard contract fields)')
 
 
 def main():

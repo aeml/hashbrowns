@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aeml.github.io/hashbrowns/schemas/perf_guard_contract.schema.json",
+  "title": "hashbrowns perf guard contract",
+  "type": "object",
+  "required": ["schema_version", "wrapper", "report"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "wrapper": {
+      "type": "object",
+      "required": ["script", "profile", "artifact_paths", "wrapper_explicit_overrides"],
+      "additionalProperties": false,
+      "properties": {
+        "script": {"type": "string", "const": "scripts/perf_guard.sh"},
+        "profile": {"type": "string", "const": "ci"},
+        "artifact_paths": {
+          "type": "object",
+          "required": ["baseline", "current", "report"],
+          "additionalProperties": false,
+          "properties": {
+            "baseline": {"type": "string"},
+            "current": {"type": "string"},
+            "report": {"type": "string"}
+          }
+        },
+        "wrapper_explicit_overrides": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "required": ["schema", "exit_codes", "per_operation_guard_tolerance_keys"],
+      "additionalProperties": false,
+      "properties": {
+        "schema": {"type": "string", "const": "docs/api/schemas/baseline_report.schema.json"},
+        "exit_codes": {
+          "type": "object",
+          "required": ["success", "per_operation_guard_failure", "binary_regression", "metadata_mismatch"],
+          "additionalProperties": false,
+          "properties": {
+            "success": {"type": "integer", "const": 0},
+            "per_operation_guard_failure": {"type": "integer", "const": 2},
+            "binary_regression": {"type": "integer", "const": 4},
+            "metadata_mismatch": {"type": "integer", "const": 5}
+          }
+        },
+        "per_operation_guard_tolerance_keys": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["insert", "search", "remove"]},
+          "uniqueItems": true,
+          "minItems": 3,
+          "maxItems": 3
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

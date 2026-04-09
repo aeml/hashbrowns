@@ -171,6 +171,37 @@ def test_detects_profile_contract_schema():
         assert 'profiles.schema.json' in proc.stdout, proc.stdout
 
 
+def test_detects_perf_guard_contract_schema():
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / 'perf_guard_contract.json'
+        write_json(path, {
+            'schema_version': 1,
+            'wrapper': {
+                'script': 'scripts/perf_guard.sh',
+                'profile': 'ci',
+                'artifact_paths': {
+                    'baseline': 'perf_baselines/baseline.json',
+                    'current': 'build/perf_guard_current.json',
+                    'report': 'build/perf_guard_report.json'
+                },
+                'wrapper_explicit_overrides': ['output', 'out_format']
+            },
+            'report': {
+                'schema': 'docs/api/schemas/baseline_report.schema.json',
+                'exit_codes': {
+                    'success': 0,
+                    'per_operation_guard_failure': 2,
+                    'binary_regression': 4,
+                    'metadata_mismatch': 5
+                },
+                'per_operation_guard_tolerance_keys': ['insert', 'search', 'remove']
+            }
+        })
+        proc = run_validator(path)
+        assert proc.returncode == 0, proc.stderr + proc.stdout
+        assert 'perf_guard_contract.schema.json' in proc.stdout, proc.stdout
+
+
 def test_rejects_unrecognized_json():
     with tempfile.TemporaryDirectory() as td:
         path = Path(td) / 'unknown.json'
@@ -186,6 +217,7 @@ def main():
     test_detects_crossover_schema()
     test_detects_baseline_report_schema()
     test_detects_profile_contract_schema()
+    test_detects_perf_guard_contract_schema()
     test_rejects_unrecognized_json()
     print('validate_json.py tests passed')
 

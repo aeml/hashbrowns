@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "wrapper": {
+    "script": "scripts/perf_guard.sh",
+    "profile": "ci",
+    "artifact_paths": {
+      "baseline": "perf_baselines/baseline.json",
+      "current": "build/perf_guard_current.json",
+      "report": "build/perf_guard_report.json"
+    },
+    "wrapper_explicit_overrides": ["output", "out_format"]
+  },
+  "report": {
+    "schema": "docs/api/schemas/baseline_report.schema.json",
+    "exit_codes": {
+      "success": 0,
+      "per_operation_guard_failure": 2,
+      "binary_regression": 4,
+      "metadata_mismatch": 5
+    },
+    "per_operation_guard_tolerance_keys": ["insert", "search", "remove"]
+  }
+}
