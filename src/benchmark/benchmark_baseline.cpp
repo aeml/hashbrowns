@@ -685,6 +685,13 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
     else
         out.recommended_disposition = "reject_input_hygiene";
 
+    if (has_partial_coverage)
+        out.disposition_reasons.push_back("missing_structures");
+    if (!out.coverage.duplicate_baseline_structures.empty())
+        out.disposition_reasons.push_back("duplicate_baseline_structures");
+    if (!out.coverage.duplicate_current_structures.empty())
+        out.disposition_reasons.push_back("duplicate_current_structures");
+
     return out;
 }
 
@@ -759,6 +766,9 @@ void write_baseline_report_json(const std::string& path, const BaselineReport& r
     out << "    \"health\": \"" << report.comparison.health << "\",\n";
     out << "    \"actionability\": \"" << report.comparison.actionability << "\",\n";
     out << "    \"recommended_disposition\": \"" << report.comparison.recommended_disposition << "\",\n";
+    out << "    \"disposition_reasons\": ";
+    write_string_array(report.comparison.disposition_reasons);
+    out << ",\n";
     out << "    \"coverage\": {\n";
     out << "      \"baseline_structure_count\": " << report.comparison.coverage.baseline_structure_count << ",\n";
     out << "      \"current_structure_count\": " << report.comparison.coverage.current_structure_count << ",\n";

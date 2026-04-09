@@ -108,6 +108,7 @@ struct BaselineComparison {
     std::string health{"clean"};
     std::string actionability{"fully_actionable"};
     std::string recommended_disposition{"accept"};
+    std::vector<std::string> disposition_reasons;
 };
 
 struct BenchmarkResult {

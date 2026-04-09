@@ -327,6 +327,10 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Fully actionable comparison should recommend accept\n";
             ++failures;
         }
+        if (!comparison.disposition_reasons.empty()) {
+            std::cout << "❌ Clean comparison should not emit disposition reasons\n";
+            ++failures;
+        }
         if (comparison.entries.front().insert_basis != "mean" ||
             comparison.entries.front().search_basis != "mean" ||
             comparison.entries.front().remove_basis != "mean") {
@@ -415,6 +419,11 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Partial coverage should recommend review_with_warnings\n";
             ++failures;
         }
+        if (coverage_comparison.disposition_reasons.size() != 1 ||
+            coverage_comparison.disposition_reasons.front() != "missing_structures") {
+            std::cout << "❌ Partial coverage should emit missing_structures as the disposition reason\n";
+            ++failures;
+        }
 
         auto duplicate_baseline = baseline;
         duplicate_baseline.push_back(br1);
@@ -436,6 +445,12 @@ int run_benchmark_crossover_tests() {
         }
         if (duplicate_comparison.recommended_disposition != "reject_input_hygiene") {
             std::cout << "❌ Duplicate inputs should recommend reject_input_hygiene\n";
+            ++failures;
+        }
+        if (duplicate_comparison.disposition_reasons.size() != 2 ||
+            duplicate_comparison.disposition_reasons[0] != "duplicate_baseline_structures" ||
+            duplicate_comparison.disposition_reasons[1] != "duplicate_current_structures") {
+            std::cout << "❌ Duplicate inputs should emit baseline/current duplicate disposition reasons\n";
             ++failures;
         }
 
@@ -542,6 +557,13 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Partial coverage plus duplicates should recommend reject_input_hygiene\n";
             ++failures;
         }
+        if (duplicate_partial_comparison.disposition_reasons.size() != 3 ||
+            duplicate_partial_comparison.disposition_reasons[0] != "missing_structures" ||
+            duplicate_partial_comparison.disposition_reasons[1] != "duplicate_baseline_structures" ||
+            duplicate_partial_comparison.disposition_reasons[2] != "duplicate_current_structures") {
+            std::cout << "❌ Partial coverage plus duplicates should emit missing/deduped reason codes\n";
+            ++failures;
+        }
 
         BaselineReport report_json;
         report_json.metadata              = meta_ok;
@@ -567,6 +589,7 @@ int run_benchmark_crossover_tests() {
                 baseline_report_content.find("\"health\": \"partial_coverage_with_duplicates\"") == std::string::npos ||
                 baseline_report_content.find("\"actionability\": \"not_actionable\"") == std::string::npos ||
                 baseline_report_content.find("\"recommended_disposition\": \"reject_input_hygiene\"") == std::string::npos ||
+                baseline_report_content.find("\"disposition_reasons\": [\"missing_structures\",\"duplicate_baseline_structures\",\"duplicate_current_structures\"]") == std::string::npos ||
                 baseline_report_content.find("\"insert_basis\": \"mean\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_mean_delta_pct\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_p95_delta_pct\"") == std::string::npos ||
