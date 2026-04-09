@@ -562,7 +562,13 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
         const double insert_mean_delta    = pct_delta(b.insert_ms_mean, cur.insert_ms_mean);
         const double insert_p95_delta     = pct_delta(b.insert_ms_p95, cur.insert_ms_p95);
         const double insert_ci_high_delta = pct_delta(b.insert_ci_high, cur.insert_ci_high);
-        const auto   insert_decision      = select_metric(insert_mean_delta, insert_p95_delta, insert_ci_high_delta);
+        e.insert_mean_delta_pct           = insert_mean_delta;
+        e.insert_p95_delta_pct            = insert_p95_delta;
+        e.insert_ci_high_delta_pct        = insert_ci_high_delta;
+        e.insert_mean_ok                  = within(insert_mean_delta);
+        e.insert_p95_ok                   = within(insert_p95_delta);
+        e.insert_ci_high_ok               = within(insert_ci_high_delta);
+        const auto insert_decision        = select_metric(insert_mean_delta, insert_p95_delta, insert_ci_high_delta);
         e.insert_delta_pct                = insert_decision.delta_pct;
         e.insert_ok                       = insert_decision.ok;
         e.insert_basis                    = insert_decision.basis;
@@ -570,7 +576,13 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
         const double search_mean_delta    = pct_delta(b.search_ms_mean, cur.search_ms_mean);
         const double search_p95_delta     = pct_delta(b.search_ms_p95, cur.search_ms_p95);
         const double search_ci_high_delta = pct_delta(b.search_ci_high, cur.search_ci_high);
-        const auto   search_decision      = select_metric(search_mean_delta, search_p95_delta, search_ci_high_delta);
+        e.search_mean_delta_pct           = search_mean_delta;
+        e.search_p95_delta_pct            = search_p95_delta;
+        e.search_ci_high_delta_pct        = search_ci_high_delta;
+        e.search_mean_ok                  = within(search_mean_delta);
+        e.search_p95_ok                   = within(search_p95_delta);
+        e.search_ci_high_ok               = within(search_ci_high_delta);
+        const auto search_decision        = select_metric(search_mean_delta, search_p95_delta, search_ci_high_delta);
         e.search_delta_pct                = search_decision.delta_pct;
         e.search_ok                       = search_decision.ok;
         e.search_basis                    = search_decision.basis;
@@ -578,7 +590,13 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
         const double remove_mean_delta    = pct_delta(b.remove_ms_mean, cur.remove_ms_mean);
         const double remove_p95_delta     = pct_delta(b.remove_ms_p95, cur.remove_ms_p95);
         const double remove_ci_high_delta = pct_delta(b.remove_ci_high, cur.remove_ci_high);
-        const auto   remove_decision      = select_metric(remove_mean_delta, remove_p95_delta, remove_ci_high_delta);
+        e.remove_mean_delta_pct           = remove_mean_delta;
+        e.remove_p95_delta_pct            = remove_p95_delta;
+        e.remove_ci_high_delta_pct        = remove_ci_high_delta;
+        e.remove_mean_ok                  = within(remove_mean_delta);
+        e.remove_p95_ok                   = within(remove_p95_delta);
+        e.remove_ci_high_ok               = within(remove_ci_high_delta);
+        const auto remove_decision        = select_metric(remove_mean_delta, remove_p95_delta, remove_ci_high_delta);
         e.remove_delta_pct                = remove_decision.delta_pct;
         e.remove_ok                       = remove_decision.ok;
         e.remove_basis                    = remove_decision.basis;
@@ -670,7 +688,25 @@ void write_baseline_report_json(const std::string& path, const BaselineReport& r
             << "\"remove_ok\": " << (e.remove_ok ? "true" : "false") << ", "
             << "\"insert_basis\": \"" << e.insert_basis << "\", "
             << "\"search_basis\": \"" << e.search_basis << "\", "
-            << "\"remove_basis\": \"" << e.remove_basis << "\"}"
+            << "\"remove_basis\": \"" << e.remove_basis << "\", "
+            << "\"insert_mean_delta_pct\": " << e.insert_mean_delta_pct << ", "
+            << "\"insert_p95_delta_pct\": " << e.insert_p95_delta_pct << ", "
+            << "\"insert_ci_high_delta_pct\": " << e.insert_ci_high_delta_pct << ", "
+            << "\"insert_mean_ok\": " << (e.insert_mean_ok ? "true" : "false") << ", "
+            << "\"insert_p95_ok\": " << (e.insert_p95_ok ? "true" : "false") << ", "
+            << "\"insert_ci_high_ok\": " << (e.insert_ci_high_ok ? "true" : "false") << ", "
+            << "\"search_mean_delta_pct\": " << e.search_mean_delta_pct << ", "
+            << "\"search_p95_delta_pct\": " << e.search_p95_delta_pct << ", "
+            << "\"search_ci_high_delta_pct\": " << e.search_ci_high_delta_pct << ", "
+            << "\"search_mean_ok\": " << (e.search_mean_ok ? "true" : "false") << ", "
+            << "\"search_p95_ok\": " << (e.search_p95_ok ? "true" : "false") << ", "
+            << "\"search_ci_high_ok\": " << (e.search_ci_high_ok ? "true" : "false") << ", "
+            << "\"remove_mean_delta_pct\": " << e.remove_mean_delta_pct << ", "
+            << "\"remove_p95_delta_pct\": " << e.remove_p95_delta_pct << ", "
+            << "\"remove_ci_high_delta_pct\": " << e.remove_ci_high_delta_pct << ", "
+            << "\"remove_mean_ok\": " << (e.remove_mean_ok ? "true" : "false") << ", "
+            << "\"remove_p95_ok\": " << (e.remove_p95_ok ? "true" : "false") << ", "
+            << "\"remove_ci_high_ok\": " << (e.remove_ci_high_ok ? "true" : "false") << "}"
             << (i + 1 < report.comparison.entries.size() ? "," : "") << "\n";
     }
     out << "    ]\n  }\n}\n";

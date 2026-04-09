@@ -340,6 +340,12 @@ int run_benchmark_crossover_tests() {
                 std::cout << "❌ Any-scope comparison should explain pass/fail basis per operation\n";
                 ++failures;
             }
+            if (any_entry.insert_mean_delta_pct == 0.0 || any_entry.insert_p95_delta_pct == 0.0 || any_entry.insert_ci_high_delta_pct == 0.0 ||
+                any_entry.search_mean_delta_pct == 0.0 || any_entry.search_p95_delta_pct == 0.0 || any_entry.search_ci_high_delta_pct == 0.0 ||
+                any_entry.remove_mean_delta_pct == 0.0 || any_entry.remove_p95_delta_pct == 0.0 || any_entry.remove_ci_high_delta_pct == 0.0) {
+                std::cout << "❌ Any-scope comparison should expose exact per-metric deltas\n";
+                ++failures;
+            }
         }
 
         BenchmarkMeta baseline_meta;
@@ -450,6 +456,10 @@ int run_benchmark_crossover_tests() {
                 baseline_report_content.find("\"scope\": \"mean\"") == std::string::npos ||
                 baseline_report_content.find("\"decision_basis\": \"mean\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_basis\": \"mean\"") == std::string::npos ||
+                baseline_report_content.find("\"insert_mean_delta_pct\"") == std::string::npos ||
+                baseline_report_content.find("\"insert_p95_delta_pct\"") == std::string::npos ||
+                baseline_report_content.find("\"insert_ci_high_delta_pct\"") == std::string::npos ||
+                baseline_report_content.find("\"insert_mean_ok\"") == std::string::npos ||
                 baseline_report_content.find("\"exit_code\": 0") == std::string::npos ||
                 baseline_report_content.find("\"strict_profile_intent\": true") == std::string::npos ||
                 baseline_report_content.find("\"entries\"") == std::string::npos) {

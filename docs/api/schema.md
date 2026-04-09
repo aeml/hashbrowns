@@ -50,6 +50,7 @@ This document describes the JSON structures emitted by hashbrowns. A minimal `sc
   - `all_ok` (bool)
   - `decision_basis` (string): scope semantics that drove the binary comparison verdict: `mean|p95|ci_high|any`
   - `entries[]` with `structure`, `insert_delta_pct`, `search_delta_pct`, `remove_delta_pct`, `insert_ok`, `search_ok`, `remove_ok`, plus per-operation `insert_basis|search_basis|remove_basis`
+  - each entry also carries exact metric-family details for insert/search/remove: `*_mean_delta_pct`, `*_p95_delta_pct`, `*_ci_high_delta_pct`, and matching `*_mean_ok`, `*_p95_ok`, `*_ci_high_ok`
   - for `scope=any`, each `*_basis` field explains which metric checks passed or failed instead of pretending a single scalar told the whole story
 - `per_operation_guard` (object): final perf-guard verdict after exact insert/search/remove-specific tolerances are applied
   - `ok` (bool)
