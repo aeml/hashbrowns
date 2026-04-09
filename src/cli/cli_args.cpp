@@ -42,23 +42,29 @@ CliArgs parse_args(int argc, char* argv[]) {
             a.wizard_mode = true;
             a.demo_mode   = false;
         } else if (arg == "--size" && i + 1 < argc) {
-            a.opt_size  = static_cast<std::size_t>(std::stoull(argv[++i]));
-            a.demo_mode = false;
+            a.opt_size          = static_cast<std::size_t>(std::stoull(argv[++i]));
+            a.opt_size_explicit = true;
+            a.demo_mode         = false;
         } else if (arg == "--runs" && i + 1 < argc) {
-            a.opt_runs  = std::stoi(argv[++i]);
-            a.demo_mode = false;
+            a.opt_runs          = std::stoi(argv[++i]);
+            a.opt_runs_explicit = true;
+            a.demo_mode         = false;
         } else if (arg == "--warmup" && i + 1 < argc) {
-            a.opt_warmup = std::stoi(argv[++i]);
-            a.demo_mode  = false;
+            a.opt_warmup          = std::stoi(argv[++i]);
+            a.opt_warmup_explicit = true;
+            a.demo_mode           = false;
         } else if (arg == "--bootstrap" && i + 1 < argc) {
-            a.opt_bootstrap = std::stoi(argv[++i]);
-            a.demo_mode     = false;
+            a.opt_bootstrap          = std::stoi(argv[++i]);
+            a.opt_bootstrap_explicit = true;
+            a.demo_mode              = false;
         } else if (arg == "--series-count" && i + 1 < argc) {
-            a.opt_series_count = std::stoi(argv[++i]);
-            a.demo_mode        = false;
+            a.opt_series_count          = std::stoi(argv[++i]);
+            a.opt_series_count_explicit = true;
+            a.demo_mode                 = false;
         } else if (arg == "--series-out" && i + 1 < argc) {
-            a.opt_series_out = std::string(argv[++i]);
-            a.demo_mode      = false;
+            a.opt_series_out          = std::string(argv[++i]);
+            a.opt_series_out_explicit = true;
+            a.demo_mode               = false;
         } else if (arg == "--series-sizes" && i + 1 < argc) {
             std::string list  = argv[++i];
             std::size_t start = 0, pos = 0;
@@ -70,10 +76,12 @@ CliArgs parse_args(int argc, char* argv[]) {
             }
             if (start < list.size())
                 a.opt_series_sizes.push_back(static_cast<std::size_t>(std::stoull(list.substr(start))));
-            a.demo_mode = false;
+            a.opt_series_sizes_explicit = true;
+            a.demo_mode                 = false;
         } else if (arg == "--series-runs" && i + 1 < argc) {
-            a.opt_series_runs = std::stoi(argv[++i]);
-            a.demo_mode       = false;
+            a.opt_series_runs          = std::stoi(argv[++i]);
+            a.opt_series_runs_explicit = true;
+            a.demo_mode                = false;
         } else if (arg == "--structures" && i + 1 < argc) {
             std::string list  = argv[++i];
             std::size_t start = 0, pos = 0;
@@ -83,10 +91,12 @@ CliArgs parse_args(int argc, char* argv[]) {
             }
             if (start < list.size())
                 a.opt_structures.push_back(list.substr(start));
-            a.demo_mode = false;
+            a.opt_structures_explicit = true;
+            a.demo_mode               = false;
         } else if (arg == "--output" && i + 1 < argc) {
-            a.opt_output = std::string(argv[++i]);
-            a.demo_mode  = false;
+            a.opt_output          = std::string(argv[++i]);
+            a.opt_output_explicit = true;
+            a.demo_mode           = false;
         } else if (arg == "--profile" && i + 1 < argc) {
             std::string profile = argv[++i];
             std::transform(profile.begin(), profile.end(), profile.begin(), [](unsigned char c) {
@@ -96,14 +106,17 @@ CliArgs parse_args(int argc, char* argv[]) {
             a.opt_profile_valid = (kValidProfiles.find(profile) != kValidProfiles.end());
             a.demo_mode = false;
         } else if (arg == "--memory-tracking") {
-            a.opt_memory_tracking = true;
-            a.demo_mode           = false;
+            a.opt_memory_tracking          = true;
+            a.opt_memory_tracking_explicit = true;
+            a.demo_mode                    = false;
         } else if (arg == "--crossover-analysis") {
-            a.opt_crossover = true;
-            a.demo_mode     = false;
+            a.opt_crossover          = true;
+            a.opt_crossover_explicit = true;
+            a.demo_mode              = false;
         } else if (arg == "--max-size" && i + 1 < argc) {
-            a.opt_max_size = static_cast<std::size_t>(std::stoull(argv[++i]));
-            a.demo_mode    = false;
+            a.opt_max_size          = static_cast<std::size_t>(std::stoull(argv[++i]));
+            a.opt_max_size_explicit = true;
+            a.demo_mode             = false;
         } else if (arg == "--pattern" && i + 1 < argc) {
             std::string p = argv[++i];
             if (p == "sequential")
@@ -112,43 +125,53 @@ CliArgs parse_args(int argc, char* argv[]) {
                 a.opt_pattern = BenchmarkConfig::Pattern::RANDOM;
             else if (p == "mixed")
                 a.opt_pattern = BenchmarkConfig::Pattern::MIXED;
-            a.demo_mode = false;
+            a.opt_pattern_explicit = true;
+            a.demo_mode            = false;
         } else if (arg == "--seed" && i + 1 < argc) {
-            a.opt_seed  = static_cast<unsigned long long>(std::stoull(argv[++i]));
-            a.demo_mode = false;
+            a.opt_seed          = static_cast<unsigned long long>(std::stoull(argv[++i]));
+            a.opt_seed_explicit = true;
+            a.demo_mode         = false;
         } else if (arg == "--pin-cpu") {
-            a.opt_pin_cpu = true;
+            a.opt_pin_cpu          = true;
+            a.opt_pin_cpu_explicit = true;
             if (i + 1 < argc) {
                 std::string maybe = argv[i + 1];
                 if (!maybe.empty() && std::all_of(maybe.begin(), maybe.end(), ::isdigit)) {
                     ++i;
-                    a.opt_cpu_index = std::stoi(maybe);
+                    a.opt_cpu_index          = std::stoi(maybe);
+                    a.opt_cpu_index_explicit = true;
                 }
             }
             a.demo_mode = false;
         } else if (arg == "--no-turbo") {
-            a.opt_no_turbo = true;
-            a.demo_mode    = false;
+            a.opt_no_turbo          = true;
+            a.opt_no_turbo_explicit = true;
+            a.demo_mode             = false;
         } else if (arg == "--max-seconds" && i + 1 < argc) {
-            a.opt_max_seconds = std::stod(argv[++i]);
-            a.demo_mode       = false;
+            a.opt_max_seconds          = std::stod(argv[++i]);
+            a.opt_max_seconds_explicit = true;
+            a.demo_mode                = false;
         } else if (arg == "--out-format" && i + 1 < argc) {
             std::string f = argv[++i];
-            a.opt_out_fmt = (f == "json") ? BenchmarkConfig::OutputFormat::JSON : BenchmarkConfig::OutputFormat::CSV;
-            a.demo_mode   = false;
+            a.opt_out_fmt             = (f == "json") ? BenchmarkConfig::OutputFormat::JSON : BenchmarkConfig::OutputFormat::CSV;
+            a.opt_out_format_explicit = true;
+            a.demo_mode               = false;
         } else if (arg == "--hash-strategy" && i + 1 < argc) {
             std::string s = argv[++i];
             if (s == "open")
                 a.opt_hash_strategy = HashStrategy::OPEN_ADDRESSING;
             else if (s == "chain")
                 a.opt_hash_strategy = HashStrategy::SEPARATE_CHAINING;
-            a.demo_mode = false;
+            a.opt_hash_strategy_explicit = true;
+            a.demo_mode                  = false;
         } else if (arg == "--hash-capacity" && i + 1 < argc) {
-            a.opt_hash_capacity = static_cast<std::size_t>(std::stoull(argv[++i]));
-            a.demo_mode         = false;
+            a.opt_hash_capacity          = static_cast<std::size_t>(std::stoull(argv[++i]));
+            a.opt_hash_capacity_explicit = true;
+            a.demo_mode                  = false;
         } else if (arg == "--hash-load" && i + 1 < argc) {
-            a.opt_hash_load = std::stod(argv[++i]);
-            a.demo_mode     = false;
+            a.opt_hash_load          = std::stod(argv[++i]);
+            a.opt_hash_load_explicit = true;
+            a.demo_mode              = false;
         } else if (arg == "--baseline" && i + 1 < argc) {
             a.opt_baseline_path = std::string(argv[++i]);
             a.demo_mode         = false;

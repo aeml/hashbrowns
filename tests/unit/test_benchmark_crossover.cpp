@@ -246,6 +246,19 @@ int run_benchmark_crossover_tests() {
         }
     }
 
+    // Test explicit flag tracking even when the user passes parser-default values.
+    {
+        std::cout << "\nTesting explicit benchmark flag tracking:\n";
+        const char* argv[] = {"hashbrowns", "--profile", "ci", "--size", "10000", "--runs", "10", "--out-format", "json"};
+        auto        parsed = hashbrowns::cli::parse_args(9, const_cast<char**>(argv));
+        if (!parsed.opt_size_explicit || !parsed.opt_runs_explicit || !parsed.opt_out_format_explicit) {
+            std::cout << "❌ CLI lost explicit flags when values matched parser defaults\n";
+            ++failures;
+        } else {
+            std::cout << "✅ CLI preserves explicit flags even when values match parser defaults\n";
+        }
+    }
+
     // Test baseline comparison functionality
     {
         std::cout << "\nTesting baseline comparison:\n";
