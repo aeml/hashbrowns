@@ -482,12 +482,74 @@ BaselineMetadataReport compare_benchmark_metadata(const BenchmarkMeta& baseline,
 BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& baseline,
                                             const std::vector<BenchmarkResult>& current, const BaselineConfig& cfg) {
     BaselineComparison out;
+
+    auto scope_name = [&cfg]() {
+        switch (cfg.scope) {
+        case BaselineConfig::MetricScope::MEAN:
+            return std::string("mean");
+        case BaselineConfig::MetricScope::P95:
+            return std::string("p95");
+        case BaselineConfig::MetricScope::CI_HIGH:
+            return std::string("ci_high");
+        case BaselineConfig::MetricScope::ANY:
+        default:
+            return std::string("any");
+        }
+    };
+    out.scope = scope_name();
+
     if (baseline.empty() || current.empty())
         return out;
 
     std::map<std::string, BenchmarkResult> base_map;
     for (const auto& b : baseline)
         base_map[b.structure] = b;
+
+    auto within = [&cfg](double delta) {
+        double absd = std::fabs(delta);
+        if (absd <= cfg.noise_floor_pct)
+            return true;
+        return delta <= cfg.threshold_pct;
+    };
+
+    auto select_metric = [&cfg, &within](double mean_delta, double p95_delta, double ci_high_delta) {
+        struct MetricDecision {
+            double delta_pct{0.0};
+            bool ok{true};
+            std::string basis{"mean"};
+        };
+
+        MetricDecision decision;
+        switch (cfg.scope) {
+        case BaselineConfig::MetricScope::MEAN:
+            decision.delta_pct = mean_delta;
+            decision.ok        = within(mean_delta);
+            decision.basis     = "mean";
+            return decision;
+        case BaselineConfig::MetricScope::P95:
+            decision.delta_pct = p95_delta;
+            decision.ok        = within(p95_delta);
+            decision.basis     = "p95";
+            return decision;
+        case BaselineConfig::MetricScope::CI_HIGH:
+            decision.delta_pct = ci_high_delta;
+            decision.ok        = within(ci_high_delta);
+            decision.basis     = "ci_high";
+            return decision;
+        case BaselineConfig::MetricScope::ANY:
+        default: {
+            const bool mean_ok    = within(mean_delta);
+            const bool p95_ok     = within(p95_delta);
+            const bool ci_high_ok = within(ci_high_delta);
+            decision.delta_pct = mean_delta;
+            decision.ok        = mean_ok || p95_ok || ci_high_ok;
+            decision.basis     = "any(mean=" + std::string(mean_ok ? "ok" : "fail") + ",p95=" +
+                                 std::string(p95_ok ? "ok" : "fail") + ",ci_high=" +
+                                 std::string(ci_high_ok ? "ok" : "fail") + ")";
+            return decision;
+        }
+        }
+    };
 
     for (const auto& cur : current) {
         auto it = base_map.find(cur.structure);
@@ -497,41 +559,29 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
         BaselineComparison::Entry e;
         e.structure = cur.structure;
 
-        auto pick = [&cfg](double mean, double p95, double ci_high) {
-            switch (cfg.scope) {
-            case BaselineConfig::MetricScope::MEAN:
-                return mean;
-            case BaselineConfig::MetricScope::P95:
-                return p95;
-            case BaselineConfig::MetricScope::CI_HIGH:
-                return ci_high;
-            case BaselineConfig::MetricScope::ANY:
-            default:
-                return mean;
-            }
-        };
+        const double insert_mean_delta    = pct_delta(b.insert_ms_mean, cur.insert_ms_mean);
+        const double insert_p95_delta     = pct_delta(b.insert_ms_p95, cur.insert_ms_p95);
+        const double insert_ci_high_delta = pct_delta(b.insert_ci_high, cur.insert_ci_high);
+        const auto   insert_decision      = select_metric(insert_mean_delta, insert_p95_delta, insert_ci_high_delta);
+        e.insert_delta_pct                = insert_decision.delta_pct;
+        e.insert_ok                       = insert_decision.ok;
+        e.insert_basis                    = insert_decision.basis;
 
-        double b_ins = pick(b.insert_ms_mean, b.insert_ms_p95, b.insert_ci_high);
-        double b_sea = pick(b.search_ms_mean, b.search_ms_p95, b.search_ci_high);
-        double b_rem = pick(b.remove_ms_mean, b.remove_ms_p95, b.remove_ci_high);
-        double c_ins = pick(cur.insert_ms_mean, cur.insert_ms_p95, cur.insert_ci_high);
-        double c_sea = pick(cur.search_ms_mean, cur.search_ms_p95, cur.search_ci_high);
-        double c_rem = pick(cur.remove_ms_mean, cur.remove_ms_p95, cur.remove_ci_high);
+        const double search_mean_delta    = pct_delta(b.search_ms_mean, cur.search_ms_mean);
+        const double search_p95_delta     = pct_delta(b.search_ms_p95, cur.search_ms_p95);
+        const double search_ci_high_delta = pct_delta(b.search_ci_high, cur.search_ci_high);
+        const auto   search_decision      = select_metric(search_mean_delta, search_p95_delta, search_ci_high_delta);
+        e.search_delta_pct                = search_decision.delta_pct;
+        e.search_ok                       = search_decision.ok;
+        e.search_basis                    = search_decision.basis;
 
-        e.insert_delta_pct = pct_delta(b_ins, c_ins);
-        e.search_delta_pct = pct_delta(b_sea, c_sea);
-        e.remove_delta_pct = pct_delta(b_rem, c_rem);
-
-        auto within = [&cfg](double delta) {
-            double absd = std::fabs(delta);
-            if (absd <= cfg.noise_floor_pct)
-                return true;
-            return delta <= cfg.threshold_pct;
-        };
-
-        e.insert_ok = within(e.insert_delta_pct);
-        e.search_ok = within(e.search_delta_pct);
-        e.remove_ok = within(e.remove_delta_pct);
+        const double remove_mean_delta    = pct_delta(b.remove_ms_mean, cur.remove_ms_mean);
+        const double remove_p95_delta     = pct_delta(b.remove_ms_p95, cur.remove_ms_p95);
+        const double remove_ci_high_delta = pct_delta(b.remove_ci_high, cur.remove_ci_high);
+        const auto   remove_decision      = select_metric(remove_mean_delta, remove_p95_delta, remove_ci_high_delta);
+        e.remove_delta_pct                = remove_decision.delta_pct;
+        e.remove_ok                       = remove_decision.ok;
+        e.remove_basis                    = remove_decision.basis;
 
         if (!e.insert_ok || !e.search_ok || !e.remove_ok)
             out.all_ok = false;
@@ -607,6 +657,7 @@ void write_baseline_report_json(const std::string& path, const BaselineReport& r
     out << "\n  },\n";
     out << "  \"comparison\": {\n";
     out << "    \"all_ok\": " << (report.comparison.all_ok ? "true" : "false") << ",\n";
+    out << "    \"decision_basis\": \"" << report.comparison.scope << "\",\n";
     out << "    \"entries\": [\n";
     for (std::size_t i = 0; i < report.comparison.entries.size(); ++i) {
         const auto& e = report.comparison.entries[i];
@@ -616,7 +667,10 @@ void write_baseline_report_json(const std::string& path, const BaselineReport& r
             << "\"remove_delta_pct\": " << e.remove_delta_pct << ", "
             << "\"insert_ok\": " << (e.insert_ok ? "true" : "false") << ", "
             << "\"search_ok\": " << (e.search_ok ? "true" : "false") << ", "
-            << "\"remove_ok\": " << (e.remove_ok ? "true" : "false") << "}"
+            << "\"remove_ok\": " << (e.remove_ok ? "true" : "false") << ", "
+            << "\"insert_basis\": \"" << e.insert_basis << "\", "
+            << "\"search_basis\": \"" << e.search_basis << "\", "
+            << "\"remove_basis\": \"" << e.remove_basis << "\"}"
             << (i + 1 < report.comparison.entries.size() ? "," : "") << "\n";
     }
     out << "    ]\n  }\n}\n";

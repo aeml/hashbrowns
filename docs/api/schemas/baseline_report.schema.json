@@ -33,9 +33,10 @@
     },
     "comparison": {
       "type": "object",
-      "required": ["all_ok", "entries"],
+      "required": ["all_ok", "decision_basis", "entries"],
       "properties": {
         "all_ok": {"type": "boolean"},
+        "decision_basis": {"type": "string", "enum": ["mean", "p95", "ci_high", "any"]},
         "entries": {
           "type": "array",
           "items": {
@@ -47,7 +48,10 @@
               "remove_delta_pct",
               "insert_ok",
               "search_ok",
-              "remove_ok"
+              "remove_ok",
+              "insert_basis",
+              "search_basis",
+              "remove_basis"
             ],
             "properties": {
               "structure": {"type": "string"},
@@ -56,7 +60,10 @@
               "remove_delta_pct": {"type": "number"},
               "insert_ok": {"type": "boolean"},
               "search_ok": {"type": "boolean"},
-              "remove_ok": {"type": "boolean"}
+              "remove_ok": {"type": "boolean"},
+              "insert_basis": {"type": "string"},
+              "search_basis": {"type": "string"},
+              "remove_basis": {"type": "string"}
             },
             "additionalProperties": false
           }

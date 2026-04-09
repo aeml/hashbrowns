@@ -28,6 +28,8 @@ Metadata policy:
 
 That keeps the guard honest: it refuses apples-to-oranges comparisons before reporting slowdown percentages.
 
+The coarse baseline report now also records which comparison basis drove the decision. For `mean`, `p95`, or `ci_high`, each entry records that exact basis. For `any`, each operation records an `any(...)` explanation so automation and reviewers can see whether mean, tail, or CI-high checks carried the verdict.
+
 The canonical guard scripts now write `build/perf_guard_report.json` automatically so CI or dashboards can consume a structured outcome instead of scraping console text. That report now reflects both the binary's coarse comparison and the script's final per-operation insert/search/remove tolerances, with the merge logic maintained in `scripts/perf_guard_report.py` instead of an inline shell blob. The helper has focused regression coverage in `scripts/test_perf_guard_report.py`, wrapper-level manifest honesty is pinned by `scripts/test_perf_guard_wrapper_manifest.py`, and the overall wrapper/report contract is published in `docs/api/perf_guard_contract.json` with runtime checks in `scripts/test_perf_guard_contract.py`.
 
 ## Legacy CSV baseline (optional)

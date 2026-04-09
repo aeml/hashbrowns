@@ -61,9 +61,13 @@ struct BaselineComparison {
         bool insert_ok{true};
         bool search_ok{true};
         bool remove_ok{true};
+        std::string insert_basis{"mean"};
+        std::string search_basis{"mean"};
+        std::string remove_basis{"mean"};
     };
     std::vector<Entry> entries;
     bool all_ok{true};
+    std::string scope{"mean"};
 };
 
 struct BenchmarkResult {

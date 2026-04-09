@@ -311,6 +311,36 @@ int run_benchmark_crossover_tests() {
         } else {
             std::cout << "✅ Baseline comparison completed successfully\n";
         }
+        if (comparison.scope != "mean") {
+            std::cout << "❌ Baseline comparison should record selected scope\n";
+            ++failures;
+        }
+        if (comparison.entries.front().insert_basis != "mean" ||
+            comparison.entries.front().search_basis != "mean" ||
+            comparison.entries.front().remove_basis != "mean") {
+            std::cout << "❌ Baseline comparison should record metric basis for each operation\n";
+            ++failures;
+        }
+
+        BaselineConfig any_scope_config = base_config;
+        any_scope_config.scope = BaselineConfig::MetricScope::ANY;
+        auto any_scope_comparison = compare_against_baseline(baseline, current, any_scope_config);
+        if (any_scope_comparison.scope != "any") {
+            std::cout << "❌ Baseline comparison should record any scope\n";
+            ++failures;
+        }
+        if (any_scope_comparison.entries.empty()) {
+            std::cout << "❌ Any-scope baseline comparison returned no entries\n";
+            ++failures;
+        } else {
+            const auto& any_entry = any_scope_comparison.entries.front();
+            if (any_entry.insert_basis.find("any(") == std::string::npos ||
+                any_entry.search_basis.find("any(") == std::string::npos ||
+                any_entry.remove_basis.find("any(") == std::string::npos) {
+                std::cout << "❌ Any-scope comparison should explain pass/fail basis per operation\n";
+                ++failures;
+            }
+        }
 
         BenchmarkMeta baseline_meta;
         baseline_meta.size            = 20000;
@@ -418,6 +448,8 @@ int run_benchmark_crossover_tests() {
                 baseline_report_content.find("\"comparison\"") == std::string::npos ||
                 baseline_report_content.find("\"baseline_path\": \"perf_baselines/baseline.json\"") == std::string::npos ||
                 baseline_report_content.find("\"scope\": \"mean\"") == std::string::npos ||
+                baseline_report_content.find("\"decision_basis\": \"mean\"") == std::string::npos ||
+                baseline_report_content.find("\"insert_basis\": \"mean\"") == std::string::npos ||
                 baseline_report_content.find("\"exit_code\": 0") == std::string::npos ||
                 baseline_report_content.find("\"strict_profile_intent\": true") == std::string::npos ||
                 baseline_report_content.find("\"entries\"") == std::string::npos) {
