@@ -692,6 +692,10 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
     if (!out.coverage.duplicate_current_structures.empty())
         out.disposition_reasons.push_back("duplicate_current_structures");
 
+    out.summary.missing_structure_count = out.coverage.baseline_only_structures.size() + out.coverage.current_only_structures.size();
+    out.summary.duplicate_baseline_structure_count = out.coverage.duplicate_baseline_structures.size();
+    out.summary.duplicate_current_structure_count  = out.coverage.duplicate_current_structures.size();
+
     return out;
 }
 
@@ -769,6 +773,9 @@ void write_baseline_report_json(const std::string& path, const BaselineReport& r
     out << "    \"disposition_reasons\": ";
     write_string_array(report.comparison.disposition_reasons);
     out << ",\n";
+    out << "    \"summary\": {\"missing_structure_count\": " << report.comparison.summary.missing_structure_count
+        << ", \"duplicate_baseline_structure_count\": " << report.comparison.summary.duplicate_baseline_structure_count
+        << ", \"duplicate_current_structure_count\": " << report.comparison.summary.duplicate_current_structure_count << "},\n";
     out << "    \"coverage\": {\n";
     out << "      \"baseline_structure_count\": " << report.comparison.coverage.baseline_structure_count << ",\n";
     out << "      \"current_structure_count\": " << report.comparison.coverage.current_structure_count << ",\n";

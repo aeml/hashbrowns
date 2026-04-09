@@ -53,6 +53,10 @@ This document describes the JSON structures emitted by hashbrowns. A minimal `sc
   - `actionability` (string): whether the comparison should drive decisions directly: `fully_actionable|actionable_with_hygiene_warnings|not_actionable`
   - `recommended_disposition` (string): policy-facing recommendation derived from actionability: `accept|review_with_warnings|reject_input_hygiene`
   - `disposition_reasons[]` (array): compact reason codes for the recommendation: `missing_structures|duplicate_baseline_structures|duplicate_current_structures`
+  - `summary` (object): compact numeric hygiene rollup for dashboards/alerts
+    - `missing_structure_count`
+    - `duplicate_baseline_structure_count`
+    - `duplicate_current_structure_count`
   - `coverage` (object): honest accounting of what was actually compared and whether either side was malformed
     - `baseline_structure_count`
     - `current_structure_count`

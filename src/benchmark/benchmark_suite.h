@@ -100,9 +100,15 @@ struct BaselineComparison {
         std::vector<std::string> duplicate_baseline_structures;
         std::vector<std::string> duplicate_current_structures;
     };
+    struct Summary {
+        std::size_t missing_structure_count{0};
+        std::size_t duplicate_baseline_structure_count{0};
+        std::size_t duplicate_current_structure_count{0};
+    };
     std::vector<Entry> entries;
     std::vector<Failure> failures;
     Coverage coverage;
+    Summary summary;
     bool all_ok{true};
     std::string scope{"mean"};
     std::string health{"clean"};
