@@ -348,6 +348,23 @@ int run_benchmark_crossover_tests() {
             }
         }
 
+        auto current_any_fail = current;
+        current_any_fail.front().insert_ms_mean = 1.30;
+        current_any_fail.front().insert_ms_p95 = 1.36;
+        current_any_fail.front().insert_ci_high = 1.45;
+        auto any_scope_failure_comparison = compare_against_baseline(baseline, current_any_fail, any_scope_config);
+        if (any_scope_failure_comparison.failures.empty()) {
+            std::cout << "❌ Any-scope comparison should summarize failing coarse checks\n";
+            ++failures;
+        } else {
+            const auto& failure = any_scope_failure_comparison.failures.front();
+            if (failure.structure.empty() || failure.operation != "insert" || failure.chosen_basis.empty() ||
+                failure.failed_metric_families.empty()) {
+                std::cout << "❌ Coarse failure summary should capture structure, operation, chosen basis, and failed metric families\n";
+                ++failures;
+            }
+        }
+
         BenchmarkMeta baseline_meta;
         baseline_meta.size            = 20000;
         baseline_meta.runs            = 5;
@@ -460,6 +477,7 @@ int run_benchmark_crossover_tests() {
                 baseline_report_content.find("\"insert_p95_delta_pct\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_ci_high_delta_pct\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_mean_ok\"") == std::string::npos ||
+                baseline_report_content.find("\"failures\"") == std::string::npos ||
                 baseline_report_content.find("\"exit_code\": 0") == std::string::npos ||
                 baseline_report_content.find("\"strict_profile_intent\": true") == std::string::npos ||
                 baseline_report_content.find("\"entries\"") == std::string::npos) {

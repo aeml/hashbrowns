@@ -33,10 +33,29 @@
     },
     "comparison": {
       "type": "object",
-      "required": ["all_ok", "decision_basis", "entries"],
+      "required": ["all_ok", "decision_basis", "failures", "entries"],
       "properties": {
         "all_ok": {"type": "boolean"},
         "decision_basis": {"type": "string", "enum": ["mean", "p95", "ci_high", "any"]},
+        "failures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["structure", "operation", "chosen_basis", "chosen_delta_pct", "threshold_pct", "failed_metric_families"],
+            "properties": {
+              "structure": {"type": "string"},
+              "operation": {"type": "string", "enum": ["insert", "search", "remove"]},
+              "chosen_basis": {"type": "string"},
+              "chosen_delta_pct": {"type": "number"},
+              "threshold_pct": {"type": "number"},
+              "failed_metric_families": {
+                "type": "array",
+                "items": {"type": "string", "enum": ["mean", "p95", "ci_high"]}
+              }
+            },
+            "additionalProperties": false
+          }
+        },
         "entries": {
           "type": "array",
           "items": {

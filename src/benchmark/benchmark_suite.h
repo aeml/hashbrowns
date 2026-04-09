@@ -83,7 +83,16 @@ struct BaselineComparison {
         bool remove_p95_ok{true};
         bool remove_ci_high_ok{true};
     };
+    struct Failure {
+        std::string              structure;
+        std::string              operation;
+        std::string              chosen_basis;
+        double                   chosen_delta_pct{0.0};
+        double                   threshold_pct{0.0};
+        std::vector<std::string> failed_metric_families;
+    };
     std::vector<Entry> entries;
+    std::vector<Failure> failures;
     bool all_ok{true};
     std::string scope{"mean"};
 };

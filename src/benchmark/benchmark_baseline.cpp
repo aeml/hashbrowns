@@ -601,6 +601,32 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
         e.remove_ok                       = remove_decision.ok;
         e.remove_basis                    = remove_decision.basis;
 
+        auto append_failure = [&out, &cfg, &e](const std::string& operation, bool op_ok, const std::string& basis,
+                                               double chosen_delta, bool mean_ok, bool p95_ok, bool ci_high_ok) {
+            if (op_ok)
+                return;
+            BaselineComparison::Failure failure;
+            failure.structure        = e.structure;
+            failure.operation        = operation;
+            failure.chosen_basis     = basis;
+            failure.chosen_delta_pct = chosen_delta;
+            failure.threshold_pct    = cfg.threshold_pct;
+            if (!mean_ok)
+                failure.failed_metric_families.push_back("mean");
+            if (!p95_ok)
+                failure.failed_metric_families.push_back("p95");
+            if (!ci_high_ok)
+                failure.failed_metric_families.push_back("ci_high");
+            out.failures.push_back(failure);
+        };
+
+        append_failure("insert", e.insert_ok, e.insert_basis, e.insert_delta_pct,
+                       e.insert_mean_ok, e.insert_p95_ok, e.insert_ci_high_ok);
+        append_failure("search", e.search_ok, e.search_basis, e.search_delta_pct,
+                       e.search_mean_ok, e.search_p95_ok, e.search_ci_high_ok);
+        append_failure("remove", e.remove_ok, e.remove_basis, e.remove_delta_pct,
+                       e.remove_mean_ok, e.remove_p95_ok, e.remove_ci_high_ok);
+
         if (!e.insert_ok || !e.search_ok || !e.remove_ok)
             out.all_ok = false;
         out.entries.push_back(e);
@@ -676,6 +702,19 @@ void write_baseline_report_json(const std::string& path, const BaselineReport& r
     out << "  \"comparison\": {\n";
     out << "    \"all_ok\": " << (report.comparison.all_ok ? "true" : "false") << ",\n";
     out << "    \"decision_basis\": \"" << report.comparison.scope << "\",\n";
+    out << "    \"failures\": [\n";
+    for (std::size_t i = 0; i < report.comparison.failures.size(); ++i) {
+        const auto& f = report.comparison.failures[i];
+        out << "      {\"structure\": \"" << f.structure << "\", "
+            << "\"operation\": \"" << f.operation << "\", "
+            << "\"chosen_basis\": \"" << f.chosen_basis << "\", "
+            << "\"chosen_delta_pct\": " << f.chosen_delta_pct << ", "
+            << "\"threshold_pct\": " << f.threshold_pct << ", "
+            << "\"failed_metric_families\": ";
+        write_string_array(f.failed_metric_families);
+        out << "}" << (i + 1 < report.comparison.failures.size() ? "," : "") << "\n";
+    }
+    out << "    ],\n";
     out << "    \"entries\": [\n";
     for (std::size_t i = 0; i < report.comparison.entries.size(); ++i) {
         const auto& e = report.comparison.entries[i];
