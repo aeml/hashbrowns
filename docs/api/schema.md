@@ -51,6 +51,7 @@ This document describes the JSON structures emitted by hashbrowns. A minimal `sc
   - `decision_basis` (string): scope semantics that drove the binary comparison verdict: `mean|p95|ci_high|any`
   - `health` (string): compact summary of comparison hygiene: `clean|partial_coverage|duplicate_inputs|partial_coverage_with_duplicates`
   - `actionability` (string): whether the comparison should drive decisions directly: `fully_actionable|actionable_with_hygiene_warnings|not_actionable`
+  - `recommended_disposition` (string): policy-facing recommendation derived from actionability: `accept|review_with_warnings|reject_input_hygiene`
   - `coverage` (object): honest accounting of what was actually compared and whether either side was malformed
     - `baseline_structure_count`
     - `current_structure_count`

@@ -107,6 +107,7 @@ struct BaselineComparison {
     std::string scope{"mean"};
     std::string health{"clean"};
     std::string actionability{"fully_actionable"};
+    std::string recommended_disposition{"accept"};
 };
 
 struct BenchmarkResult {
