@@ -340,6 +340,7 @@ Notes:
 - `docs/api/perf_guard_contract.json` publishes the canonical perf-guard wrapper/report contract, and `scripts/test_perf_guard_contract.py` checks that the wrapper and emitted report still match it.
 - Before comparing timings, hashbrowns now validates that the benchmark workload still matches the baseline: size, runs, warmup, bootstrap, structures, pattern, seed, hash-map tuning, CPU pinning, and turbo state must agree.
 - Environment drift such as CPU model, compiler, governor, kernel, RAM, or core-count changes is reported as a warning so the result stays interpretable without pretending those runs were identical.
+- `docs/api/baseline_policy.json` publishes that baseline compatibility policy as a machine-readable contract.
 
 ### API & stability
 

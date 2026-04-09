@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aeml.github.io/hashbrowns/schemas/baseline_policy.schema.json",
+  "title": "hashbrowns baseline policy contract",
+  "type": "object",
+  "required": ["schema_version", "metadata", "strict_profile_intent", "comparison", "report_exit_codes"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "metadata": {
+      "type": "object",
+      "required": ["hard_fail_fields", "warning_only_fields"],
+      "additionalProperties": false,
+      "properties": {
+        "hard_fail_fields": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "warning_only_fields": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        }
+      }
+    },
+    "strict_profile_intent": {
+      "type": "object",
+      "required": ["flag", "required_manifest_fields", "mismatch_modes"],
+      "additionalProperties": false,
+      "properties": {
+        "flag": {"type": "string", "const": "--baseline-strict-profile-intent"},
+        "required_manifest_fields": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "mismatch_modes": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["manifest_presence", "profile_selected", "profile_applied_defaults", "profile_explicit_overrides"]},
+          "uniqueItems": true
+        }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "required": ["allowed_scopes", "noise_floor_rule"],
+      "additionalProperties": false,
+      "properties": {
+        "allowed_scopes": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["mean", "p95", "ci_high", "any"]},
+          "uniqueItems": true,
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "noise_floor_rule": {"type": "string", "minLength": 1}
+      }
+    },
+    "report_exit_codes": {
+      "type": "object",
+      "required": ["success", "per_operation_guard_failure", "binary_regression", "metadata_mismatch"],
+      "additionalProperties": false,
+      "properties": {
+        "success": {"type": "integer", "const": 0},
+        "per_operation_guard_failure": {"type": "integer", "const": 2},
+        "binary_regression": {"type": "integer", "const": 4},
+        "metadata_mismatch": {"type": "integer", "const": 5}
+      }
+    }
+  },
+  "additionalProperties": false
+}

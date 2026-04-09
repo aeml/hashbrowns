@@ -40,6 +40,8 @@ CSV columns (crossover mode):
 
 A baseline check is only trustworthy when it answers the same question twice.
 
+The published machine-readable baseline policy lives in `docs/api/baseline_policy.json`.
+
 hashbrowns now separates baseline metadata into two buckets:
 
 - Hard comparison requirements: run shape and benchmark knobs that directly change the workload. If these drift, the comparison is rejected before timing deltas are interpreted.

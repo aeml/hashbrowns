@@ -202,6 +202,36 @@ def test_detects_perf_guard_contract_schema():
         assert 'perf_guard_contract.schema.json' in proc.stdout, proc.stdout
 
 
+def test_detects_baseline_policy_schema():
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / 'baseline_policy.json'
+        write_json(path, {
+            'schema_version': 1,
+            'metadata': {
+                'hard_fail_fields': ['size', 'runs'],
+                'warning_only_fields': ['cpu_model', 'compiler']
+            },
+            'strict_profile_intent': {
+                'flag': '--baseline-strict-profile-intent',
+                'required_manifest_fields': ['profile_selected', 'profile_applied_defaults', 'profile_explicit_overrides'],
+                'mismatch_modes': ['manifest_presence', 'profile_selected', 'profile_applied_defaults', 'profile_explicit_overrides']
+            },
+            'comparison': {
+                'allowed_scopes': ['mean', 'p95', 'ci_high', 'any'],
+                'noise_floor_rule': 'ignore deltas inside noise floor'
+            },
+            'report_exit_codes': {
+                'success': 0,
+                'per_operation_guard_failure': 2,
+                'binary_regression': 4,
+                'metadata_mismatch': 5
+            }
+        })
+        proc = run_validator(path)
+        assert proc.returncode == 0, proc.stderr + proc.stdout
+        assert 'baseline_policy.schema.json' in proc.stdout, proc.stdout
+
+
 def test_rejects_unrecognized_json():
     with tempfile.TemporaryDirectory() as td:
         path = Path(td) / 'unknown.json'
@@ -218,6 +248,7 @@ def main():
     test_detects_baseline_report_schema()
     test_detects_profile_contract_schema()
     test_detects_perf_guard_contract_schema()
+    test_detects_baseline_policy_schema()
     test_rejects_unrecognized_json()
     print('validate_json.py tests passed')
 

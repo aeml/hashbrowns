@@ -139,6 +139,7 @@ Contributors changing hot paths should:
 - If you touch `scripts/perf_guard_report.py`, run `python3 scripts/test_perf_guard_report.py` before pushing so helper-level regressions are caught without relying only on full benchmark runs.
 - If you touch `scripts/perf_guard.sh`, run `python3 scripts/test_perf_guard_wrapper_manifest.py` so canonical wrapper manifest semantics stay honest even when artifact paths are redirected in tests.
 - If you change canonical perf-guard workflow semantics or docs, update `docs/api/perf_guard_contract.json` and run `python3 scripts/validate_json.py docs/api/perf_guard_contract.json` plus `python3 scripts/test_perf_guard_contract.py`.
+- If you change baseline compatibility semantics or docs, update `docs/api/baseline_policy.json` and run `python3 scripts/validate_json.py docs/api/baseline_policy.json` plus `python3 scripts/test_baseline_policy_contract.py`.
 - If you touch `scripts/validate_json.py` or any schema under `docs/api/schemas/`, run `python3 scripts/test_validate_json.py` so schema detection/regression paths stay honest.
 - If you change canonical profile behavior or docs, update `docs/api/profiles.json` and run `python3 scripts/validate_json.py docs/api/profiles.json` plus `python3 scripts/test_profile_contract.py` so runtime manifests still match the published profile contract.
 

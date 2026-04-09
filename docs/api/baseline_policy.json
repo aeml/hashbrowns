@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "metadata": {
+    "hard_fail_fields": [
+      "schema_version",
+      "size",
+      "runs",
+      "warmup_runs",
+      "bootstrap_iters",
+      "profile",
+      "structures",
+      "pattern",
+      "seed",
+      "build_type",
+      "hash_strategy",
+      "hash_capacity",
+      "hash_load",
+      "pinned_cpu",
+      "turbo_disabled"
+    ],
+    "warning_only_fields": [
+      "cpu_model",
+      "compiler",
+      "cpp_standard",
+      "cpu_governor",
+      "cores",
+      "total_ram_bytes",
+      "kernel"
+    ]
+  },
+  "strict_profile_intent": {
+    "flag": "--baseline-strict-profile-intent",
+    "required_manifest_fields": [
+      "profile_selected",
+      "profile_applied_defaults",
+      "profile_explicit_overrides"
+    ],
+    "mismatch_modes": [
+      "manifest_presence",
+      "profile_selected",
+      "profile_applied_defaults",
+      "profile_explicit_overrides"
+    ]
+  },
+  "comparison": {
+    "allowed_scopes": ["mean", "p95", "ci_high", "any"],
+    "noise_floor_rule": "absolute delta percentages at or below noise_floor_pct are ignored before threshold_pct enforcement"
+  },
+  "report_exit_codes": {
+    "success": 0,
+    "per_operation_guard_failure": 2,
+    "binary_regression": 4,
+    "metadata_mismatch": 5
+  }
+}
