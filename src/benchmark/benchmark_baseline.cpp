@@ -671,6 +671,13 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
     else
         out.health = "clean";
 
+    if (has_duplicates)
+        out.actionability = "not_actionable";
+    else if (has_partial_coverage)
+        out.actionability = "actionable_with_hygiene_warnings";
+    else
+        out.actionability = "fully_actionable";
+
     return out;
 }
 
@@ -743,6 +750,7 @@ void write_baseline_report_json(const std::string& path, const BaselineReport& r
     out << "    \"all_ok\": " << (report.comparison.all_ok ? "true" : "false") << ",\n";
     out << "    \"decision_basis\": \"" << report.comparison.scope << "\",\n";
     out << "    \"health\": \"" << report.comparison.health << "\",\n";
+    out << "    \"actionability\": \"" << report.comparison.actionability << "\",\n";
     out << "    \"coverage\": {\n";
     out << "      \"baseline_structure_count\": " << report.comparison.coverage.baseline_structure_count << ",\n";
     out << "      \"current_structure_count\": " << report.comparison.coverage.current_structure_count << ",\n";

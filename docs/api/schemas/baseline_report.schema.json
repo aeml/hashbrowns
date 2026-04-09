@@ -33,11 +33,12 @@
     },
     "comparison": {
       "type": "object",
-      "required": ["all_ok", "decision_basis", "health", "coverage", "failures", "entries"],
+      "required": ["all_ok", "decision_basis", "health", "actionability", "coverage", "failures", "entries"],
       "properties": {
         "all_ok": {"type": "boolean"},
         "decision_basis": {"type": "string", "enum": ["mean", "p95", "ci_high", "any"]},
         "health": {"type": "string", "enum": ["clean", "partial_coverage", "duplicate_inputs", "partial_coverage_with_duplicates"]},
+        "actionability": {"type": "string", "enum": ["fully_actionable", "actionable_with_hygiene_warnings", "not_actionable"]},
         "coverage": {
           "type": "object",
           "required": ["baseline_structure_count", "current_structure_count", "comparable_structure_count", "baseline_only_structures", "current_only_structures", "duplicate_baseline_structures", "duplicate_current_structures"],

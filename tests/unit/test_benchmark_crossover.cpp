@@ -319,6 +319,10 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Fully comparable non-duplicated baseline comparison should be classified as clean\n";
             ++failures;
         }
+        if (comparison.actionability != "fully_actionable") {
+            std::cout << "❌ Clean comparison should be fully actionable\n";
+            ++failures;
+        }
         if (comparison.entries.front().insert_basis != "mean" ||
             comparison.entries.front().search_basis != "mean" ||
             comparison.entries.front().remove_basis != "mean") {
@@ -399,6 +403,10 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Missing structures should classify comparison health as partial_coverage\n";
             ++failures;
         }
+        if (coverage_comparison.actionability != "actionable_with_hygiene_warnings") {
+            std::cout << "❌ Partial coverage should remain actionable but with hygiene warnings\n";
+            ++failures;
+        }
 
         auto duplicate_baseline = baseline;
         duplicate_baseline.push_back(br1);
@@ -412,6 +420,10 @@ int run_benchmark_crossover_tests() {
         }
         if (duplicate_comparison.health != "duplicate_inputs") {
             std::cout << "❌ Duplicate structures without coverage drift should classify comparison health as duplicate_inputs\n";
+            ++failures;
+        }
+        if (duplicate_comparison.actionability != "not_actionable") {
+            std::cout << "❌ Duplicate inputs should classify comparison actionability as not_actionable\n";
             ++failures;
         }
 
@@ -510,6 +522,10 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Partial coverage plus duplicates should classify comparison health as partial_coverage_with_duplicates\n";
             ++failures;
         }
+        if (duplicate_partial_comparison.actionability != "not_actionable") {
+            std::cout << "❌ Partial coverage plus duplicates should classify comparison actionability as not_actionable\n";
+            ++failures;
+        }
 
         BaselineReport report_json;
         report_json.metadata              = meta_ok;
@@ -533,6 +549,7 @@ int run_benchmark_crossover_tests() {
                 baseline_report_content.find("\"scope\": \"mean\"") == std::string::npos ||
                 baseline_report_content.find("\"decision_basis\": \"mean\"") == std::string::npos ||
                 baseline_report_content.find("\"health\": \"partial_coverage_with_duplicates\"") == std::string::npos ||
+                baseline_report_content.find("\"actionability\": \"not_actionable\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_basis\": \"mean\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_mean_delta_pct\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_p95_delta_pct\"") == std::string::npos ||
