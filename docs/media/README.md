@@ -2,9 +2,13 @@
 
 Drop README-facing visual assets here.
 
-Recommended files:
-- `benchmark-chart.png` — benchmark chart comparing structures across key operations
-- `results-output.png` — console, JSON, or CSV output capture that shows the measurement pipeline
+Current README assets:
+- `benchmark-chart.svg` — chart-style summary generated from a real benchmark run
+- `results-output.svg` — terminal-style capture generated from the same real benchmark run
+
+Recommended next assets:
+- `benchmark-chart.png` — exported raster chart if you want social-preview-friendly images
+- `results-output.png` — rasterized output capture if needed for platforms with weak SVG rendering
 - optional additional charts/images as the analysis tooling improves
 
 Guidelines:

@@ -1,8 +1,45 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
-  <rect width="1280" height="720" fill="#1c1917"/>
-  <rect x="50" y="50" width="1180" height="620" rx="18" fill="#292524" stroke="#f97316" stroke-width="3" stroke-dasharray="12 10"/>
-  <text x="640" y="210" text-anchor="middle" fill="#fff7ed" font-size="42" font-family="Arial, sans-serif">Hashbrowns README Placeholder</text>
-  <text x="640" y="280" text-anchor="middle" fill="#fdba74" font-size="28" font-family="Arial, sans-serif">Replace with real benchmark chart</text>
-  <text x="640" y="330" text-anchor="middle" fill="#fdba74" font-size="28" font-family="Arial, sans-serif">Show structure tradeoffs across insert/search/remove workloads</text>
-  <text x="640" y="600" text-anchor="middle" fill="#fed7aa" font-size="24" font-family="Arial, sans-serif">docs/media/benchmark-chart.svg → replace with real chart export</text>
+  <rect width="1280" height="720" fill="#0f172a"/>
+  <text x="70" y="80" fill="#e2e8f0" font-size="34" font-family="Arial, sans-serif" font-weight="700">Hashbrowns benchmark snapshot</text>
+  <text x="70" y="115" fill="#94a3b8" font-size="20" font-family="Arial, sans-serif">Real run: size=12000, runs=8, sequential pattern, structures=array,slist,dlist,hashmap</text>
+
+  <line x1="140" y1="580" x2="1180" y2="580" stroke="#475569" stroke-width="2"/>
+  <line x1="140" y1="180" x2="140" y2="580" stroke="#475569" stroke-width="2"/>
+
+  <text x="140" y="620" fill="#94a3b8" font-size="18" font-family="Arial, sans-serif">Array</text>
+  <text x="390" y="620" fill="#94a3b8" font-size="18" font-family="Arial, sans-serif">SList</text>
+  <text x="640" y="620" fill="#94a3b8" font-size="18" font-family="Arial, sans-serif">DList</text>
+  <text x="890" y="620" fill="#94a3b8" font-size="18" font-family="Arial, sans-serif">HashMap</text>
+
+  <text x="1030" y="170" fill="#cbd5e1" font-size="18" font-family="Arial, sans-serif">Operation mean (ms)</text>
+  <rect x="1030" y="190" width="16" height="16" rx="4" fill="#fb7185"/>
+  <text x="1055" y="204" fill="#f8fafc" font-size="17" font-family="Arial, sans-serif">Insert</text>
+  <rect x="1030" y="220" width="16" height="16" rx="4" fill="#38bdf8"/>
+  <text x="1055" y="234" fill="#f8fafc" font-size="17" font-family="Arial, sans-serif">Search</text>
+  <rect x="1030" y="250" width="16" height="16" rx="4" fill="#f59e0b"/>
+  <text x="1055" y="264" fill="#f8fafc" font-size="17" font-family="Arial, sans-serif">Remove</text>
+
+  <!-- scaled against max remove = 279553 -->
+  <!-- Array -->
+  <rect x="170" y="579.2" width="42" height="0.8" fill="#fb7185"/>
+  <rect x="218" y="548.8" width="42" height="31.2" fill="#38bdf8"/>
+  <rect x="266" y="180" width="42" height="400" fill="#f59e0b"/>
+
+  <!-- SList -->
+  <rect x="420" y="579.6" width="42" height="0.4" fill="#fb7185"/>
+  <rect x="468" y="482.4" width="42" height="97.6" fill="#38bdf8"/>
+  <rect x="516" y="579.9" width="42" height="0.1" fill="#f59e0b"/>
+
+  <!-- DList -->
+  <rect x="670" y="579.6" width="42" height="0.4" fill="#fb7185"/>
+  <rect x="718" y="471.5" width="42" height="108.5" fill="#38bdf8"/>
+  <rect x="766" y="579.9" width="42" height="0.1" fill="#f59e0b"/>
+
+  <!-- HashMap -->
+  <rect x="920" y="577.5" width="42" height="2.5" fill="#fb7185"/>
+  <rect x="968" y="579.7" width="42" height="0.3" fill="#38bdf8"/>
+  <rect x="1016" y="579.8" width="42" height="0.2" fill="#f59e0b"/>
+
+  <text x="70" y="665" fill="#cbd5e1" font-size="18" font-family="Arial, sans-serif">Fast take: HashMap crushes search, linked lists dominate remove, array insert is slower than linked lists here, and array remove is brutally expensive.</text>
+  <text x="70" y="692" fill="#94a3b8" font-size="16" font-family="Arial, sans-serif">Crossover output from the same run found insert crossovers at array↔dlist=947, array↔slist=999, and dlist↔slist=4551.</text>
 </svg>
