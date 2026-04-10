@@ -340,7 +340,7 @@ Notes:
 - `scripts/test_perf_guard_wrapper_manifest.py` regression-tests that wrapper behavior so artifact-path redirection in tests does not silently corrupt the canonical `ci` manifest contract.
 - `docs/api/perf_guard_contract.json` publishes the canonical perf-guard wrapper/report contract, and `scripts/test_perf_guard_contract.py` checks that the wrapper and emitted report still match it.
 - `docs/api/baseline_policy.json` publishes the machine-readable baseline compatibility policy, and `scripts/test_baseline_policy_contract.py` checks that the documented hard-fail/warning-only/strict-intent rules still match the implementation.
-- `scripts/build_report.py` turns benchmark, series, crossover, and baseline-report JSON artifacts into one compact reviewer-facing markdown summary so humans do not have to inspect raw JSON trees.
+- `scripts/build_report.py` turns benchmark, series, crossover, and baseline-report JSON artifacts into one compact reviewer-facing markdown summary so humans do not have to inspect raw JSON trees. It now includes compact per-structure coarse deltas and structured coarse failure tables in addition to guard/hygiene summaries.
 
 ### API & stability
 

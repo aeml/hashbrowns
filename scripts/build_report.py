@@ -22,6 +22,10 @@ def fmt_code(value: Any) -> str:
     return f'`{value}`'
 
 
+def fmt_pct(value: Any) -> str:
+    return f'{float(value):.2f}%'
+
+
 def extract_profile(meta: Dict[str, Any]) -> str:
     return str(meta.get('profile', 'custom'))
 
@@ -74,6 +78,45 @@ def summarize_baseline_failures(report: Dict[str, Any]) -> List[str]:
     per_guard = report.get('per_operation_guard', {}) or {}
     failures = per_guard.get('failures', []) or []
     return [f'- {msg}' for msg in failures]
+
+
+def summarize_comparison_entries(entries: Sequence[Dict[str, Any]]) -> List[str]:
+    lines = [
+        '| Structure | Verdict | Insert delta | Search delta | Remove delta |',
+        '| --- | --- | --- | --- | --- |',
+    ]
+    for entry in entries:
+        verdict = 'pass' if entry.get('insert_ok') and entry.get('search_ok') and entry.get('remove_ok') else 'fail'
+        lines.append(
+            '| ' + ' | '.join([
+                fmt_code(entry.get('structure', 'unknown')),
+                verdict,
+                fmt_code(fmt_pct(entry.get('insert_delta_pct', 0.0))),
+                fmt_code(fmt_pct(entry.get('search_delta_pct', 0.0))),
+                fmt_code(fmt_pct(entry.get('remove_delta_pct', 0.0))),
+            ]) + ' |'
+        )
+    return lines
+
+
+def summarize_structured_failures(failures: Sequence[Dict[str, Any]]) -> List[str]:
+    lines = [
+        '| Structure | Operation | Basis | Delta | Threshold | Failed metric families |',
+        '| --- | --- | --- | --- | --- | --- |',
+    ]
+    for failure in failures:
+        metric_families = ', '.join(failure.get('failed_metric_families', [])) or 'none'
+        lines.append(
+            '| ' + ' | '.join([
+                fmt_code(failure.get('structure', 'unknown')),
+                fmt_code(failure.get('operation', 'unknown')),
+                fmt_code(failure.get('chosen_basis', 'unknown')),
+                fmt_code(fmt_pct(failure.get('chosen_delta_pct', 0.0))),
+                fmt_code(fmt_pct(failure.get('threshold_pct', 0.0))),
+                fmt_code(metric_families),
+            ]) + ' |'
+        )
+    return lines
 
 
 def build_markdown(
@@ -173,6 +216,20 @@ def build_markdown(
         lines.append(f"- Baseline-only structures: {fmt_code(fmt_list(coverage.get('baseline_only_structures', [])))}")
         lines.append(f"- Current-only structures: {fmt_code(fmt_list(coverage.get('current_only_structures', [])))}")
         lines.append('')
+
+        comparison_entries = comparison.get('entries', []) or []
+        if comparison_entries:
+            lines.append('### Per-structure coarse comparison')
+            lines.append('')
+            lines.extend(summarize_comparison_entries(comparison_entries))
+            lines.append('')
+
+        structured_failures = comparison.get('failures', []) or []
+        if structured_failures:
+            lines.append('### Structured coarse failures')
+            lines.append('')
+            lines.extend(summarize_structured_failures(structured_failures))
+            lines.append('')
 
         failures = summarize_baseline_failures(baseline)
         if failures:

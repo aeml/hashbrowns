@@ -157,7 +157,16 @@ def build_fixture_set(tmp: Path):
                 'duplicate_baseline_structures': [],
                 'duplicate_current_structures': []
             },
-            'failures': [],
+            'failures': [
+                {
+                    'structure': 'hashmap',
+                    'operation': 'insert',
+                    'chosen_basis': 'mean',
+                    'chosen_delta_pct': 24.0,
+                    'threshold_pct': 20.0,
+                    'failed_metric_families': ['mean', 'p95']
+                }
+            ],
             'entries': [
                 {
                     'structure': 'array',
@@ -224,6 +233,10 @@ def test_build_report_generates_honest_markdown_summary():
         assert 'Coverage summary' in text
         assert 'Missing structures: `1`' in text
         assert 'Baseline-only structures: `dlist`' in text
+        assert 'Per-structure coarse comparison' in text
+        assert '| `array` | pass | `2.00%` | `3.00%` | `4.00%` |' in text
+        assert 'Structured coarse failures' in text
+        assert '| `hashmap` | `insert` | `mean` | `24.00%` | `20.00%` | `mean, p95` |' in text
 
 
 def test_build_report_requires_at_least_one_input_artifact():

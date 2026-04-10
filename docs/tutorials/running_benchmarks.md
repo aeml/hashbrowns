@@ -74,7 +74,7 @@ python3 scripts/build_report.py \
   --output build/benchmark_report.md
 ```
 
-The generated markdown intentionally stays honest. It summarizes run identity, profile-manifest intent, fastest mean timings, crossover hints, baseline hygiene/evidence state, coverage gaps, and exact guard failures without pretending the report proved more than the artifacts actually support.
+The generated markdown intentionally stays honest. It summarizes run identity, profile-manifest intent, fastest mean timings, crossover hints, baseline hygiene/evidence state, coverage gaps, compact per-structure coarse deltas, structured coarse failures, and exact guard failures without pretending the report proved more than the artifacts actually support.
 
 ## Quick helper
 
