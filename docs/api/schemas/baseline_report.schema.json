@@ -33,7 +33,7 @@
     },
     "comparison": {
       "type": "object",
-      "required": ["all_ok", "decision_basis", "health", "actionability", "recommended_disposition", "disposition_reasons", "summary", "has_hygiene_issues", "hygiene_issue_count", "hygiene_gate", "coverage", "failures", "entries"],
+      "required": ["all_ok", "decision_basis", "health", "actionability", "recommended_disposition", "disposition_reasons", "summary", "has_hygiene_issues", "hygiene_issue_count", "hygiene_gate", "perf_signal_strength", "coverage", "failures", "entries"],
       "properties": {
         "all_ok": {"type": "boolean"},
         "decision_basis": {"type": "string", "enum": ["mean", "p95", "ci_high", "any"]},
@@ -54,6 +54,7 @@
         "has_hygiene_issues": {"type": "boolean"},
         "hygiene_issue_count": {"type": "integer", "minimum": 0},
         "hygiene_gate": {"type": "string", "enum": ["clean", "warn", "block"]},
+        "perf_signal_strength": {"type": "string", "enum": ["none", "limited", "strong"]},
         "coverage": {
           "type": "object",
           "required": ["baseline_structure_count", "current_structure_count", "comparable_structure_count", "baseline_only_structures", "current_only_structures", "duplicate_baseline_structures", "duplicate_current_structures"],

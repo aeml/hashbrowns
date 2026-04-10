@@ -60,6 +60,7 @@ This document describes the JSON structures emitted by hashbrowns. A minimal `sc
   - `has_hygiene_issues` (bool): fast CI/dashboard gate for whether the comparison surface is clean
   - `hygiene_issue_count` (int): compact count of triggered hygiene issue categories
   - `hygiene_gate` (string): compact CI-facing hygiene state: `clean|warn|block`
+  - `perf_signal_strength` (string): how much benchmarking evidence is actually comparable: `none|limited|strong`
   - `coverage` (object): honest accounting of what was actually compared and whether either side was malformed
     - `baseline_structure_count`
     - `current_structure_count`

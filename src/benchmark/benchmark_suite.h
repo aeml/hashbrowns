@@ -112,6 +112,7 @@ struct BaselineComparison {
     bool has_hygiene_issues{false};
     std::size_t hygiene_issue_count{0};
     std::string hygiene_gate{"clean"};
+    std::string perf_signal_strength{"none"};
     bool all_ok{true};
     std::string scope{"mean"};
     std::string health{"clean"};

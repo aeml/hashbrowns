@@ -704,6 +704,13 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
     else
         out.hygiene_gate = "block";
 
+    if (out.entries.empty())
+        out.perf_signal_strength = "none";
+    else if (out.health == "clean")
+        out.perf_signal_strength = "strong";
+    else
+        out.perf_signal_strength = "limited";
+
     return out;
 }
 
@@ -787,6 +794,7 @@ void write_baseline_report_json(const std::string& path, const BaselineReport& r
     out << "    \"has_hygiene_issues\": " << (report.comparison.has_hygiene_issues ? "true" : "false") << ",\n";
     out << "    \"hygiene_issue_count\": " << report.comparison.hygiene_issue_count << ",\n";
     out << "    \"hygiene_gate\": \"" << report.comparison.hygiene_gate << "\",\n";
+    out << "    \"perf_signal_strength\": \"" << report.comparison.perf_signal_strength << "\",\n";
     out << "    \"coverage\": {\n";
     out << "      \"baseline_structure_count\": " << report.comparison.coverage.baseline_structure_count << ",\n";
     out << "      \"current_structure_count\": " << report.comparison.coverage.current_structure_count << ",\n";
