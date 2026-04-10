@@ -154,7 +154,10 @@ set(TEST_SOURCES
     tests/unit/test_benchmark_crossover.cpp
 )
 if(TEST_SOURCES)
-    add_executable(unit_tests ${TEST_SOURCES})
+    add_executable(unit_tests
+        ${TEST_SOURCES}
+        src/cli/cli_args.cpp
+    )
     target_link_libraries(unit_tests PRIVATE hashbrowns_core hashbrowns_structures simple_test)
     if(TARGET hashbrowns_benchmark)
         target_link_libraries(unit_tests PRIVATE hashbrowns_benchmark)
