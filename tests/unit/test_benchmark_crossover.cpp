@@ -341,6 +341,10 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Clean comparison should report no hygiene issues\n";
             ++failures;
         }
+        if (comparison.hygiene_gate != "clean") {
+            std::cout << "❌ Clean comparison should classify hygiene_gate as clean\n";
+            ++failures;
+        }
         if (comparison.entries.front().insert_basis != "mean" ||
             comparison.entries.front().search_basis != "mean" ||
             comparison.entries.front().remove_basis != "mean") {
@@ -444,6 +448,10 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Partial coverage should report one hygiene issue\n";
             ++failures;
         }
+        if (coverage_comparison.hygiene_gate != "warn") {
+            std::cout << "❌ Partial coverage should classify hygiene_gate as warn\n";
+            ++failures;
+        }
 
         auto duplicate_baseline = baseline;
         duplicate_baseline.push_back(br1);
@@ -481,6 +489,10 @@ int run_benchmark_crossover_tests() {
         }
         if (!duplicate_comparison.has_hygiene_issues || duplicate_comparison.hygiene_issue_count != 2) {
             std::cout << "❌ Duplicate comparison should report two hygiene issues\n";
+            ++failures;
+        }
+        if (duplicate_comparison.hygiene_gate != "block") {
+            std::cout << "❌ Duplicate comparison should classify hygiene_gate as block\n";
             ++failures;
         }
 
@@ -604,6 +616,10 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Partial coverage plus duplicates should report three hygiene issues\n";
             ++failures;
         }
+        if (duplicate_partial_comparison.hygiene_gate != "block") {
+            std::cout << "❌ Partial coverage plus duplicates should classify hygiene_gate as block\n";
+            ++failures;
+        }
 
         BaselineReport report_json;
         report_json.metadata              = meta_ok;
@@ -633,6 +649,7 @@ int run_benchmark_crossover_tests() {
                 baseline_report_content.find("\"summary\": {\"missing_structure_count\": 2, \"duplicate_baseline_structure_count\": 1, \"duplicate_current_structure_count\": 1}") == std::string::npos ||
                 baseline_report_content.find("\"has_hygiene_issues\": true") == std::string::npos ||
                 baseline_report_content.find("\"hygiene_issue_count\": 3") == std::string::npos ||
+                baseline_report_content.find("\"hygiene_gate\": \"block\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_basis\": \"mean\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_mean_delta_pct\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_p95_delta_pct\"") == std::string::npos ||

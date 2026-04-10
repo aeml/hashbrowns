@@ -697,6 +697,12 @@ BaselineComparison compare_against_baseline(const std::vector<BenchmarkResult>& 
     out.summary.duplicate_current_structure_count  = out.coverage.duplicate_current_structures.size();
     out.hygiene_issue_count = out.disposition_reasons.size();
     out.has_hygiene_issues  = out.hygiene_issue_count > 0;
+    if (!out.has_hygiene_issues)
+        out.hygiene_gate = "clean";
+    else if (out.actionability == "actionable_with_hygiene_warnings")
+        out.hygiene_gate = "warn";
+    else
+        out.hygiene_gate = "block";
 
     return out;
 }
@@ -780,6 +786,7 @@ void write_baseline_report_json(const std::string& path, const BaselineReport& r
         << ", \"duplicate_current_structure_count\": " << report.comparison.summary.duplicate_current_structure_count << "},\n";
     out << "    \"has_hygiene_issues\": " << (report.comparison.has_hygiene_issues ? "true" : "false") << ",\n";
     out << "    \"hygiene_issue_count\": " << report.comparison.hygiene_issue_count << ",\n";
+    out << "    \"hygiene_gate\": \"" << report.comparison.hygiene_gate << "\",\n";
     out << "    \"coverage\": {\n";
     out << "      \"baseline_structure_count\": " << report.comparison.coverage.baseline_structure_count << ",\n";
     out << "      \"current_structure_count\": " << report.comparison.coverage.current_structure_count << ",\n";

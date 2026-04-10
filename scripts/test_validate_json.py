@@ -154,6 +154,7 @@ def test_detects_baseline_report_schema():
                 },
                 'has_hygiene_issues': False,
                 'hygiene_issue_count': 0,
+                'hygiene_gate': 'clean',
                 'coverage': {
                     'baseline_structure_count': 1,
                     'current_structure_count': 1,
