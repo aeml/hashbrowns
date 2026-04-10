@@ -61,6 +61,21 @@ That split matters. A different seedless workload or different hash-map tuning i
 
 On regression beyond the threshold, the process exits non-zero, which is ideal for CI. The canonical `scripts/perf_guard.*` wrappers now write `build/perf_guard_report.json` automatically so automation gets structured output by default.
 
+## Build a compact markdown report from JSON artifacts
+
+When you have JSON outputs from benchmark, series, crossover, or baseline comparison flows, build one reviewer-facing summary instead of manually diffing raw objects:
+
+```bash
+python3 scripts/build_report.py \
+  --benchmark-json build/benchmark_results.json \
+  --series-json build/series_results.json \
+  --crossover-json build/crossover_results.json \
+  --baseline-report-json build/perf_guard_report.json \
+  --output build/benchmark_report.md
+```
+
+The generated markdown intentionally stays honest. It summarizes run identity, profile-manifest intent, fastest mean timings, crossover hints, baseline hygiene/evidence state, coverage gaps, and exact guard failures without pretending the report proved more than the artifacts actually support.
+
 ## Quick helper
 
 ```bash

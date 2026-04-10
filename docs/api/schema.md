@@ -87,3 +87,4 @@ This document describes the JSON structures emitted by hashbrowns. A minimal `sc
 - `docs/api/profiles.json` is the machine-readable contract for canonical named profiles; validate it against `docs/api/schemas/profiles.schema.json` and runtime behavior with `scripts/test_profile_contract.py`.
 - `docs/api/perf_guard_contract.json` is the machine-readable contract for the canonical perf guard workflow; validate it against `docs/api/schemas/perf_guard_contract.schema.json` and runtime behavior with `scripts/test_perf_guard_contract.py`.
 - `docs/api/baseline_policy.json` is the machine-readable contract for baseline compatibility policy; validate it against `docs/api/schemas/baseline_policy.schema.json` and keep it aligned with metadata guardrail behavior.
+- `scripts/build_report.py` is the reviewer-facing report builder for these JSON artifacts; regression-test it with `python3 scripts/test_build_report.py` when changing the report summary surface.

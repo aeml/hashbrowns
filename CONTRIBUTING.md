@@ -134,6 +134,7 @@ scripts/perf_guard.sh --update
 Contributors changing hot paths should:
 - Run perf guard locally before pushing.
 - Treat the push gate as CI-like, not best-effort: before pushing benchmark/report changes, run the relevant focused script tests plus a fresh `scripts/perf_guard.sh` so `build/perf_guard_report.json` still validates and reflects the current contract.
+- If you change `scripts/build_report.py`, run `python3 scripts/test_build_report.py` so the reviewer-facing markdown summary stays aligned with the structured artifact contracts.
 - Provide before/after JSON plus rationale in PR if intentional performance changes.
 - Update baseline only with team approval.
 - If you refresh the checked-in baseline, use `scripts/perf_guard.sh --update`, then run `scripts/perf_guard.sh` and keep the resulting `build/perf_guard_report.json` as evidence that the refreshed baseline is internally consistent. Expect the manifest to stay canonical for workload-shaping fields; the fixed perf-guard output path and forced JSON artifact format may still appear as explicit `output` and `out_format` overrides.

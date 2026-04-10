@@ -53,6 +53,10 @@ Practical consequence:
 - Changing `--pattern random` to `--pattern sequential`, dropping `--seed`, changing `--runs`, or retuning HashMap load factor is not a regression. It is a different experiment.
 - Running the same workload on a different CPU or compiler can still be compared, but the tool warns that the environment moved and the claim should stay modest.
 
+## Reporting
+
+Raw JSON is useful for automation, but humans should not have to reconstruct the story from nested objects. Use `scripts/build_report.py` to turn benchmark, series, crossover, and baseline-report JSON artifacts into one compact markdown summary. The report is intentionally conservative: it surfaces profile intent, evidence strength, hygiene state, coverage gaps, and exact guard failures so a reviewer can see both the result and how trustworthy the comparison actually was.
+
 ## Caveats
 
 - Measurements are sensitive to CPU frequency scaling, cache effects, and compiler optimizations
