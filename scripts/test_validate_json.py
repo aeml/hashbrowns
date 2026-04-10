@@ -140,7 +140,32 @@ def test_detects_baseline_report_schema():
             'strict_profile_intent': False,
             'exit_code': 0,
             'metadata': {'ok': True, 'errors': [], 'warnings': []},
-            'comparison': {'all_ok': True, 'entries': []},
+            'comparison': {
+                'all_ok': True,
+                'decision_basis': 'mean',
+                'health': 'clean',
+                'actionability': 'fully_actionable',
+                'recommended_disposition': 'accept',
+                'disposition_reasons': [],
+                'summary': {
+                    'missing_structure_count': 0,
+                    'duplicate_baseline_structure_count': 0,
+                    'duplicate_current_structure_count': 0,
+                },
+                'has_hygiene_issues': False,
+                'hygiene_issue_count': 0,
+                'coverage': {
+                    'baseline_structure_count': 1,
+                    'current_structure_count': 1,
+                    'comparable_structure_count': 1,
+                    'baseline_only_structures': [],
+                    'current_only_structures': [],
+                    'duplicate_baseline_structures': [],
+                    'duplicate_current_structures': [],
+                },
+                'failures': [],
+                'entries': []
+            },
             'per_operation_guard': {
                 'ok': True,
                 'tolerances_pct': {'insert': 20, 'search': 20, 'remove': 20},

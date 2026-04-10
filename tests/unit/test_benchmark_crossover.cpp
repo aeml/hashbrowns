@@ -337,6 +337,10 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Clean comparison summary counts should all be zero\n";
             ++failures;
         }
+        if (comparison.has_hygiene_issues || comparison.hygiene_issue_count != 0) {
+            std::cout << "❌ Clean comparison should report no hygiene issues\n";
+            ++failures;
+        }
         if (comparison.entries.front().insert_basis != "mean" ||
             comparison.entries.front().search_basis != "mean" ||
             comparison.entries.front().remove_basis != "mean") {
@@ -436,6 +440,10 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Partial coverage summary should count missing structures honestly\n";
             ++failures;
         }
+        if (!coverage_comparison.has_hygiene_issues || coverage_comparison.hygiene_issue_count != 1) {
+            std::cout << "❌ Partial coverage should report one hygiene issue\n";
+            ++failures;
+        }
 
         auto duplicate_baseline = baseline;
         duplicate_baseline.push_back(br1);
@@ -469,6 +477,10 @@ int run_benchmark_crossover_tests() {
             duplicate_comparison.summary.duplicate_baseline_structure_count != 1 ||
             duplicate_comparison.summary.duplicate_current_structure_count != 1) {
             std::cout << "❌ Duplicate comparison summary should count baseline/current duplicate structures\n";
+            ++failures;
+        }
+        if (!duplicate_comparison.has_hygiene_issues || duplicate_comparison.hygiene_issue_count != 2) {
+            std::cout << "❌ Duplicate comparison should report two hygiene issues\n";
             ++failures;
         }
 
@@ -588,6 +600,10 @@ int run_benchmark_crossover_tests() {
             std::cout << "❌ Partial coverage plus duplicates summary should count all hygiene issues\n";
             ++failures;
         }
+        if (!duplicate_partial_comparison.has_hygiene_issues || duplicate_partial_comparison.hygiene_issue_count != 3) {
+            std::cout << "❌ Partial coverage plus duplicates should report three hygiene issues\n";
+            ++failures;
+        }
 
         BaselineReport report_json;
         report_json.metadata              = meta_ok;
@@ -615,6 +631,8 @@ int run_benchmark_crossover_tests() {
                 baseline_report_content.find("\"recommended_disposition\": \"reject_input_hygiene\"") == std::string::npos ||
                 baseline_report_content.find("\"disposition_reasons\": [\"missing_structures\",\"duplicate_baseline_structures\",\"duplicate_current_structures\"]") == std::string::npos ||
                 baseline_report_content.find("\"summary\": {\"missing_structure_count\": 2, \"duplicate_baseline_structure_count\": 1, \"duplicate_current_structure_count\": 1}") == std::string::npos ||
+                baseline_report_content.find("\"has_hygiene_issues\": true") == std::string::npos ||
+                baseline_report_content.find("\"hygiene_issue_count\": 3") == std::string::npos ||
                 baseline_report_content.find("\"insert_basis\": \"mean\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_mean_delta_pct\"") == std::string::npos ||
                 baseline_report_content.find("\"insert_p95_delta_pct\"") == std::string::npos ||

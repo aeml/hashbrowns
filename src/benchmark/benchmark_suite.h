@@ -109,6 +109,8 @@ struct BaselineComparison {
     std::vector<Failure> failures;
     Coverage coverage;
     Summary summary;
+    bool has_hygiene_issues{false};
+    std::size_t hygiene_issue_count{0};
     bool all_ok{true};
     std::string scope{"mean"};
     std::string health{"clean"};
